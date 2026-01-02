@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "jsx": "preserve",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["ESNext", "DOM"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    // 设置别名 @ 指向 src 目录（可选，但很常用）
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",  // 👈 关键：告诉 TS 一定要读取 .d.ts 声明文件
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "electron/**/*.ts",
+    "vite-env.d.ts"   // 👈 关键：显式包含我们刚才建的那个文件
+  ]
+}

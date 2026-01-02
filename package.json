@@ -1,0 +1,53 @@
+{
+  "name": "dnd-character-sheet",
+  "private": true,
+  "main": "dist-electron/main.js",
+  "version": "0.8.0",
+  "author": "雪荔枝snowlitch & gemini 3.0",
+  "description": "DnD 5e Character Manager",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.24",
+    "vuedraggable": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "vite": "^7.2.4",
+    "vite-plugin-electron": "^0.29.0"
+  },
+  "build": {
+    "appId": "com.yourname.dndsheet",
+    "productName": "DnD角色卡管理器-v.0.8.0",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}
