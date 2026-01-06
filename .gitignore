@@ -29,3 +29,7 @@ release/*
 # dist-electron
 dist-electron/*
 dist-electron
+
+# save file
+saves
+saves/*
