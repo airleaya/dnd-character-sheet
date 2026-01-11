@@ -51,3 +51,23 @@ export const calcRealIndex = (viewList: any[], evt: any, globalInventory: any[])
   // 如果找不到，默认最后
   return realIndex === -1 ? globalInventory.length : realIndex;
 };
+
+
+/**
+ * 设置拖拽数据的通用工具函数
+ * @param e 原生 DragEvent
+ * @param type 物品来源类型 ('inventory-item' | 'library-item')
+ * @param id 物品标识符 (背包物品传 instanceId, 图鉴物品传 id)
+ */
+export const setupDragData = (e: DragEvent, type: 'inventory-item' | 'library-item', id: string) => {
+  if (!e.dataTransfer) return;
+
+  const payload = {
+    type,
+    ...(type === 'inventory-item' ? { instanceId: id } : { id: id })
+  };
+
+  e.dataTransfer.setData('text/plain', JSON.stringify(payload));
+  e.dataTransfer.effectAllowed = 'copyMove';
+  e.stopPropagation();
+};

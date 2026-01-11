@@ -1075,6 +1075,18 @@ export const useActiveSheetStore = defineStore('activeSheet', {
       }
     },
 
+    // 更新背包中的某个物品实例
+    updateInventoryItem(newItem: InventoryItem) {
+      if (!this.character) return;
+      
+      const index = this.character.inventory.findIndex(i => i.instanceId === newItem.instanceId);
+      if (index > -1) {
+        // 直接替换
+        this.character.inventory[index] = newItem;
+        this.save();
+      }
+    },
+
     // 【新】更新装备栏列表
     updateEquippedList(newIds: string[]) {
         if (!this.character) return;

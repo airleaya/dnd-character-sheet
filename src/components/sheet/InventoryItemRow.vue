@@ -2,7 +2,7 @@
 import { ref, computed, inject } from 'vue';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 import draggable from 'vuedraggable';
-import { calcRealIndex } from '../../utils/inventoryDropUtils';
+import { calcRealIndex,setupDragData } from '../../utils/inventoryDropUtils';
 
 const props = defineProps<{
   item: any; // 当前物品对象
@@ -107,6 +107,10 @@ const onDropIntoContainer = (evt: any) => {
   }
 };
 
+const onDragStart = (e: DragEvent, item: any) => {
+  setupDragData(e, 'inventory-item', item.instanceId);
+};
+
 const handleDelete = () => {
   tooltipApi.onLeave();
   store.moveItemToTrash(props.item.instanceId);
@@ -187,7 +191,10 @@ const handleDelete = () => {
         ghost-class="ghost"
       >
         <template #item="{ element }">
-          <InventoryItemRow :item="element" />
+          <InventoryItemRow 
+          :item="element" 
+          @dragstart="onDragStart($event, element)"
+          />
         </template>
         
         <template #header>

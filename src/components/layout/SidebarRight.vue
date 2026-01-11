@@ -5,6 +5,7 @@ import { ref } from 'vue';
 import LibraryItemsPanel from '../sheet/LibraryItemsPanel.vue';
 import LibrarySpellsPanel from '../sheet/LibrarySpellsPanel.vue';
 import LibraryTooltip from '../sidebar/LibraryTooltip.vue';
+import ForgeDropZone from '../sidebar/ForgeDropZone.vue';
 
 // 状态管理
 type RootTab = 'items' | 'spells' | 'features';
@@ -81,6 +82,8 @@ const onLeaveItem = () => {
 
       <div v-if="activeTab === 'features'" class="empty-state">🚧 开发中...</div>
     </div>
+
+    <ForgeDropZone/>
 
     <Transition name="fade">
       <LibraryTooltip 

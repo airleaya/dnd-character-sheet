@@ -13,6 +13,7 @@ import { TOOL_LIBRARY } from '../../data/libraries/tools';
 import { CONSUMABLE_LIBRARY } from '../../data/libraries/consumables';
 import { TREASURE_LIBRARY } from '../../data/libraries/treasures';
 import { PACK_LIBRARY } from '../../data/libraries/packs';
+import { setupDragData } from '../../utils/inventoryDropUtils';
 
 const props = defineProps<{
   searchQuery: string;
@@ -92,7 +93,13 @@ const toggleExpand = (key: string) => { expandedState.value[key] = !expandedStat
 
 // 拖拽辅助
 const cloneItem = (item: any) => ({ libraryId: item.id });
-const handleDragStart = () => emit('leave-item');
+
+// const handleDragStart = () => emit('leave-item');
+
+const onNativeDragStart = (e: DragEvent, item: any) => {
+  emit('leave-item'); // 保留原来的功能：拖拽开始时关闭 tooltip
+  setupDragData(e, 'library-item', item.id); // 新增功能：写入数据
+};
 
 // 徽章逻辑
 const getBadges = (item: any) => {
@@ -123,14 +130,15 @@ const getBadges = (item: any) => {
               :group="{ name: 'library', pull: 'clone', put: false }" 
               :clone="cloneItem" 
               item-key="id" 
-              @start="handleDragStart"
               class="item-list"
             >
               <template #item="{ element }">
                 <div class="library-item" 
                     @mouseenter="emit('hover-item', element, $event)" 
                     @mousemove="emit('move-item', $event)" 
-                    @mouseleave="emit('leave-item')">
+                    @mouseleave="emit('leave-item')"
+                    @dragstart="onNativeDragStart($event, element)"
+                    >
                   <div class="item-row">
                     <span class="item-name">{{ element.name }}</span>
                     <span class="item-cost">{{ formatCost(element.cost) }}</span>

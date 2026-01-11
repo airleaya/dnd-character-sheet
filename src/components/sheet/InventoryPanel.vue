@@ -4,7 +4,7 @@ import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
-import { calcRealIndex } from '../../utils/inventoryDropUtils';
+import { calcRealIndex,setupDragData } from '../../utils/inventoryDropUtils';
 import { formatCost } from '../../utils/currencyUtils';
 
 const store = useActiveSheetStore();
@@ -100,6 +100,10 @@ provide('inventoryTooltip', {
   onLeave: onHideTooltip
 });
 
+// 拖拽开始处理函数
+const onDragStart = (e: DragEvent, item: any) => {
+  setupDragData(e, 'inventory-item', item.instanceId);
+};
 </script>
 
 <template>
@@ -179,7 +183,10 @@ provide('inventoryTooltip', {
       ghost-class="ghost"
     >
       <template #item="{ element }">
-        <InventoryItemRow :item="element" />
+        <InventoryItemRow
+          :item="element" 
+          @dragstart="onDragStart($event, element)" 
+        />
       </template>
     </draggable>
 

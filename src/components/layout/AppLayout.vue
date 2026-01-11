@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SidebarLeft from './SidebarLeft.vue';
 import SidebarRight from './SidebarRight.vue';
+import ForgeModal from '../sheet/ForgeModal.vue';
 </script>
 
 <template>
@@ -12,6 +13,8 @@ import SidebarRight from './SidebarRight.vue';
     </main>
 
     <SidebarRight />
+
+    <ForgeModal/>
   </div>
 </template>
 
