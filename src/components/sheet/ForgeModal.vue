@@ -45,7 +45,7 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
                     <div class="cost-input-group">
                       <input 
                         type="number" 
-                        v-model.number="(draftData as any).cost.amount" 
+                        v-model.number="(draftData as any).cost.value" 
                         placeholder="0" 
                         class="input-std"
                       >
@@ -154,8 +154,8 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
 */
 .modal-content {
   background: #fff;
-  width: 600px; /* 增大宽度 */
-  max-width: 90vw;
+  width: 780px; /* 增大宽度 */
+  max-width: 95vw;
   max-height: 85vh;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -264,9 +264,23 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
 /* 网格布局优化 */
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.5fr; /* 价值栏稍微宽一点 */
+  grid-template-columns: 1fr 1fr 1.8fr; /* 价值栏稍微宽一点 */
   gap: 20px;
   align-items: start;
+
+  /* ⚡️ 修复换行问题：强制所有字段都是上下结构 */
+  .field {
+    display: flex;
+    flex-direction: column; /* 确保 Label 永远在 Input 上方 */
+    gap: 5px;
+  }
+  
+  /* ⚡️ 修复宽度问题：缩短数字输入框 */
+  /* 只影响第一层级的 input，不影响 text 等其他类型 */
+  .field input[type="number"] {
+    width: 100%;       /* 填满父容器 */
+    max-width: 100px;  /* 但最大不超过 100px */
+  }
 }
 
 /* 价值字段的特殊组合样式 */
@@ -274,8 +288,14 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
   display: flex;
   gap: 5px;
   
-  input { flex: 1; min-width: 0; }
-  select { width: 70px; flex-shrink: 0; cursor: pointer; background-color: #f8f9fa; }
+  input { 
+    /* 缩短价值输入框 */
+    min-width: 60px; 
+    max-width: 90px; /* 特别限制价值输入框的宽度 */
+  }
+  select { 
+    width: 70px; flex-shrink: 0; cursor: pointer; background-color: #f8f9fa; 
+  }
 }
 
 .row-2 {
