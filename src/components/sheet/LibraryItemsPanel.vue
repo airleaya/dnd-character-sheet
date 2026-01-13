@@ -13,7 +13,7 @@ import { TOOL_LIBRARY } from '../../data/libraries/tools';
 import { CONSUMABLE_LIBRARY } from '../../data/libraries/consumables';
 import { TREASURE_LIBRARY } from '../../data/libraries/treasures';
 import { PACK_LIBRARY } from '../../data/libraries/packs';
-import { setupDragData } from '../../utils/inventoryDropUtils';
+import { setupDragData,clearGlobalDragPayload } from '../../utils/inventoryDropUtils';
 
 const props = defineProps<{
   searchQuery: string;
@@ -97,8 +97,14 @@ const cloneItem = (item: any) => ({ libraryId: item.id });
 // const handleDragStart = () => emit('leave-item');
 
 const onNativeDragStart = (e: DragEvent, item: any) => {
+  // alert(`[1] 拖拽开始: ${item.name} (ID: ${item.id})`); // 取消注释这行来测试
+
   emit('leave-item'); // 保留原来的功能：拖拽开始时关闭 tooltip
-  setupDragData(e, 'library-item', item.id); // 新增功能：写入数据
+  setupDragData(e, 'library-item', item.id, false); // 新增功能：写入数据
+};
+
+const onDragEnd = () => {
+  clearGlobalDragPayload();
 };
 
 // 徽章逻辑
@@ -114,6 +120,7 @@ const getBadges = (item: any) => {
 
 <template>
   <div class="items-panel">
+
     <div v-for="group in libraryTree" :key="group.id" class="main-group">
       <div class="main-group-header" @click="toggleExpand(group.id)" :class="{ 'is-open': isVisible(group.id) }">
         <div class="header-content"><span class="arrow-icon">▶</span>{{ group.label }}</div>
@@ -137,7 +144,9 @@ const getBadges = (item: any) => {
                     @mouseenter="emit('hover-item', element, $event)" 
                     @mousemove="emit('move-item', $event)" 
                     @mouseleave="emit('leave-item')"
+                    draggable="true"
                     @dragstart="onNativeDragStart($event, element)"
+                    @dragend="onDragEnd"
                     >
                   <div class="item-row">
                     <span class="item-name">{{ element.name }}</span>

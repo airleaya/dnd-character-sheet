@@ -11,14 +11,15 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
   <Teleport to="body">
     <Transition name="modal-fade">
       <div class="modal-backdrop" v-if="draftItem" @click.self="close">
-        <div class="modal-content forge-modal">
+        
+        <div class="modal-content">
           
           <div class="modal-header">
             <div class="title-group">
               <span class="emoji">🔨</span>
               <h3>{{ forgeMode === 'create' ? '打造新物品' : '改造物品' }}</h3>
             </div>
-            <button class="btn-close" @click="close">×</button>
+            <button class="btn-close" @click="close" title="关闭 (Esc)">×</button>
           </div>
 
           <div class="modal-body custom-scrollbar">
@@ -26,21 +27,34 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
             <div class="form-section highlight">
                <div class="form-row main-name">
                  <label>物品名称</label>
-                 <EditableText v-model="draftItem!.name" class="input-lg" />
+                 <EditableText v-model="draftItem!.name" class="input-lg" placeholder="输入物品名称..." />
                </div>
                
                <div class="stats-grid">
                  <div class="field">
                    <label>重量 (lb)</label>
-                   <input type="number" v-model.number="draftItem!.weight" step="0.1">
+                   <input type="number" v-model.number="draftItem!.weight" step="0.1" class="input-std">
                  </div>
                  <div class="field">
                    <label>数量</label>
-                   <input type="number" v-model.number="draftItem!.quantity" min="1">
+                   <input type="number" v-model.number="draftItem!.quantity" min="1" class="input-std">
                  </div>
-                 <div class="field">
+                 
+                 <div class="field cost-field">
                     <label>价值</label>
-                    <input type="text" v-model="(draftData as any).cost" placeholder="--">
+                    <div class="cost-input-group">
+                      <input 
+                        type="number" 
+                        v-model.number="(draftData as any).cost.amount" 
+                        placeholder="0" 
+                        class="input-std"
+                      >
+                      <select v-model="(draftData as any).cost.unit" class="unit-select">
+                        <option value="gp">gp</option>
+                        <option value="sp">sp</option>
+                        <option value="cp">cp</option>
+                      </select>
+                    </div>
                  </div>
                </div>
             </div>
@@ -50,22 +64,25 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
               <EditableTextarea 
                 :model-value="draftItem!.description ?? ''" 
                 @update:model-value="val => draftItem!.description = val"
-                :rows="4" 
+                :rows="6"
+                class="desc-area"
               />
             </div>
 
             <hr class="divider" />
 
-            <div v-if="draftItem!.type === 'weapon'" class="form-section type-specific">
-              <h4>⚔️ 战斗属性</h4>
+            <div v-if="draftItem!.type === 'weapon'" class="form-section type-specific weapon">
+              <div class="section-header">
+                <h4>⚔️ 战斗属性</h4>
+              </div>
               <div class="row-2">
                 <div class="field">
                   <label>伤害骰 (Damage)</label>
-                  <input type="text" v-model="(draftData as any).damage" placeholder="1d8">
+                  <input type="text" v-model="(draftData as any).damage" placeholder="1d8" class="input-std">
                 </div>
                 <div class="field">
                   <label>伤害类型</label>
-                  <input type="text" v-model="(draftData as any).damageType" placeholder="slashing">
+                  <input type="text" v-model="(draftData as any).damageType" placeholder="slashing" class="input-std">
                 </div>
               </div>
               <div class="field mt-2">
@@ -77,16 +94,18 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
               </div>
             </div>
 
-            <div v-if="draftItem!.type === 'armor'" class="form-section type-specific">
-              <h4>🛡️ 防御属性</h4>
+            <div v-if="draftItem!.type === 'armor'" class="form-section type-specific armor">
+              <div class="section-header">
+                <h4>🛡️ 防御属性</h4>
+              </div>
               <div class="row-2">
                 <div class="field">
                   <label>AC (防御等级)</label>
-                  <input type="number" v-model.number="(draftData as any).ac">
+                  <input type="number" v-model.number="(draftData as any).ac" class="input-std">
                 </div>
                 <div class="field">
                   <label>护甲类型</label>
-                  <select v-model="(draftData as any).armorType">
+                  <select v-model="(draftData as any).armorType" class="input-std">
                     <option value="light">轻甲</option>
                     <option value="medium">中甲</option>
                     <option value="heavy">重甲</option>
@@ -110,94 +129,210 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
 </template>
 
 <style scoped lang="scss">
-/* 模态框通用样式 */
+/* 1. 背景遮罩层 
+  必须 fixed 铺满全屏，负责模糊背景和点击关闭
+*/
 .modal-backdrop {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.7); z-index: 2000;
-  display: flex; justify-content: center; align-items: center;
-  backdrop-filter: blur(2px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  
+  /* Flex 布局确保内容居中 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.forge-modal {
-  background: #fff; width: 500px; max-width: 90vw;
-  border-radius: 8px; overflow: hidden;
-  box-shadow: 0 15px 50px rgba(0,0,0,0.3);
-  display: flex; flex-direction: column;
+/* 2. 模态框主体卡片
+  移除原来的 fixed 定位，改由 backdrop 居中
+  增加宽度到 600px (原为自适应或挤压)
+*/
+.modal-content {
+  background: #fff;
+  width: 600px; /* 增大宽度 */
+  max-width: 90vw;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 防止圆角被子元素破坏 */
   animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
 .modal-header {
-  padding: 15px 20px; background: #2c3e50; color: #fff;
-  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 25px;
+  background: #2c3e50;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
   
   .title-group {
-    display: flex; align-items: center; gap: 10px;
-    h3 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
-    .emoji { font-size: 1.4rem; }
+    display: flex; align-items: center; gap: 12px;
+    h3 { margin: 0; font-size: 1.2rem; letter-spacing: 0.5px; font-weight: 600; }
+    .emoji { font-size: 1.5rem; }
   }
   .btn-close { 
-    background: none; border: none; color: #95a5a6; font-size: 1.5rem; cursor: pointer;
+    background: none; border: none; color: #bdc3c7; font-size: 2rem; line-height: 1; cursor: pointer; padding: 0;
     &:hover { color: #fff; }
   }
 }
 
 .modal-body {
-  padding: 25px; max-height: 70vh; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 20px;
+  padding: 30px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #fdfdfd;
 }
 
-/* 表单样式 */
+/* 表单区域通用样式 */
 .form-section {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: 10px;
   
-  &.highlight { background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e9ecef; }
-  &.type-specific { border-left: 3px solid #d35400; padding-left: 15px; }
+  &.highlight {
+    background: #f1f2f6;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e1e2e6;
+  }
   
-  label { font-size: 0.8rem; color: #7f8c8d; font-weight: bold; text-transform: uppercase; }
-  
-  input, select {
-    padding: 8px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem;
-    &:focus { border-color: #d35400; outline: none; box-shadow: 0 0 0 2px rgba(211, 84, 0, 0.1); }
+  &.type-specific {
+    position: relative;
+    padding: 20px;
+    border-radius: 8px;
+    background: #fff8f3;
+    border: 1px solid #ffeaa7;
+    
+    &.weapon { border-left: 4px solid #d35400; }
+    &.armor { border-left: 4px solid #2980b9; background: #f0f8ff; border-color: #d6eaf8; }
+    
+    h4 { margin: 0 0 10px 0; color: #555; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
   }
 
-  .main-name .input-lg {
-    font-size: 1.3rem; font-weight: bold; color: #2c3e50;
-    border-bottom: 2px solid #ddd; padding-bottom: 5px;
+  label {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
   }
 }
 
+/* 输入框统一样式 */
+.input-std, .unit-select {
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: #fff;
+  
+  &:focus {
+    border-color: #d35400;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(211, 84, 0, 0.1);
+  }
+}
+
+.main-name .input-lg {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  border: none;
+  border-bottom: 2px solid #ced4da;
+  border-radius: 0;
+  padding: 5px 0;
+  background: transparent;
+  width: 100%;
+  
+  &:focus {
+    border-bottom-color: #d35400;
+    box-shadow: none;
+  }
+}
+
+/* 网格布局优化 */
 .stats-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr; /* 价值栏稍微宽一点 */
+  gap: 20px;
+  align-items: start;
 }
 
-.row-2 { display: flex; gap: 15px; .field { flex: 1; display: flex; flex-direction: column; gap: 5px; } }
+/* 价值字段的特殊组合样式 */
+.cost-input-group {
+  display: flex;
+  gap: 5px;
+  
+  input { flex: 1; min-width: 0; }
+  select { width: 70px; flex-shrink: 0; cursor: pointer; background-color: #f8f9fa; }
+}
+
+.row-2 {
+  display: flex; gap: 20px;
+  .field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+}
 
 .tags-container {
-  display: flex; flex-wrap: wrap; gap: 5px;
-  .tag { background: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; }
-  .hint { color: #adb5bd; font-style: italic; font-size: 0.85rem; }
+  display: flex; flex-wrap: wrap; gap: 8px;
+  min-height: 34px; align-items: center;
+  .tag { 
+    background: #e9ecef; color: #2c3e50; padding: 4px 10px; 
+    border-radius: 15px; font-size: 0.85rem; font-weight: 500;
+  }
+  .hint { color: #bdc3c7; font-style: italic; font-size: 0.9rem; }
 }
 
-.divider { border: 0; border-top: 1px dashed #dee2e6; margin: 5px 0; }
+.divider { border: 0; border-top: 1px dashed #dcdde1; margin: 10px 0; }
 
-/* Footer Buttons */
 .modal-footer {
-  padding: 15px 20px; background: #f8f9fa; border-top: 1px solid #eee;
-  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 20px 30px;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
   
   button {
-    padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; font-size: 0.9rem;
-    transition: transform 0.1s;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-size: 0.95rem;
+    transition: transform 0.1s, box-shadow 0.2s;
+    
     &:active { transform: translateY(1px); }
   }
-  .btn-cancel { background: #e9ecef; color: #495057; &:hover { background: #dee2e6; } }
-  .btn-save { background: #d35400; color: white; &:hover { background: #e67e22; } }
+  
+  .btn-cancel { 
+    background: #fff; border: 1px solid #ced4da; color: #495057; 
+    &:hover { background: #f1f3f5; }
+  }
+  
+  .btn-save { 
+    background: #d35400; color: white; box-shadow: 0 4px 6px rgba(211, 84, 0, 0.2);
+    &:hover { background: #e67e22; box-shadow: 0 6px 8px rgba(211, 84, 0, 0.3); }
+  }
 }
 
+/* 动画 */
 @keyframes popIn {
-  0% { opacity: 0; transform: scale(0.9); }
-  100% { opacity: 1; transform: scale(1); }
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s; }
+
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.25s ease; }
 .modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 </style>
