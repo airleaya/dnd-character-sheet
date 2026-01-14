@@ -1,8 +1,8 @@
 // src/data/spells/index.ts
 
 import { CANTRIPS } from './cantrips';
-import { LEVEL_1_SPELLS } from './level1';
 import type { SpellDefinition } from '../../types/Spell';
+import { LEVEL_1_SPELLS } from './level1';
 import { LEVEL_2_SPELLS } from './level2';
 import { LEVEL_3_SPELLS } from './level3';
 

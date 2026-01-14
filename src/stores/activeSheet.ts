@@ -1,25 +1,15 @@
 // src/stores/activeSheet.ts
 import { defineStore } from 'pinia';
 import { useCharacterStore } from './characterStore';
-import { generateUUID } from '../utils/idGenerator';
 import type { Character, CharacterProficiencies } from '../types/Character';
 import type { InventoryItem } from '../types/Item';
 import { SKILL_DEFINITIONS, XP_TABLE } from '../data/rules/dndRules';
-// 引入工厂
 import { createItemFromLibrary } from '../utils/itemFactory';
-// 引入伤害类型字典
 import { DAMAGE_TYPES } from '../data/rules/damageTypes';
-
 import { CURRENCY_RATES } from '../data/rules/currency';
-//引入拖拽辅助工具
-import { calcRealIndex } from '../utils/inventoryDropUtils';
-
 import { SPELL_LIBRARY } from '../data/spells/index';
 import { SpellDefinition } from '../types/Spell';
 import { PACK_LIBRARY } from '../data/libraries/packs';
-
-
-
 
 //定义法术分组的接口
 export interface SpellGroup {
@@ -68,7 +58,9 @@ function groupSpellsByLevel(spells: SpellDefinition[], slots: any): SpellGroup[]
   // 1-9环
   for (let i = 1; i <= 9; i++) {
     const levelSpells = spells.filter(s => s.level === i);
+    // ⚠️ 安全访问：防止 slots 数组长度不足导致报错
     const maxSlots = slots.max[i] || 0;
+    const currentSlots = slots.current[i] || 0;
     // 如果有法术 OR 有槽位上限，则显示该组
     if (levelSpells.length > 0 || maxSlots > 0) {
       groups.push({
@@ -184,39 +176,9 @@ export const useActiveSheetStore = defineStore('activeSheet', {
       if (!state.character) return [];
       // @ts-ignore
       const spells = this.mySpells as SpellDefinition[];
-      const groups = [];
-
-      // 0环 (戏法)
-      const cantrips = spells.filter(s => s.level === 0);
-      if (cantrips.length > 0) {
-        groups.push({
-          level: 0,
-          label: '🔮 戏法 (Cantrips)',
-          spells: cantrips,
-          slots: null // 戏法无消耗
-        });
-      }
-
-      // 1-9环
-      for (let i = 1; i <= 9; i++) {
-        const levelSpells = spells.filter(s => s.level === i);
-        // 只有当有法术 或者 有法术位上限时 才显示该组
-        const maxSlots = state.character.spells.slots.max[i] || 0;
-        
-        if (levelSpells.length > 0 || maxSlots > 0) {
-          groups.push({
-            level: i,
-            label: `${i} 环法术`,
-            spells: levelSpells,
-            slots: {
-              current: state.character.spells.slots.current[i] || 0,
-              max: maxSlots
-            }
-          });
-        }
-      }
-
-      return groups;
+      
+      // 直接复用顶部的纯函数，不再重复写循环逻辑
+      return groupSpellsByLevel(spells, state.character.spells.slots);
     },
 
 
