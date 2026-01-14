@@ -62,3 +62,17 @@ export const COMMON_LANGUAGES = [
   '深普语 (Deep Speech)', '炼狱语 (Infernal)', '原初语 (Primordial)', 
   '色林语 (Sylvan)', '地下通用语 (Undercommon)'
 ];
+
+export const WEAPON_CAT_MAP: Record<string, string> = {
+  simple_melee: '简易近战武器',
+  simple_ranged: '简易远程武器',
+  martial_melee: '军用近战武器',
+  martial_ranged: '军用远程武器',
+};
+
+export const ARMOR_TYPE_MAP: Record<string, string> = {
+  light: '轻甲',
+  medium: '中甲',
+  heavy: '重甲',
+  shield: '盾牌',
+};

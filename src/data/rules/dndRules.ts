@@ -69,5 +69,18 @@ const SCHOOL_MAP: Record<string, string> = {
 const getSchoolLabel = (schoolId: string) => {
   return SCHOOL_MAP[schoolId] || schoolId;
 };
+const ITEM_TYPE_MAP: Record<string, string> = {
+  gear: '冒险装备',
+  tool: '工具',
+  consumable: '消耗品',
+  treasure: '宝物',
+  container: '容器',
+  pack: '套组',
+  misc: '杂物'
+};
 
-export { SCHOOL_MAP, getSchoolLabel };
+const ATTR_MAP: Record<string, string> = {
+  str: '力量', dex: '敏捷', con: '体质', int: '智力', wis: '感知', cha: '魅力'
+};
+export { SCHOOL_MAP,ITEM_TYPE_MAP,ATTR_MAP, getSchoolLabel };
+
