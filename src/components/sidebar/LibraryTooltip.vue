@@ -184,7 +184,7 @@ const attackSaveInfo = computed(() => {
 
       <div class="desc-divider"></div>
       
-      <div class="desc" v-html="item.description"></div>
+      <div class="desc scrollable-desc" v-html="item.description"></div>
       
       <div class="scaling" v-if="item.scaling">
         <strong>升环效应:</strong> {{ item.scaling }}
@@ -197,13 +197,17 @@ const attackSaveInfo = computed(() => {
 .item-tooltip-card {
   position: fixed; 
   z-index: 9999;
-  pointer-events: none;
+  pointer-events: auto;
   background-color: #1e1e1e;
   background: rgba(30, 30, 30, 0.98);
   border: 1px solid #444;
   box-shadow: -4px 4px 15px rgba(0,0,0,0.5);
   border-radius: 6px;
   width: 320px; 
+
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   
   .card-header { 
     padding: 10px 12px; 
@@ -224,7 +228,13 @@ const attackSaveInfo = computed(() => {
     font-size: 0.75rem; color: #777; font-style: italic;
   }
   .card-body { 
-    padding: 12px; font-size: 0.85rem; color: #ccc; 
+    padding: 12px; 
+    font-size: 0.85rem; 
+    color: #ccc; 
+
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   /* ✅ 新增：战斗属性区域样式 */
@@ -337,5 +347,19 @@ const attackSaveInfo = computed(() => {
   /* 物品样式 */
   .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
   .gold { color: #f1c40f; }
+
+  /* [新增]：专门针对长文本描述的滚动条样式 */
+  .desc.scrollable-desc {
+    /* 给文本一个最大高度（例如屏幕一半），超过则出现滚动条 */
+    max-height: 50vh; 
+    overflow-y: auto; 
+    padding-right: 4px; /* 防止文字紧贴滚动条 */
+    
+    /* 美化滚动条 (Chrome/Safari) */
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    &::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+    &::-webkit-scrollbar-thumb:hover { background: #777; }
+  }
 }
 </style>
