@@ -3,11 +3,15 @@
 import { CANTRIPS } from './cantrips';
 import { LEVEL_1_SPELLS } from './level1';
 import type { SpellDefinition } from '../../types/Spell';
+import { LEVEL_2_SPELLS } from './level2';
+import { LEVEL_3_SPELLS } from './level3';
 
 // 1. 合并所有法术
 export const SPELL_LIBRARY: SpellDefinition[] = [
   ...CANTRIPS,
   ...LEVEL_1_SPELLS,
+  ...LEVEL_2_SPELLS, // 添加二环
+  ...LEVEL_3_SPELLS, // 添加三环
   // 未来有了 level2, level3 直接在这里 ...LEVEL_2_SPELLS 即可
 ];
 
