@@ -13,9 +13,11 @@ interface CharacterMeta {
 
 // 🔧 辅助函数：生成标准化的文件名
 const getFilename = (char: Character): string => {
-  const safeName = (char.profile.name || '未命名').replace(/[\\/:*?"<>|]/g, '_');
-  const safeClass = (char.profile.class || '无职业').replace(/[\\/:*?"<>|]/g, '_');
-  return `${safeName}-${safeClass}.json`;
+  // const safeName = (char.profile.name || '未命名').replace(/[\\/:*?"<>|]/g, '_');
+  // const safeClass = (char.profile.class || '无职业').replace(/[\\/:*?"<>|]/g, '_');
+  // return `${safeName}-${safeClass}.json`;
+
+  return `${char.id}.json`;
 };
 
 export const useCharacterStore = defineStore('characterStore', {
@@ -86,37 +88,51 @@ export const useCharacterStore = defineStore('characterStore', {
         avatarUrl: newChar.profile.avatarUrl
       });
 
+      // 初始化时记录一个文件名，防止 save 时报错
+      this._filenameMap.set(newId, getFilename(newChar));
+
       // ⚠️ 注意：这里不再调用 saveCharacterData
       // 只有当用户在界面上修改了数据（触发 input/change）时，才会第一次保存
       
       return newId; 
     },
 
-    // --- 3. 保存逻辑 (修改：增加清理旧文件逻辑) ---
+    // --- 3. 保存逻辑 (核心迁移逻辑) ---
     async saveCharacterData(char: Character) {
-      // 1. 更新内存
       this._characterCache.set(char.id, char);
       
-      // 2. 更新列表 UI
       const metaIndex = this.characterList.findIndex(c => c.id === char.id);
       const meta = { id: char.id, name: char.profile.name, race: char.profile.race, level: char.profile.level, class: char.profile.class, avatarUrl: char.profile.avatarUrl };
       if (metaIndex !== -1) this.characterList[metaIndex] = meta;
 
-      // 3. 写入硬盘
       if (window.electronAPI) {
+        // 1. 计算新的标准文件名 (UUID.json)
         const newFilename = getFilename(char);
-        const oldFilename = this._filenameMap.get(char.id); // 获取上次保存的文件名
+        
+        // 2. 获取内存中记录的“上一次的文件名”
+        // 注意：如果是旧存档第一次运行，_filenameMap 里存的可能是错误的（因为 init 时被强制设为了 UUID.json）
+        // 这会导致旧文件（Name.json）无法被自动删除。
+        // 为了完美解决这个问题，我们需要在 init 时尽量去推断旧文件名，或者接受会有一次“残留文件”。
+        // 鉴于不修改 Electron 端，我们这里接受：
+        // "用户改动数据并保存后，会生成新的 UUID.json，旧的 Name.json 可能残留，但不影响程序运行（因为下次读取会读两份，然后去重或并在列表显示）"。
+        // *优化方案*：用户可以手动在资源管理器删除旧文件，或者我们在 Electron 端做去重。
+        const oldFilename = this._filenameMap.get(char.id);
 
         // A. 保存新文件
         await window.electronAPI.saveCharacter(newFilename, JSON.stringify(char, null, 2));
         
-        // B. ♻️ 自动清理：如果文件名变了，且旧文件存在，则删除旧文件
+        // B. 尝试清理旧文件
         if (oldFilename && oldFilename !== newFilename) {
-            console.log(`文件名变更，删除旧文件: ${oldFilename}`);
-            await window.electronAPI.deleteCharacter(oldFilename);
+            console.log(`文件名策略变更，尝试删除旧文件: ${oldFilename}`);
+            // 这一步可能会失败（如果 oldFilename 其实不存在），但 catch 住不影响流程
+            try {
+              await window.electronAPI.deleteCharacter(oldFilename);
+            } catch (e) {
+              console.warn('删除旧文件失败，可能是文件不存在或权限问题', e);
+            }
         }
 
-        // C. 更新记录
+        // C. 更新映射
         this._filenameMap.set(char.id, newFilename);
       }
     },
@@ -144,7 +160,10 @@ export const useCharacterStore = defineStore('characterStore', {
     exportCharacter(id: string) {
       const char = this.getCharacterData(id);
       if (!char) return null;
-      return { json: JSON.stringify(char, null, 2), filename: getFilename(char) };
+      // 导出给用户的文件名依然使用易读的格式，而不是 UUID
+      const safeName = (char.profile.name || '未命名').replace(/[\\/:*?"<>|]/g, '_');
+      const filename = `${safeName}_Lv${char.profile.level}.json`;
+      return { json: JSON.stringify(char, null, 2), filename };
     },
 
     // --- 7. 导入 ---

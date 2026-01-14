@@ -118,6 +118,19 @@ const onFileSelected = (e: Event) => {
   
   reader.readAsText(file);
 };
+
+// ✅ 新增：手动保存处理
+const handleSave = async () => {
+  if (!activeStore.character) return;
+  
+  try {
+    await charStore.saveCharacterData(activeStore.character);
+    alert('✅ 保存成功！'); // 简单提示
+  } catch (e) {
+    console.error(e);
+    alert('❌ 保存失败，请检查控制台。');
+  }
+};
 </script>
 
 <template>
@@ -145,6 +158,14 @@ const onFileSelected = (e: Event) => {
     </ul>
 
     <div class="footer-tools">
+      <button 
+        @click="handleSave" 
+        class="btn-tool btn-save" 
+        :disabled="!activeStore.character" 
+        title="保存当前角色 (Ctrl+S)"
+      >
+        💾 保存
+      </button>
       <button @click="handleExport" class="btn-tool btn-export" :disabled="!activeStore.character" title="导出当前角色为 JSON">
         📤 备份
       </button>
@@ -213,6 +234,8 @@ const onFileSelected = (e: Event) => {
       transition: all 0.2s;
       &:hover:not(:disabled) { background: #3e5871; border-color: #5dade2; }
       &:disabled { opacity: 0.5; cursor: not-allowed; }
+      /* 给保存按钮加个特殊色（可选） */
+      &.btn-save:hover:not(:disabled) { border-color: #f1c40f; color: #f1c40f; }
     }
   }
 }
