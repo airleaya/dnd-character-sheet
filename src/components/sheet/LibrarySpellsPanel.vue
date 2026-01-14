@@ -45,7 +45,9 @@ const spellLibraryTree = computed<MainGroup[]>(() => {
 });
 
 // 3. 展开/折叠状态
-const expandedState = ref<Record<string, boolean>>({});
+const expandedState = ref<Record<string, boolean>>({
+  'spells_root': true
+});
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
 

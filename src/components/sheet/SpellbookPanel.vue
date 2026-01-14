@@ -75,6 +75,8 @@ const handleDrop = (evt: any) => {
     const spellId = element.spellId;
     if (spellId) {
       store.learnSpell(spellId);
+    }else {
+      alert('错误：拖拽对象中缺少 spellId，请检查控制台详情');
     }
   }
 };
@@ -334,4 +336,5 @@ const getSlotMax = (level: number) => {
 .level-badge { font-size: 0.8rem; font-weight: bold; color: #95a5a6; }
 .btn-forget { border: none; background: none; cursor: pointer; opacity: 0.4; &:hover { opacity: 1; color: #e74c3c; } }
 .btn-close { padding: 5px 15px; cursor: pointer; }
+
 </style>
