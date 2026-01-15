@@ -2,8 +2,8 @@
   "name": "dnd-character-sheet",
   "private": true,
   "main": "dist-electron/main.js",
-  "version": "0.9.0",
-  "author": "雪荔枝snowlitch & gemini 3.0",
+  "version": "0.9.1",
+  "author": "雪荔枝 snowlitch & gemini 3.0 Pro",
   "description": "DnD 5e Character Manager",
   "scripts": {
     "dev": "vite",
