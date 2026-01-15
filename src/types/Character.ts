@@ -151,4 +151,8 @@ export interface Character {
 
   // ✅ 新增：法术书状态
   spells: CharacterSpells;
+
+  //[新增] 激活的额外攻击属性模式
+  // 存储例如 ['int', 'cha']，表示用户希望看到基于智力和魅力的攻击选项
+  activeAttackModes: AbilityKey[];
 }

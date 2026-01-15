@@ -5,10 +5,30 @@ import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
 import { calculateCantripDamage } from '../../utils/spellUtils';
 import { useTooltipStore } from '../../stores/tooltip';
 import { getSchoolLabel } from '../../data/rules/dndRules';
+import { AbilityKey } from '../../types/Library';
 
 
 const store = useActiveSheetStore();
 const tooltipStore = useTooltipStore();
+
+// 定义我们要显示的额外属性开关 (排除 Str/Dex)
+const extraAttributes: { key: AbilityKey; label: string; short: string }[] = [
+  { key: 'con', label: '体质', short: '体' },
+  { key: 'int', label: '智力', short: '智' },
+  { key: 'wis', label: '感知', short: '感' },
+  { key: 'cha', label: '魅力', short: '魅' },
+];
+
+// 检查某个属性是否已激活
+const isModeActive = (key: AbilityKey) => {
+  return store.character?.activeAttackModes?.includes(key) || false;
+};
+
+// 切换开关
+const toggleMode = (key: AbilityKey) => {
+  store.toggleAttackMode(key);
+};
+
 // ==========================================
 // 处理属性提示逻辑 (Trait Tooltip Logic)
 // ==========================================
@@ -128,6 +148,19 @@ const handleLongRest = () => {
     <div class="panel-column attacks-col">
       <div class="sec-header">
         <h3>⚔️ 攻击</h3>
+
+        <div class="attr-toggles">
+          <button 
+            v-for="attr in extraAttributes" 
+            :key="attr.key"
+            class="btn-toggle"
+            :class="{ active: isModeActive(attr.key) }"
+            :title="`开启/关闭 ${attr.label} 调整值攻击`"
+            @click="toggleMode(attr.key)"
+          >
+            {{ attr.short }}
+          </button>
+        </div>
       </div>
 
       <div class="attack-list">
@@ -320,8 +353,41 @@ const handleLongRest = () => {
   display: flex; flex-direction: column; gap: 8px;
 }
 .sec-header {
-  border-bottom: 2px solid #e0e0e0; padding-bottom: 4px; height: 28px; display: flex; align-items: center;
+  border-bottom: 2px solid #e0e0e0; 
+  padding-bottom: 4px;
+  height: 28px; 
+  display: flex; 
+  align-items: center;
+  justify-content: space-between;  
   h3 { margin: 0; font-size: 0.95rem; color: #2c3e50; font-weight: bold; }
+}
+/* [新增] 开关按钮组样式 */
+.attr-toggles {
+  display: flex;
+  gap: 4px;
+
+  .btn-toggle {
+    border: 1px solid #dcdcdc;
+    background: #fdfdfd;
+    color: #95a5a6;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: bold;
+
+    &:hover {
+      background: #ecf0f1;
+      color: #7f8c8d;
+    }
+
+    &.active {
+      background: #34495e; /* 深色激活态 */
+      color: #fff;
+      border-color: #2c3e50;
+    }
+  }
 }
 
 .attack-list { display: flex; flex-direction: column; gap: 4px; }

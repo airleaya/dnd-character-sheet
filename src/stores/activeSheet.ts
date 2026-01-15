@@ -3,13 +3,14 @@ import { defineStore } from 'pinia';
 import { useCharacterStore } from './characterStore';
 import type { Character, CharacterProficiencies } from '../types/Character';
 import type { InventoryItem } from '../types/Item';
-import { SKILL_DEFINITIONS, XP_TABLE } from '../data/rules/dndRules';
+import { ATTR_MAP, SKILL_DEFINITIONS, XP_TABLE } from '../data/rules/dndRules';
 import { createItemFromLibrary } from '../utils/itemFactory';
 import { DAMAGE_TYPES } from '../data/rules/damageTypes';
 import { CURRENCY_RATES } from '../data/rules/currency';
 import { SPELL_LIBRARY } from '../data/spells/index';
 import { SpellDefinition } from '../types/Spell';
 import { PACK_LIBRARY } from '../data/libraries/packs';
+import { AbilityKey } from '../types/Library';
 
 //定义法术分组的接口
 export interface SpellGroup {
@@ -312,6 +313,11 @@ export const useActiveSheetStore = defineStore('activeSheet', {
       const dexMod = Math.floor((char.stats.dex - 10) / 2);
       const pb = this.proficiencyBonus; // 获取 PB
 
+      // 2. 获取激活的额外属性 (e.g. ['cha', 'int'])
+      // 过滤掉 str 和 dex，因为它们是默认逻辑，不需要额外生成
+      const activeModes = (char.activeAttackModes || [])
+        .filter(k => k !== 'str' && k !== 'dex') as AbilityKey[];
+
       const attackList: any[] = [];
 
       // A. 徒手打击 (通常角色都熟练)
@@ -328,6 +334,28 @@ export const useActiveSheetStore = defineStore('activeSheet', {
         isHidden: hiddenIds.includes('unarmed'),
         needsAmmo: false,
         ammoCount: null
+      });
+
+      // [新增] 徒手打击的额外属性版本 (例如武僧用感知/敏捷，或者特殊的种族能力)
+      // 虽然规则上少见直接用智力打拳，但为了系统一致性，如果用户开了开关，我们也生成。
+      activeModes.forEach(attr => {
+        const mod = Math.floor((char.stats[attr] - 10) / 2);
+        const hit = mod + pb; // 徒手总是熟练
+        const dmg = 1 + mod;
+        const attrLabel = ATTR_MAP[attr] || attr; // 需确保引入 ATTR_MAP 或手写映射
+        
+        attackList.push({
+          id: `unarmed_${attr}`,
+          baseId: 'unarmed',
+          name: `👊 徒手打击 (${attrLabel})`,
+          hit: hit >= 0 ? `+${hit}` : `${hit}`,
+          damage: `${dmg} (钝击)`,
+          range: '5 尺',
+          properties: [],
+          isHidden: hiddenIds.includes(`unarmed_${attr}`),
+          needsAmmo: false,
+          ammoCount: null
+        });
       });
 
       // B. 武器逻辑
@@ -373,17 +401,22 @@ export const useActiveSheetStore = defineStore('activeSheet', {
         const isTwoHanded = props.includes('two_handed');
         const isRanged = data.category?.includes('ranged') || (data.range && data.range.includes('/') && !isThrown);
 
-        const addEntry = (suffix: string, label: string, useDex: boolean, dice: string, isOffhand = false) => {
+        // --- 通用生成函数 ---
+        // modVal: 用于计算的属性调整值 (数字)
+        // suffix: ID 后缀 (如 '_cha')
+        // label: 显示名称后缀 (如 ' (魅力)')
+        // damageDice: 伤害骰子 (如 '1d8')
+        // isOffhand: 是否副手 (不加伤害调整值)
+        const addEntry = (modVal: number, suffix: string, label: string, damageDice: string, isOffhand = false) => {
           const derivedId = `${item.instanceId}${suffix}`;
           
-          const mod = useDex ? dexMod : strMod;
-          
-          // ✨ 命中加值 = 属性调整值 + (如果熟练 ? PB : 0)
-          const hitVal = mod + (isProficient ? pb : 0);
+          // 命中 = 属性调整值 + (熟练 ? PB : 0)
+          const hitVal = modVal + (isProficient ? pb : 0);
           const hitStr = hitVal >= 0 ? `+${hitVal}` : `${hitVal}`;
 
-          let dmgModVal = mod;
-          if (isOffhand && mod > 0) dmgModVal = 0;
+          // 伤害 = 骰子 + 属性调整值 (副手只有负修正，没有正修正)
+          let dmgModVal = modVal;
+          if (isOffhand && modVal > 0) dmgModVal = 0;
           const dmgModStr = dmgModVal > 0 ? `+${dmgModVal}` : (dmgModVal < 0 ? `${dmgModVal}` : '');
 
           const rawType = data.damageType || 'none';
@@ -396,7 +429,7 @@ export const useActiveSheetStore = defineStore('activeSheet', {
             baseId: item.instanceId,
             name: `${item.name}${label}`,
             hit: hitStr,
-            damage: `${dice} ${dmgModStr} ${typeLabel}`,
+            damage: `${damageDice} ${dmgModStr} ${typeLabel}`,
             range: data.range || '5 尺',
             properties: props,
             isHidden: hiddenIds.includes(derivedId),
@@ -407,22 +440,56 @@ export const useActiveSheetStore = defineStore('activeSheet', {
           });
         };
 
-        // ... (穷举逻辑保持不变) ...
+        // --- 1. 标准物理属性 (STR/DEX) ---
         if (isRanged) {
-          addEntry('_ranged', '', true, data.damage);
+          addEntry(dexMod, '_ranged', '', data.damage); // 远程默认敏捷
         } else {
-          addEntry('_str', ' (力量)', false, data.damage);
-          if (isFinesse) addEntry('_dex', ' (敏捷)', true, data.damage);
-          if (isVersatile && data.versatileDamage) addEntry('_2h', ' (双手)', false, data.versatileDamage);
+          // 近战默认力量
+          addEntry(strMod, '_str', ' (力量)', data.damage);
+          
+          // 灵巧武器：额外生成敏捷版
+          if (isFinesse) addEntry(dexMod, '_dex', ' (敏捷)', data.damage);
+          
+          // 灵活武器 (双手使用)：额外生成双手力量版
+          if (isVersatile && data.versatileDamage) addEntry(strMod, '_2h', ' (双手)', data.versatileDamage);
+          
+          // 投掷武器：
           if (isThrown) {
-             addEntry('_thrown_str', ' (投掷/力)', false, data.range || '20/60');
-             if (isFinesse) addEntry('_thrown_dex', ' (投掷/敏)', true, data.range || '20/60');
+             addEntry(strMod, '_thrown_str', ' (投掷/力)', data.range || '20/60');
+             // 投掷且灵巧：额外生成敏捷投掷版
+             if (isFinesse) addEntry(dexMod, '_thrown_dex', ' (投掷/敏)', data.range || '20/60');
           }
+
+          // 副手攻击 (仅在非双手时)
           if (!isTwoHanded) {
              const bestStatIsDex = dexMod > strMod && isFinesse;
-             addEntry('_off', ' (副手)', bestStatIsDex, data.damage, true);
+             const offhandMod = bestStatIsDex ? dexMod : strMod;
+             // 注意：副手逻辑比较复杂，这里简化处理，如果开启了异能属性，通常不用异能打副手，除非有特定专长。
+             // 暂时保持原样，只生成物理属性的副手。
+             addEntry(offhandMod, '_off', ' (副手)', data.damage, true);
           }
         }
+        // --- 2. [新增] 额外激活属性 (INT/WIS/CHA/CON) ---
+        activeModes.forEach(attr => {
+          const mod = Math.floor((char.stats[attr] - 10) / 2);
+          const attrLabel = ATTR_MAP[attr] || attr; // 使用中文映射
+
+          // 逻辑：魔法武器通常可以用单手或双手，如果它有 flexible，我们怎么处理？
+          // 简化策略：
+          // 1. 生成标准单手/默认伤害版本
+          addEntry(mod, `_${attr}`, ` (${attrLabel})`, data.damage);
+
+          // 2. 如果是 Versatile (如长剑)，也生成该属性的双手版本 (因为 Hexblade 可以双手持剑砍)
+          if (isVersatile && data.versatileDamage) {
+            addEntry(mod, `_${attr}_2h`, ` (${attrLabel}/双手)`, data.versatileDamage);
+          }
+          
+          // 3. 如果是投掷武器，也生成该属性的投掷版本 (如魔法飞锤)
+          if (isThrown) {
+            addEntry(mod, `_${attr}_thrown`, ` (${attrLabel}/投掷)`, data.range || '20/60');
+          }
+        });
+
       });
       return attackList;
     },
@@ -627,6 +694,26 @@ export const useActiveSheetStore = defineStore('activeSheet', {
       this.save();
     },
 
+    // [新增] 切换攻击模式开关
+    toggleAttackMode(attr: AbilityKey) {
+      if (!this.character) return;
+      
+      // 初始化数组 (防御性编程)
+      if (!this.character.activeAttackModes) {
+        this.character.activeAttackModes = [];
+      }
+
+      const list = this.character.activeAttackModes;
+      const idx = list.indexOf(attr);
+
+      if (idx > -1) {
+        list.splice(idx, 1); // 关闭
+      } else {
+        list.push(attr);     // 开启
+      }
+      this.save();
+    },
+
     // 载入角色时，确保 equippedIds 存在
     loadCharacter(id: string) {
       const charStore = useCharacterStore();
@@ -651,6 +738,10 @@ export const useActiveSheetStore = defineStore('activeSheet', {
           if (!data.proficiencies.weapons) data.proficiencies.weapons = [];
           if (!data.proficiencies.tools) data.proficiencies.tools = [];
           if (!data.proficiencies.languages) data.proficiencies.languages = [];
+        }
+        /// 新增 初始化额外攻击属性开关
+        if (!data.activeAttackModes){
+          data.activeAttackModes = [];
         }
 
         // 🔥🔥🔥 新增：法术数据初始化 🔥🔥🔥
