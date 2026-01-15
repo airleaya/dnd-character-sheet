@@ -48,7 +48,7 @@
 
 ## 📂 项目结构 (Project Structure)
 
-```text
+
 src
 ├── assets              # 静态资源
 ├── components
