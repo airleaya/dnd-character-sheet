@@ -69,7 +69,7 @@ export const useCharacterStore = defineStore('characterStore', {
         profile: { name: '新角色', playerName: '', race: '人类', class: '战士', background: '', alignment: '', level: 1, xp: 0 },
         bio: { age: '', height: '', weight: '', eyes: '', skin: '', hair: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', backstory: '', featureText: '', treasureNotes: '' },
         stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-        combat: { hpCurrent: 10, hpMax: 10, tempHp: 0, hitDiceCurrent: 1, hitDiceMax: 1, deathSaves: { success: 0, failure: 0 }, speed: 30, exhaustion: 0, inspiration: [false, false, false], conditions: '' },
+        combat: { hpCurrent: 10, hpMax: 10, tempHp: 0, hitDiceCurrent: 1, hitDiceMax: 1, hitDiceType: 'd6', deathSaves: { success: 0, failure: 0 }, speed: 30, exhaustion: 0, inspiration: [false, false, false], conditions: '' },
         inventory: [], equippedIds: [], wallet: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, skillProficiencies: {}, savingThrows: { str: false, dex: false, con: false, int: false, wis: false, cha: false }, hiddenAttacks: [],
         proficiencies: { armor: [], weapons: [], tools: [], languages: [] },
         spells: { spellcastingAbility: 'int', spellSaveDC: 10, spellAttackMod: 2, slots: { current: [0,0,0,0,0,0,0,0,0,0], max: [0,0,0,0,0,0,0,0,0,0] }, pactSlots: { level: 1, current: 0, max: 0 }, known: [], prepared: [] },
@@ -181,6 +181,7 @@ export const useCharacterStore = defineStore('characterStore', {
         if (!data.spells) data.spells = { spellcastingAbility: 'int', spellSaveDC: 10, spellAttackMod: 2, slots: { current: [0,0,0,0,0,0,0,0,0,0], max: [0,0,0,0,0,0,0,0,0,0] }, pactSlots: { level: 1, current: 0, max: 0 }, known: [], prepared: [] };
         if (!data.proficiencies) data.proficiencies = { armor: [], weapons: [], tools: [], languages: [] };
         if (!data.savingThrows) data.savingThrows = { str: false, dex: false, con: false, int: false, wis: false, cha: false };
+        if (!data.combat.hitDiceType) data.combat.hitDiceType = 'd6'
 
         await this.saveCharacterData(data);
         return data.id;

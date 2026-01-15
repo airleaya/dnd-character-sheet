@@ -744,6 +744,12 @@ export const useActiveSheetStore = defineStore('activeSheet', {
           data.activeAttackModes = [];
         }
 
+        // 补全战斗数据：生命骰类型
+        // 确保旧存档加载后，不仅有数量，也有类型
+        if (!data.combat.hitDiceType) {
+           data.combat.hitDiceType = 'd8'; // 默认为 d8
+        }
+
         // 🔥🔥🔥 新增：法术数据初始化 🔥🔥🔥
         if (!data.spells) {
           data.spells = {

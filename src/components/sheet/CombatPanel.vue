@@ -7,6 +7,9 @@ const store = useActiveSheetStore();
 const char = computed(() => store.character);
 const combat = computed(() => store.character?.combat);
 
+// 定义生命骰选项
+const hitDiceOptions = ['d6', 'd8', 'd10', 'd12', 'd20'];
+
 // HP 操作数值
 const hpInput = ref<number | ''>('');
 
@@ -189,7 +192,16 @@ const hpPercent = computed(() => {
         </div>
 
         <div class="resource-item hit-dice">
-          <div class="res-label">生命骰</div>
+          <div class="res-label header-row">
+            <span>生命骰</span>
+            <select 
+              class="hd-type-select"
+              :value="combat.hitDiceType || 'd8'"
+              @change="(e) => update('hitDiceType', (e.target as HTMLSelectElement).value)"
+            >
+              <option v-for="d in hitDiceOptions" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
           <div class="hd-controls">
             <button 
               @click="handleHitDiceUpdate(-1)"
@@ -474,5 +486,30 @@ const hpPercent = computed(() => {
   width: 100%; border: 1px solid #eee; resize: none;
   font-size: 0.8rem; padding: 4px; border-radius: 4px;
   box-sizing: border-box; /* 确保不溢出 */
+}
+
+/* [新增] 标题行样式，让 Select 并排 */
+.res-label.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* [新增] 下拉菜单样式 */
+.hd-type-select {
+  font-size: 0.75rem;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  text-align: right;
+  outline: none;
+}
+.hd-type-select:hover {
+  color: #333;
+  text-decoration: underline;
 }
 </style>

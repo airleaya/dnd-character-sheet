@@ -72,6 +72,8 @@ export interface CombatStats {
   
   hitDiceCurrent: number;
   hitDiceMax: number;
+  // 生命骰类型
+  hitDiceType: string; // e.g. 'd6', 'd8', 'd10', 'd12'
   
   // 【新增】速度 (手动修改)
   speed: number; 
