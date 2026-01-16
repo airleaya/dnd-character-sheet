@@ -36,7 +36,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '8 小时',
     target: '20尺立方区域',
     attackType: 'none',
-    description: '<p>你在射程内设定一个针对非法入侵的警报。你可以指定一扇门、一扇窗或者是其他不大于 20 尺立方的区域作为警报范围。直到法术结束前，如果有体型为微型或更大的生物触碰或进入受护区域，警报就会被触发。</p>',
+    description: '<p>你在射程内设定一个针对非法入侵的警报。你可以指定一扇门、一扇窗或者是其他不大于 20 尺立方的区域作为警报范围。直到法术结束前，如果有体型为微型或更大的生物触碰或进入受护区域，警报就会被触发。施法时，你可以指定那些不会触发警报的生物。</p><p>你还要在以下两类警报效应中选择其一：</p><ul><li><b>精神警报 (Mental Alarm)</b>：当你在警报范围内 1 英里内时，警报会在你脑海中响起。如果你正在睡眠，该警报会将你唤醒。</li><li><b>声音警报 (Audible Alarm)</b>：警报产生手摇铃般的声音，持续 10 秒，且 60 尺内均可听到。</li></ul>',
     scaling: '无',
     classes: ['ranger', 'wizard'],
     cantripScaling: false
@@ -92,7 +92,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '8 小时',
     target: '一个自愿生物',
     attackType: 'none',
-    description: '<p>你触碰一个未穿戴护甲的自愿生物，一层保护性的魔法力场将包围它直至法术结束。目标的 AC 变为 13 + 其敏捷调整值。</p>',
+    description: '<p>你触碰一个未穿戴护甲的自愿生物，一层保护性的魔法力场将包围它直至法术结束。目标的基础 AC 变为 13 + 其敏捷调整值。如果目标穿戴护甲，或者你使用动作解消法术，该法术即告终止。</p>',
     scaling: '无',
     classes: ['sorcerer', 'wizard'],
     cantripScaling: false
@@ -262,12 +262,12 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     ritual: true,
     castingTime: '1 小时',
     range: '10 尺',
-    components: { v: true, s: true, m: '价值10gp的木炭、香料和草药' },
+    components: { v: true, s: true, m: '价值 10gp 的木炭、香料和草药，必须在黄铜火盆中燃烧消耗' },
     concentration: false,
     duration: '立即',
     target: '召唤一只精魂',
     attackType: 'none',
-    description: '<p>你召唤一个精魂为你服务，它以你选择的动物形态出现。魔宠在独立于你的先攻位行动，但听从你的命令。它的 HP 为 0 时消失。</p>',
+    description: '<p>你召唤一个精魂为你服务，它以你选择的动物形态出现：蝙蝠、猫、螃蟹、青蛙（蟾蜍）、鹰、蜥蜴、章鱼、猫头鹰、毒蛇、鱼（食人鱼）、老鼠、渡鸦、海马、蜘蛛或黄鼠狼。该魔宠拥有所选形态的数据，但其生物类型是天界、精类或邪魔（由你选择）。</p><p>魔宠在独立于你的先攻位行动，并拥有自己的回合。它听从你的命令。魔宠不能进行攻击动作，但可以正常采取其他动作。</p><p>当魔宠的生命值降为 0 时，它消失，不留下任何物理躯体。如果你再次施展此法术，它会重新出现。</p><p>当魔宠在你 100 尺内时，你可以与其进行心灵感应。作为一个动作，你可以直到你下回合开始前，通过魔宠的眼睛看、通过它的耳朵听，并获得它拥有的任何特殊感官益处。在此期间，你对自己原本的感官视为目盲和耳聋。</p><p>你可以用动作让魔宠暂时消失进入异次元空间。只要它还在异次元空间，你可以用动作将其唤回，出现在你周围 30 尺内的未被占据空间。或者，你可以用动作永久解散它。</p><p>你同一时间只能拥有一个魔宠。如果你在已有魔宠时施展此法术，你可以让它采取新的形态。选择上述动物列表中的一种，你的魔宠会变形成该生物。</p><p>最后，当你施展施法距离为“触及”的法术时，你的魔宠可以代替你传递该法术，前提是它在你 100 尺内。魔宠必须利用其反应来传递法术。如果该法术需要攻击检定，则使用你的攻击调整值。</p><p>这也是一条最长描述的有力竞争者。</p>',
     scaling: '无',
     classes: ['wizard'],
     cantripScaling: false
@@ -706,8 +706,8 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     attackType: 'none',
     damage: '1d6',
     damageType: 'necrotic',
-    description: '<p>你诅咒一个生物。直到法术结束，你每次攻击命中该生物都对其造成额外 1d6 点黯蚀伤害。此外，施法时你还可以指定一种属性，目标进行该属性的属性检定时具有劣势。</p>',
-    scaling: '3-4环(8小时), 5环+(24小时)',
+    description: '<p>你诅咒射程内一个你看得见的生物。直到法术结束，你每次攻击命中该生物都对其造成额外 1d6 点黯蚀伤害。此外，施法时你还可以指定一种属性，目标进行该属性的属性检定时具有劣势。</p><p>如果在法术持续期间目标的生命值降至 0，你可以在该生物死亡后的后续回合中，使用附赠动作将诅咒转移给射程内另一个生物。</p><p>对受诅咒的目标施展<i>移除诅咒 (Remove Curse)</i> 可以提前结束该法术。</p>',
+    scaling: '如果你使用 3 环或 4 环法术位施展此法术，你可以维持专注至多 8 小时。如果使用 5 环或更高法术位，可以维持至多 24 小时。',
     classes: ['warlock'],
     cantripScaling: false
   },
@@ -724,8 +724,8 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '1 分钟',
     target: '20尺半径区域',
     attackType: 'none',
-    description: '<p>你投掷 5d8。这表示法术可以影响的生命值总数。以生命值由低到高的顺序，区域内的生物依次陷入昏睡，直到数值耗尽。不死生物和免疫魅惑的生物不受影响。</p>',
-    scaling: '2环及以上(每高一环+2d8)',
+    description: '<p>该法术使生物陷入魔法沉睡。你投掷 5d8，总和即为该法术可以影响的生物生命值总数。以当前生命值由低到高的顺序，区域内的生物依次受到影响（忽略昏迷生物）。</p><p>从当前生命值最低的生物开始，若其当前生命值小于或等于法术剩余的生命值总数，该生物便陷入昏迷。法术剩余的生命值总数减去该生物的生命值，然后对下一个生命值最低的生物重复此过程，直到剩余点数不足以影响下一个生物。目标的昏迷状态持续至法术结束，或直到其受到伤害，或有人用动作将其摇醒或拍醒。</p><p>不死生物和免疫魅惑的生物不受此法术影响。</p>',
+    scaling: '当你使用 2 环或更高环阶的法术位施展此法术时，每比 1 环高一环，你可以额外投掷 2d8。',
     classes: ['bard', 'sorcerer', 'wizard'],
     cantripScaling: false
   },
@@ -743,7 +743,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     target: '一个生物',
     attackType: 'save',
     saveAttr: 'wis',
-    description: '<p>你让一个智力高于 4 的生物陷入无法控制的狂笑。目标若感知豁免失败，则倒地变为伏地状态并陷入失能，无法起身。它在受得伤害时可再次豁免。</p>',
+    description: '<p>射程内一个你看得见的生物如果智力为 4 或更高，就会感知到每样事物都变得滑稽可笑，从而陷入无法控制的狂笑。目标必须进行感知豁免。若失败，目标倒地变为伏地状态并陷入失能，在此期间无法自行起身。</p><p>在目标的每个回合结束时，以及每当它受到伤害时，它可以再次进行感知豁免。如果是因受到伤害而进行豁免，该检定具有优势。若豁免成功，法术结束。</p>',
     scaling: '无',
     classes: ['bard', 'wizard'],
     cantripScaling: false
@@ -1114,8 +1114,8 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '1 轮',
     target: '15尺锥状区域',
     attackType: 'none',
-    description: '<p>炫目的闪光喷出。投掷 6d10，这是你能影响的生命值总数。从当前生命值最低的生物开始，依次使区域内的生物陷入目盲，直到你的下个回合结束。不死生物和构装体免疫。</p>',
-    scaling: '2环及以上(每高一环+2d10)',
+    description: '<p>炫目的彩色闪光从你手中喷出。投掷 6d10，总和即为该法术可以影响的生物生命值总数。以当前生命值由低到高的顺序，区域内的生物依次受到影响（忽略昏迷和目盲生物）。</p><p>从当前生命值最低的生物开始，若其当前生命值小于或等于法术剩余的生命值总数，该生物便陷入目盲，直到你的下个回合结束。减去该生物的生命值后继续结算下一个生物。不死生物和构装体不受此法术影响。</p>',
+    scaling: '当你使用 2 环或更高环阶的法术位施展此法术时，每比 1 环高一环，你可以额外投掷 2d10。',
     classes: ['sorcerer', 'wizard'],
     cantripScaling: false
   },
@@ -1300,7 +1300,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'expeditious_retreat',
-    name: '及远步',
+    name: '脚底抹油',
     level: 1,
     school: 'transmutation',
     ritual: false,
@@ -1344,10 +1344,10 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     range: '触及',
     components: { v: true, s: true, m: '一枝槲寄生' },
     concentration: false,
-    duration: '立即 (浆果24小时)',
+    duration: '立即',
     target: '创造10颗浆果',
     attackType: 'none',
-    description: '<p>你的手中出现至多 10 颗注入魔力的浆果。吃下一颗浆果是一个动作，可以恢复 1 点生命值，并提供相当于一顿正餐的营养。</p>',
+    description: '<p>你的手中出现至多 10 颗注入魔力的浆果。浆果在被吃掉或在施法 24 小时后失去其效力。</p><p>一个生物可以使用其动作吃下一颗浆果。吃下一颗浆果可以恢复 1 点生命值，并且这颗浆果提供的营养足以维持该生物一天。</p>',
     scaling: '无',
     classes: ['druid', 'ranger'],
     cantripScaling: false
@@ -1365,7 +1365,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '1 分钟',
     target: '一个生物',
     attackType: 'none',
-    description: '<p>你触碰一个生物。在法术持续期间，该生物的跳跃距离变为正常的三倍。</p>',
+    description: '<p>你触碰一个生物。在法术持续期间，该生物的跳跃距离变为正常的三倍。</p><p>这一定不是最长描述的竞争者。</p>',
     scaling: '无',
     classes: ['druid', 'ranger', 'sorcerer', 'wizard'],
     cantripScaling: false
@@ -1383,7 +1383,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '1 小时',
     target: '一个生物',
     attackType: 'none',
-    description: '<p>你触碰一个生物。在法术持续期间，该生物的速度增加 10 尺。</p>',
+    description: '<p>你触碰一个生物。在法术持续期间，该生物的速度增加 10 尺。</p><p>这或许不会是最长描述的竞争者。</p>',
     scaling: '2环及以上(每高一环多指定一个目标)',
     classes: ['bard', 'druid', 'ranger', 'wizard'],
     cantripScaling: false
@@ -1401,7 +1401,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '立即',
     target: '5尺半径区域',
     attackType: 'none',
-    description: '<p>你净化射程内 5 尺半径球状区域内的所有非魔法食物和饮料，使其不再有毒和致病。</p>',
+    description: '<p>你净化射程内 5 尺半径球状区域内的所有非魔法食物和饮料，使其不再有毒和致病。</p><p>这大概不是最长描述的竞争者。</p>',
     scaling: '无',
     classes: ['cleric', 'druid', 'paladin'],
     cantripScaling: false

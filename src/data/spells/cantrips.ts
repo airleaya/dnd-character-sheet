@@ -36,7 +36,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '立即或1小时',
     target: '5尺立方的火焰',
     attackType: 'none',
-    description: '<p>你选择射程内你能看见的一处 5 尺立方大小的非魔法火焰，并以之为目标展现下列效应之一：瞬间将火焰向一个方向扩展 5 尺；瞬间熄灭该区域的火焰；使火焰持续双倍的明亮度或亮度减半；改变火焰的颜色或形状。</p>',
+    description: '<p>你选择射程内你能看见的一处 5 尺立方大小的非魔法火焰，并以之为目标展现下列效应之一：</p><ul><li>瞬间将火焰向一个方向扩展 5 尺，前提是新位置有木材或其他燃料。</li><li>瞬间熄灭该区域的火焰。</li><li>使火焰持续双倍的明亮度或亮度减半，改变其光照半径。</li><li>改变火焰的颜色或形状。这类变化持续 1 小时。</li></ul><p>你可以同时维持至多三个非瞬时的效应。</p>',
     classes: ['druid', 'sorcerer', 'wizard'],
     cantripScaling: false
   },
@@ -53,7 +53,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '1 分钟',
     target: '可移动的光源',
     attackType: 'none',
-    description: '<p>你在射程内创造出至多四个火把大小的光源，使它们显现为火把、灯笼或发光的球体。每道光发出 10 尺半径的微光光照。你可以用附赠动作将它们移动至多 60 尺。</p>',
+    description: '<p>你在射程内创造出至多四个火把大小的光源，使它们显现为火把、灯笼或发光的球体。每道光发出 10 尺半径的微光光照。你可以用附赠动作将它们移动至多 60 尺。每个光源必须保持在彼此 20 尺范围内，且若光源超出法术射程，该光源熄灭。</p>',
     classes: ['bard', 'sorcerer', 'wizard'],
     cantripScaling: false
   },
@@ -70,7 +70,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '立即 (或特定持续时间)',
     target: '各种小型自然效应',
     attackType: 'none',
-    description: '<p>你向自然精魂低语，创造出下列效应之一：预测未来24小时的天气；使一株植物瞬间开花或发芽；创造一个即时、无害的感官效应（落叶、微风等）；瞬间点燃或熄灭蜡烛、火把或营火。</p>',
+    description: '<p>你向自然精魂低语，创造出下列效应之一：</p><ul><li>创造一个微小的、无害的感官效应来预测未来 24 小时的天气（如金色的球体代表晴天，云雾代表雨天）。</li><li>使一株植物瞬间开花、长出种荚或发芽。</li><li>创造一个即时、无害的感官效应，如落叶飘零、微风拂过、雷声轻响或臭鼬气味。</li><li>瞬间点燃或熄灭蜡烛、火把或小营火。</li></ul>',
     classes: ['druid'],
     cantripScaling: false
   },
@@ -104,7 +104,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '1 分钟',
     target: '一个自愿生物',
     attackType: 'none',
-    description: '<p>你触碰一个自愿生物。在法术结束前，目标可以任选一次属性检定并掷一次 d4，将掷骰结果加在检定结果中。该法术随后结束。</p>',
+    description: '<p>你触碰一个自愿生物。在法术结束前，目标可以任选一次属性检定并掷一次 d4，将掷骰结果加在检定结果中。目标可以在进行检定之前或之后、但在 DM 宣布结果之前选择使用该骰子。该法术随后结束。</p>',
     classes: ['cleric', 'druid'],
     cantripScaling: false
   },
@@ -157,7 +157,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '1 分钟',
     target: '创造一只幽灵手',
     attackType: 'none',
-    description: '<p>一只幽灵般的浮空之手出现在射程内。你可以用动作控制它操纵物体、开门、取物或倾倒药剂。这只手无法攻击、无法启动魔法物品，且负重不能超过 10 磅。</p>',
+    description: '<p>一只幽灵般的浮空之手出现在射程内。你可以用动作控制它操纵物体、开门、取物或倾倒药剂。你可以将这只手移动至多 30 尺，但如果它距离你超过 30 尺，法术结束。</p><p>这只手无法攻击、无法启动魔法物品，且负重不能超过 10 磅。</p>',
     classes: ['bard', 'sorcerer', 'warlock', 'wizard'],
     cantripScaling: false
   },
@@ -225,7 +225,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '立即或1小时',
     target: '5尺立方的泥土或岩石',
     attackType: 'none',
-    description: '<p>你选择射程内可见的一处 5 尺立方的松散泥土，可以挖掘并移动它至多 5 尺；或者在上面产生形状、颜色改变；或者使该地面变成困难地形（或反之）。</p>',
+    description: '<p>你选择射程内可见的一处 5 尺立方的松散泥土，并对其产生以下效应之一：</p><ul><li>瞬间挖掘并移动松散泥土至多 5 尺，堆积在旁边。</li><li>在泥土或岩石表面产生形状、颜色改变或写字。</li><li>使该地面变成困难地形（或反之）。</li></ul><p>非瞬时效应持续 1 小时。你可以同时维持至多两个此类效应。</p>',
     classes: ['druid', 'sorcerer', 'wizard'],
     cantripScaling: false
   },
@@ -242,7 +242,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '1 小时',
     target: '各种小型效应',
     attackType: 'none',
-    description: '<p>这是见习施法者用来练习的法术。你能创造无害的感官效应（火花、微风、音乐）；瞬间点燃或熄灭蜡烛；弄脏或清洁一个物体；使非活体物质冰冷、温暖或变味；产生一个持续1小时的颜色、记号或非魔法饰品。</p>',
+    description: '<p>这是见习施法者用来练习的法术。你能创造以下效应之一：</p><ul><li>创造无害的感官效应（火花、微风、微弱音乐、奇怪气味）。</li><li>瞬间点燃或熄灭蜡烛、火把或小营火。</li><li>弄脏或清洁一个不超过 1 立方尺的物体。</li><li>使 1 立方尺的非活体物质冰冷、温暖或变味，持续 1 小时。</li><li>在物体表面或空中产生一个颜色、记号或符号，持续 1 小时。</li><li>创造一个非魔法的小饰品或幻象图像，持续至你的下个回合结束。</li></ul><p>你可以同时维持至多三个非瞬时的效应。</p>',
     classes: ['bard', 'sorcerer', 'warlock', 'wizard'],
     cantripScaling: false
   },
@@ -259,7 +259,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '1 分钟',
     target: '一个自愿生物',
     attackType: 'none',
-    description: '<p>你触碰一个自愿生物。在法术结束前，目标可以任选一次豁免检定并掷一次 d4，将掷骰结果加在检定结果中。该法术随后结束。</p>',
+    description: '<p>你触碰一个自愿生物。在法术结束前，目标可以任选一次豁免检定并掷一次 d4，将掷骰结果加在检定结果中。目标可以在进行检定之前或之后、但在 DM 宣布结果之前选择使用该骰子。该法术随后结束。</p>',
     classes: ['cleric', 'druid'],
     cantripScaling: false
   },
@@ -276,7 +276,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '立即或1小时',
     target: '5尺立方内的水',
     attackType: 'none',
-    description: '<p>你操纵射程内一处 5 尺立方大小的水体。你可以：瞬间移动水流或改变流向；使水形成简单的形状并产生动画；改变水的颜色或透明度；或者冻结水体（若无生物在其中）。</p>',
+    description: '<p>你操纵射程内一处 5 尺立方大小的水体。你可以：</p><ul><li>瞬间移动水流或改变流向（至多 5 尺），但这不足以造成伤害。</li><li>使水形成简单的形状并产生动画，持续 1 小时。</li><li>改变水的颜色或透明度，持续 1 小时。</li><li>冻结水体（若无生物在其中），持续 1 小时。</li></ul><p>你可以同时维持至多两个非瞬时的效应。</p>',
     classes: ['druid', 'sorcerer', 'wizard'],
     cantripScaling: false
   },
@@ -310,7 +310,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '1 分钟',
     target: '各种超自然效应',
     attackType: 'none',
-    description: '<p>你展现神力的微弱奇迹。你可以：让声音宏亮三倍；使火焰变色或闪烁；让地面震动；在墙上创造声音（如雷鸣或乌鸦叫）；使未锁定的门窗瞬间打开或猛然关上；改变眼睛的外观。</p>',
+    description: '<p>你展现神力的微弱奇迹。你可以展现以下效应之一：</p><ul><li>让声音宏亮三倍。</li><li>使火焰变色、闪烁、变亮或变暗。</li><li>让地面产生无害的震动。</li><li>在墙上创造声音（如雷鸣、乌鸦叫、低语）。</li><li>使未锁定的门窗瞬间打开或猛然关上。</li><li>改变眼睛的外观。</li></ul><p>你可以同时维持至多三个效应。</p>',
     classes: ['cleric'],
     cantripScaling: false
   },
