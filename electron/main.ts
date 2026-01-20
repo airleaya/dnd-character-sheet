@@ -7,8 +7,11 @@ import fs from 'fs'
 // const __filename = fileURLToPath(import.meta.url)
 // const __dirname = path.dirname(__filename)
 
-// ✅ 直接使用原生的 process.cwd() 和 __dirname，因为我们现在是 CommonJS 模式
+// 直接使用原生的 process.cwd() 和 __dirname，因为我们现在是 CommonJS 模式
 const SAVE_DIR = path.join(process.cwd(), 'saves');
+// 定义窗口配置文件路径
+const CONFIG_PATH = path.join(process.cwd(), 'window-config.json');
+
 
 if (!fs.existsSync(SAVE_DIR)) {
   fs.mkdirSync(SAVE_DIR, { recursive: true });
@@ -17,12 +20,44 @@ if (!fs.existsSync(SAVE_DIR)) {
 let win: BrowserWindow | null = null
 let isReadyToQuit = false;
 
+// ✅ 新增：读取窗口状态辅助函数
+const loadWindowState = () => {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to load window state:', e);
+  }
+  return null; 
+};
+
+// ✅ 新增：保存窗口状态辅助函数
+const saveWindowState = () => {
+  if (!win) return;
+  try {
+    const bounds = win.getBounds(); // 包含 x, y, width, height
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(bounds));
+  } catch (e) {
+    console.error('Failed to save window state:', e);
+  }
+};
+
 const createWindow = () => {
+  //创建前先读取状态
+  const state = loadWindowState();
+
   win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    //优先使用保存的宽高和位置，否则使用默认值
+    width: state?.width || 1280,
+    height: state?.height || 800,
+    x: state?.x, 
+    y: state?.y,
+    minWidth: 1024, // 最小限制
+    minHeight: 600,
+
     webPreferences: {
-      // ✅ 现在 __dirname 是原生支持的，直接用
+      // 现在 __dirname 是原生支持的，直接用
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
@@ -38,6 +73,10 @@ const createWindow = () => {
   win.on('close', (e) => {
     if (!isReadyToQuit) {
       e.preventDefault(); 
+
+      //在关闭流程触发时，保存当前窗口状态
+      saveWindowState();
+
       win?.webContents.send('app-will-close');
       // 3秒超时强制关闭保险
       setTimeout(() => {

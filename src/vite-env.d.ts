@@ -6,6 +6,8 @@ interface Window {
     loadAllCharacters: () => Promise<{ success: boolean; data: any[] }>;
     deleteCharacter: (filename: string) => Promise<{ success: boolean; error?: any }>;
     onAppWillClose: (callback: () => void) => void; 
-    confirmClose: () => Promise<void>;             
+    confirmClose: () => Promise<void>;   
+    //缩放接口定义
+    setZoomFactor: (factor: number) => void;          
   }
 }

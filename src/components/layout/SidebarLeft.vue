@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref,onMounted,onUnmounted } from 'vue';
 import { useCharacterStore } from '../../stores/characterStore';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 
@@ -8,9 +8,9 @@ const activeStore = useActiveSheetStore();
 const fileInput = ref<HTMLInputElement | null>(null); // 文件输入框引用
 
 // 新建角色并自动打开
-// ✅ 修改：加上 async
+// async
 const handleCreate = async () => {
-  // ✅ 修改：加上 await，等待创建完成拿到 ID 字符串
+  // await，等待创建完成拿到 ID 字符串
   const newId = await charStore.createNewCharacter();
   
   // 此时 newId 是 string，不再是 Promise，可以安全传入
@@ -98,11 +98,11 @@ const onFileSelected = (e: Event) => {
   const file = files[0];
   const reader = new FileReader();
   
-  // ✅ 修改点 1: 在回调函数前加上 async
+  // 在回调函数前加上 async
   reader.onload = async (evt) => {
     const content = evt.target?.result as string;
     if (content) {
-      // ✅ 修改点 2: 加上 await，等待导入完成并获取真正的 ID 字符串
+      // 加上 await，等待导入完成并获取真正的 ID 字符串
       const newId = await charStore.importCharacter(content);
       
       if (newId) {
@@ -119,7 +119,7 @@ const onFileSelected = (e: Event) => {
   reader.readAsText(file);
 };
 
-// ✅ 新增：手动保存处理
+// 手动保存处理
 const handleSave = async () => {
   if (!activeStore.character) return;
   
@@ -131,6 +131,61 @@ const handleSave = async () => {
     alert('❌ 保存失败，请检查控制台。');
   }
 };
+
+// 缩放控制逻辑
+const zoomLevel = ref(1.0); // 1.0 = 100%
+
+// 设置缩放并保存到 LocalStorage
+const applyZoom = (value: number) => {
+  // 限制范围 0.6 (60%) ~ 1.5 (150%)
+  const clamped = Math.min(Math.max(value, 0.6), 1.5);
+  // 保留一位小数
+  zoomLevel.value = Math.round(clamped * 10) / 10;
+  
+  // 调用 Electron API
+  if (window.electronAPI && window.electronAPI.setZoomFactor) {
+    window.electronAPI.setZoomFactor(zoomLevel.value);
+  }
+
+  localStorage.setItem('dnd_app_zoom', String(zoomLevel.value));
+};
+
+// 增量调整
+const adjustZoom = (delta: number) => {
+  applyZoom(zoomLevel.value + delta);
+};
+
+//Ctrl + 滚轮 监听处理函数 👇👇👇
+const handleWheel = (e: WheelEvent) => {
+  // 只有当 Ctrl 键被按住时才触发
+  if (e.ctrlKey) {
+    // 阻止浏览器默认的“页面缩放”或“滚动”行为
+    e.preventDefault();
+
+    // deltaY < 0 代表向上滚动（通常意为放大）
+    // deltaY > 0 代表向下滚动（通常意为缩小）
+    if (e.deltaY < 0) {
+      adjustZoom(0.1);
+    } else {
+      adjustZoom(-0.1);
+    }
+  }
+};
+
+// 初始化：读取上次的缩放比例
+onMounted(() => {
+  const savedZoom = localStorage.getItem('dnd_app_zoom');
+  if (savedZoom) {
+    applyZoom(parseFloat(savedZoom));
+  }
+  //注册全局监听 (passive: false 是为了能使用 preventDefault)
+  window.addEventListener('wheel', handleWheel, { passive: false });
+});
+
+//组件销毁时清理监听
+onUnmounted(() => {
+  window.removeEventListener('wheel', handleWheel);
+});
 </script>
 
 <template>
@@ -156,6 +211,14 @@ const handleSave = async () => {
         </div>
       </li>
     </ul>
+    <div class="footer-wrapper">
+      
+      <div class="zoom-bar">
+        <button @click="adjustZoom(-0.1)" class="btn-zoom" title="缩小">-</button>
+        <span class="zoom-display" title="当前缩放比例">{{ Math.round(zoomLevel * 100) }}%</span>
+        <button @click="adjustZoom(0.1)" class="btn-zoom" title="放大">+</button>
+        <button @click="applyZoom(1.0)" class="btn-zoom btn-reset" title="重置">↺</button>
+      </div>
 
     <div class="footer-tools">
       <button 
@@ -174,6 +237,7 @@ const handleSave = async () => {
       </button>
       <input type="file" ref="fileInput" accept=".json" style="display: none" @change="onFileSelected" />
     </div>
+  </div>
   </aside>
 </template>
 
@@ -224,8 +288,48 @@ const handleSave = async () => {
     }
   }
 
+  /* 新增：底部容器，背景色统一 */
+  .footer-wrapper {
+    flex-shrink: 0;
+    border-top: 1px solid #34495e; 
+    background: #233140;
+  }
+
+  /* 新增：缩放条样式 */
+  .zoom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 1rem 0; /* 顶部留空 */
+    gap: 8px;
+
+    .zoom-display {
+      font-size: 0.9rem;
+      font-family: monospace;
+      color: #bdc3c7;
+      min-width: 40px;
+      text-align: center;
+      user-select: none;
+    }
+
+    .btn-zoom {
+      background: #34495e;
+      border: 1px solid #455a64;
+      color: #ecf0f1;
+      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      &:hover { background: #3e5871; border-color: #5dade2; }
+      &.btn-reset { margin-left: auto; font-size: 0.8rem; }
+    }
+  }
+
   .footer-tools {
-    padding: 1rem; border-top: 1px solid #34495e; background: #233140;
+    padding: 1rem; border-top: none; background: #233140;
     display: flex; gap: 10px; flex-shrink: 0;
 
     .btn-tool {
