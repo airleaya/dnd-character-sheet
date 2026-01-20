@@ -220,6 +220,8 @@ const update = (field: string, val: any) => {
       /* XP 样式保持不变... */
       .xp-adder {
         display: flex; gap: 4px; margin-bottom: 2px;
+        /*防止 Electron 窗口拖拽区域拦截点击事件*/
+        -webkit-app-region: no-drag;
         input { width: 90px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 4px; font-size: 0.85rem; }
         button { border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; }
         .btn-add { background: #27ae60; }
