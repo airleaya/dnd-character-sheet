@@ -104,7 +104,12 @@ export const useCharacterStore = defineStore('characterStore', {
       
       const metaIndex = this.characterList.findIndex(c => c.id === char.id);
       const meta = { id: char.id, name: char.profile.name, race: char.profile.race, level: char.profile.level, class: char.profile.class, avatarUrl: char.profile.avatarUrl };
-      if (metaIndex !== -1) this.characterList[metaIndex] = meta;
+      if (metaIndex !== -1) 
+        {this.characterList[metaIndex] = meta;}
+      else {
+        // 如果是新 ID，必须 push 到列表，UI 才会刷新
+        this.characterList.push(meta);
+      }
 
       if (window.electronAPI) {
         // 1. 计算新的标准文件名 (UUID.json)
@@ -173,8 +178,8 @@ export const useCharacterStore = defineStore('characterStore', {
         const data = JSON.parse(jsonStr) as Character;
         if (!data.profile) throw new Error('无效数据');
         
-        data.id = generateUUID(); 
-        data.lastModified = Date.now();
+        // data.id = generateUUID(); 
+        // data.lastModified = Date.now();
         
         // 兼容性补全
         if (!data.bio) data.bio = { age: '', height: '', weight: '', eyes: '', skin: '', hair: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', backstory: '', featureText: '', treasureNotes: '' };
