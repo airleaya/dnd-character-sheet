@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain,dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
@@ -20,7 +20,7 @@ if (!fs.existsSync(SAVE_DIR)) {
 let win: BrowserWindow | null = null
 let isReadyToQuit = false;
 
-// ✅ 新增：读取窗口状态辅助函数
+// 读取窗口状态辅助函数
 const loadWindowState = () => {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
@@ -32,7 +32,7 @@ const loadWindowState = () => {
   return null; 
 };
 
-// ✅ 新增：保存窗口状态辅助函数
+// 保存窗口状态辅助函数
 const saveWindowState = () => {
   if (!win) return;
   try {
@@ -127,6 +127,36 @@ app.whenReady().then(() => {
       return { success: true };
     } catch (e) { return { success: false, error: e }; }
   });
+
+  // -------------------------------------------------------------
+  // 批量导出相关 API
+  // 1. 打开文件夹选择对话框
+  ipcMain.handle('select-directory', async () => {
+    if (!win) return null;
+    const result = await dialog.showOpenDialog(win, {
+      title: '选择导出文件夹',
+      properties: ['openDirectory', 'createDirectory']
+    });
+    
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    return result.filePaths[0]; // 返回用户选中的目录路径
+  });
+
+  // 2. 导出文件到指定目录 (允许写入任意路径)
+  ipcMain.handle('export-character', async (_event, dirPath, filename, content) => {
+    try {
+      const fullPath = path.join(dirPath, filename);
+      fs.writeFileSync(fullPath, content, 'utf-8');
+      console.log('✅ Exported to:', fullPath);
+      return { success: true };
+    } catch (e) {
+      console.error('Export Error:', e);
+      return { success: false, error: e };
+    }
+  });
+  //-----------------------------------------
 
   ipcMain.handle('app-can-close', () => {
     isReadyToQuit = true;

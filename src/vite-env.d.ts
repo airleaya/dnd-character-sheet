@@ -8,6 +8,9 @@ interface Window {
     onAppWillClose: (callback: () => void) => void; 
     confirmClose: () => Promise<void>;   
     //缩放接口定义
-    setZoomFactor: (factor: number) => void;          
+    setZoomFactor: (factor: number) => void;  
+    // 批量处理导出接口
+    selectDirectory: () => Promise<string | null>;
+    exportCharacter: (dirPath: string, filename: string, content: string) => Promise<{success: boolean, error?: any}>;        
   }
 }

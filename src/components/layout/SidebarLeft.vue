@@ -1,26 +1,103 @@
 <script setup lang="ts">
-import { ref,onMounted,onUnmounted,nextTick as vueNextTick } from 'vue';
+import { ref,onMounted,onUnmounted,nextTick } from 'vue';
 import { useCharacterStore } from '../../stores/characterStore';
 import { useActiveSheetStore } from '../../stores/activeSheet';
-import { nextTick } from 'process';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
 const fileInput = ref<HTMLInputElement | null>(null); // 文件输入框引用
 
-// 新建角色并自动打开
-// async
-const handleCreate = async () => {
-  // await，等待创建完成拿到 ID 字符串
-  const newId = await charStore.createNewCharacter();
-  
-  // 此时 newId 是 string，不再是 Promise，可以安全传入
-  activeStore.loadCharacter(newId);
+  // --- 🆕 批量操作状态 ---
+const isBulkMode = ref(false);
+const selectedIds = ref<Set<string>>(new Set());
+
+// 切换批量模式
+const toggleBulkMode = () => {
+  isBulkMode.value = !isBulkMode.value;
+  selectedIds.value.clear(); // 退出或进入时都清空选择
 };
 
-// 切换角色
-const handleSelect = (id: string) => {
-  activeStore.loadCharacter(id);
+// 处理列表项点击
+const handleItemClick = (id: string) => {
+  if (isBulkMode.value) {
+    // 批量模式：切换选中状态
+    if (selectedIds.value.has(id)) {
+      selectedIds.value.delete(id);
+    } else {
+      selectedIds.value.add(id);
+    }
+  } else {
+    // 普通模式：切换当前角色
+    activeStore.loadCharacter(id);
+  }
+};
+
+// 全选/反选
+const toggleSelectAll = () => {
+  if (selectedIds.value.size === charStore.characterList.length) {
+    selectedIds.value.clear();
+  } else {
+    charStore.characterList.forEach(c => selectedIds.value.add(c.id));
+  }
+};
+
+// --- 🆕 批量导出逻辑 ---
+const handleBulkExport = async () => {
+  const ids = Array.from(selectedIds.value);
+  if (ids.length === 0) return alert('请先选择要导出的角色');
+
+  // 1. 请求用户选择目标文件夹
+  const targetDir = await window.electronAPI.selectDirectory();
+  if (!targetDir) return; // 用户取消
+
+  let successCount = 0;
+  
+  // 2. 循环导出
+  for (const id of ids) {
+    const char = charStore.getCharacterData(id);
+    if (char) {
+      // 生成文件名
+      const safeName = (char.profile.name || '未命名').replace(/[\\/:*?"<>|]/g, '_');
+      const filename = `${safeName}_Lv${char.profile.level}.json`;
+      
+      try {
+        const json = JSON.stringify(char, null, 2);
+        // 调用新 API 写入外部文件夹
+        await window.electronAPI.exportCharacter(targetDir, filename, json);
+        successCount++;
+      } catch (e) {
+        console.error(`导出 ${char.profile.name} 失败`, e);
+      }
+    }
+  }
+
+  alert(`✅ 已成功导出 ${successCount} 个角色到:\n${targetDir}`);
+  isBulkMode.value = false; // 导出完成后退出批量模式
+};
+
+// --- 🆕 批量删除逻辑 ---
+const handleBulkDelete = async () => {
+  const ids = Array.from(selectedIds.value);
+  const count = ids.length;
+  if (count === 0) return;
+
+  if (!confirm(`⚠️ 危险操作：确定要永久删除这 ${count} 个角色吗？\n此操作无法撤销！`)) {
+    return;
+  }
+
+  // 循环删除
+  for (const id of ids) {
+    await charStore.deleteCharacter(id);
+  }
+
+  // 如果当前正在查看的角色被删除了，清空视图
+  if (activeStore.character && ids.includes(activeStore.character.id)) {
+    activeStore.character = null;
+  }
+
+  selectedIds.value.clear();
+  // 保持批量模式，方便继续操作，或者根据偏好也可以退出
+  // isBulkMode.value = false; 
 };
 
 // 🗑️ 删除角色
@@ -34,6 +111,28 @@ const handleDelete = (e: Event, id: string, name: string) => {
     }
   }
 };
+
+// 新建角色并自动打开
+// async
+const handleCreate = async () => {
+  // await，等待创建完成拿到 ID 字符串
+  const newId = await charStore.createNewCharacter();
+  
+  // 此时 newId 是 string，不再是 Promise，可以安全传入
+  activeStore.loadCharacter(newId);
+
+  // 等待 DOM 渲染完成后，强制拉回焦点
+  // 解决“点击输入框无反应”的问题
+  await nextTick();
+  window.focus();
+};
+
+// 切换角色
+const handleSelect = (id: string) => {
+  activeStore.loadCharacter(id);
+};
+
+
 
 // 📤 导出当前选中的角色 (增强版)
 const handleExport = () => {
@@ -134,7 +233,7 @@ const onFileSelected = async (e: Event) => {
 
   // 2. 所有文件处理完毕后的收尾工作
   if (successCount > 0 && lastNewId) {
-    await vueNextTick();
+    await nextTick();
     
     // 自动加载最后一个导入的角色，给用户反馈
     activeStore.loadCharacter(lastNewId);
@@ -225,22 +324,43 @@ onUnmounted(() => {
   <aside class="sidebar-left">
     <div class="header">
       <h2>我的角色</h2>
-      <button @click="handleCreate" class="btn-create" title="新建空白角色卡">+ 新建卡</button>
+      <button 
+          class="btn-text" 
+          :class="{ active: isBulkMode }"
+          @click="toggleBulkMode"
+        >
+          {{ isBulkMode ? '完成' : '管理' }}
+        </button>
+      <button v-if="!isBulkMode" @click="handleCreate" class="btn-create" title="新建空白角色卡">+ 新建卡</button>
+      <div v-else class="bulk-header">
+        <span>已选: {{ selectedIds.size }}</span>
+        <button class="btn-text-small" @click="toggleSelectAll">全选/无</button>
+      </div>
     </div>
 
     <ul class="char-list">
       <li 
         v-for="char in charStore.characterList" 
         :key="char.id"
-        :class="{ active: activeStore.character?.id === char.id }"
-        @click="handleSelect(char.id)"
+        :class="{ 
+          active: !isBulkMode && activeStore.character?.id === char.id,
+          selected: isBulkMode && selectedIds.has(char.id)
+        }"
+        @click="handleItemClick(char.id)"
       >
         <div class="char-row">
+          <div v-if="isBulkMode" class="checkbox-wrapper">
+             <input 
+              type="checkbox" 
+              :checked="selectedIds.has(char.id)"
+              readonly 
+            />
+          </div>
           <div class="char-info">
             <div class="char-name">{{ char.name }}</div>
             <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ char.class }}</div>
           </div>
-          <button class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
+          <button v-if="!isBulkMode" class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
         </div>
       </li>
     </ul>
@@ -253,7 +373,7 @@ onUnmounted(() => {
         <button @click="applyZoom(1.0)" class="btn-zoom btn-reset" title="重置">↺</button>
       </div>
 
-    <div class="footer-tools">
+    <div class="footer-tools" v-if="!isBulkMode">
       <button 
         @click="handleSave" 
         class="btn-tool btn-save" 
@@ -277,6 +397,22 @@ onUnmounted(() => {
         @change="onFileSelected" 
        />
     </div>
+    <div class="footer-tools bulk-tools" v-else>
+        <button 
+          @click="handleBulkDelete" 
+          class="btn-tool btn-danger" 
+          :disabled="selectedIds.size === 0"
+        >
+          🗑️ 删除 ({{ selectedIds.size }})
+        </button>
+        <button 
+          @click="handleBulkExport" 
+          class="btn-tool btn-primary" 
+          :disabled="selectedIds.size === 0"
+        >
+          📂 导出 ({{ selectedIds.size }})
+        </button>
+      </div>
   </div>
   </aside>
 </template>
@@ -381,6 +517,38 @@ onUnmounted(() => {
       /* 给保存按钮加个特殊色（可选） */
       &.btn-save:hover:not(:disabled) { border-color: #f1c40f; color: #f1c40f; }
     }
+  }
+
+  .title-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;
+  h2 { margin: 0; }
+  .btn-text {
+    background: none; border: 1px solid transparent; color: #bdc3c7; cursor: pointer; font-size: 0.8rem;
+    padding: 2px 8px; border-radius: 4px;
+    &:hover { color: white; background: rgba(255,255,255,0.1); }
+    &.active { color: #f1c40f; border-color: #f1c40f; }
+  }
+  }
+
+  .bulk-header {
+    display: flex; justify-content: space-between; align-items: center; 
+    font-size: 0.9rem; color: #bdc3c7; padding: 0.6rem 0;
+    .btn-text-small { background: none; border: none; color: #3498db; cursor: pointer; font-size: 0.8rem; &:hover { text-decoration: underline; } }
+  }
+
+  .char-list li {
+    /* 新增选中态样式 */
+    &.selected { background-color: rgba(52, 152, 219, 0.2); }
+    
+    .checkbox-wrapper {
+      margin-right: 10px; display: flex; align-items: center;
+      input { cursor: pointer; width: 16px; height: 16px; }
+    }
+  }
+
+  .bulk-tools {
+    .btn-danger { color: #e74c3c; border-color: #c0392b; &:hover:not(:disabled) { background: #c0392b; color: white; } }
+    .btn-primary { color: #3498db; border-color: #2980b9; &:hover:not(:disabled) { background: #2980b9; color: white; } }
   }
 }
 </style>
