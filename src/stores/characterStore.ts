@@ -178,8 +178,8 @@ export const useCharacterStore = defineStore('characterStore', {
         const data = JSON.parse(jsonStr) as Character;
         if (!data.profile) throw new Error('无效数据');
         
-        // data.id = generateUUID(); 
-        // data.lastModified = Date.now();
+        data.id = generateUUID(); 
+        data.lastModified = Date.now();
         
         // 兼容性补全
         if (!data.bio) data.bio = { age: '', height: '', weight: '', eyes: '', skin: '', hair: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', backstory: '', featureText: '', treasureNotes: '' };
