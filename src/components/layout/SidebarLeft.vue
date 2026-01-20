@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref,onMounted,onUnmounted } from 'vue';
+import { ref,onMounted,onUnmounted,nextTick as vueNextTick } from 'vue';
 import { useCharacterStore } from '../../stores/characterStore';
 import { useActiveSheetStore } from '../../stores/activeSheet';
+import { nextTick } from 'process';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
@@ -106,8 +107,11 @@ const onFileSelected = (e: Event) => {
       const newId = await charStore.importCharacter(content);
       
       if (newId) {
+        await vueNextTick();
         activeStore.loadCharacter(newId); // 现在 newId 是 string 了，不再报错
-        alert('导入成功！');
+        // alert('导入成功！');
+        window.focus();
+        console.log('角色 ${newId} 导入成功');
       } else {
         alert('导入失败：文件格式不正确');
       }

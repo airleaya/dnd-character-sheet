@@ -174,10 +174,9 @@ export const useCharacterStore = defineStore('characterStore', {
 
     // --- 7. 导入 ---
     async importCharacter(jsonStr: string) {
-      try {
+      try {        
         const data = JSON.parse(jsonStr) as Character;
-        if (!data.profile) throw new Error('无效数据');
-        
+        if (!data.profile) throw new Error('无效数据');        
         data.id = generateUUID(); 
         data.lastModified = Date.now();
         
