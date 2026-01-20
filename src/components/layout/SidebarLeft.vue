@@ -91,36 +91,65 @@ const triggerImport = () => {
   fileInput.value?.click();
 };
 
-// 处理文件选择
-const onFileSelected = (e: Event) => {
-  const files = (e.target as HTMLInputElement).files;
+// 🆕 辅助函数：将 FileReader 封装为 Promise，以便在循环中 await
+const readFileAsText = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string || '');
+    reader.onerror = (e) => reject(e);
+    reader.readAsText(file);
+  });
+};
+
+// 🔄 重构：处理文件选择 (支持批量 + 防止卡死)
+const onFileSelected = async (e: Event) => {
+  const input = (e.target as HTMLInputElement);
+  const files = input.files;
+  
+  // 如果没有选择文件，直接返回
   if (!files || files.length === 0) return;
 
-  const file = files[0];
-  const reader = new FileReader();
-  
-  // 在回调函数前加上 async
-  reader.onload = async (evt) => {
-    const content = evt.target?.result as string;
-    if (content) {
-      // 加上 await，等待导入完成并获取真正的 ID 字符串
-      const newId = await charStore.importCharacter(content);
-      
-      if (newId) {
-        await vueNextTick();
-        activeStore.loadCharacter(newId); // 现在 newId 是 string 了，不再报错
-        // alert('导入成功！');
-        window.focus();
-        console.log('角色 ${newId} 导入成功');
-      } else {
-        alert('导入失败：文件格式不正确');
+  let successCount = 0;       // 成功计数
+  let lastNewId: string | null = null; // 记录最后一个成功的ID
+
+  // 1. 循环处理所有选中的文件
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    try {
+      // 串行等待文件读取
+      const content = await readFileAsText(file);
+      if (content) {
+        // 等待 Store 执行导入
+        const newId = await charStore.importCharacter(content);
+        if (newId) {
+          successCount++;
+          lastNewId = newId; // 更新最后一个 ID
+        }
       }
+    } catch (err) {
+      console.error(`❌ 文件 "${file.name}" 导入失败:`, err);
+      // 这里不中断循环，继续处理下一个文件
     }
-    // 清空 input，允许再次选择同名文件
-    if (fileInput.value) fileInput.value.value = ''; 
-  };
-  
-  reader.readAsText(file);
+  }
+
+  // 2. 所有文件处理完毕后的收尾工作
+  if (successCount > 0 && lastNewId) {
+    await vueNextTick();
+    
+    // 自动加载最后一个导入的角色，给用户反馈
+    activeStore.loadCharacter(lastNewId);
+    
+    // ⚠️ 核心修复：强制窗口重新获取焦点，防止输入框卡死
+    // 放在循环结束后执行一次即可
+    window.focus();
+    
+    console.log(`✅ 批量操作完成：成功导入 ${successCount} 个角色`);
+  } else if (successCount === 0) {
+    console.warn('⚠️ 没有角色被成功导入');
+  }
+
+  // 3. 清空 input，允许下次选择相同文件
+  input.value = ''; 
 };
 
 // 手动保存处理
@@ -239,7 +268,14 @@ onUnmounted(() => {
       <button @click="triggerImport" class="btn-tool btn-import" title="从 JSON 导入角色">
         📥 导入
       </button>
-      <input type="file" ref="fileInput" accept=".json" style="display: none" @change="onFileSelected" />
+      <input 
+        type="file" 
+        ref="fileInput" 
+        accept=".json" 
+        multiple
+        style="display: none"
+        @change="onFileSelected" 
+       />
     </div>
   </div>
   </aside>
