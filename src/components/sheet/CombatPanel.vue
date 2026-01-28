@@ -7,6 +7,28 @@ const store = useActiveSheetStore();
 const char = computed(() => store.character);
 const combat = computed(() => store.character?.combat);
 
+// AC 编辑状态控制
+const isEditingAC = ref(false);
+
+const acOptions = [
+  { value: 'default', label: '默认 (10+敏)' },
+  { value: 'barbarian', label: '野蛮人 (10+敏+体)' },
+  { value: 'monk', label: '武僧 (10+敏+感)' },
+  { value: 'draconic', label: '天生 (13+敏)' },
+];
+
+//更新护甲模式
+const updateACMode = (e: Event) => {
+  const val = (e.target as HTMLSelectElement).value;
+  store.updateCombatStat('acMode', val);
+  isEditingAC.value = false; // 选完自动关闭
+};
+
+//护甲模式设置的切换函数
+const toggleACEdit = () => {
+  isEditingAC.value = !isEditingAC.value;
+};
+
 // 定义生命骰选项
 const hitDiceOptions = ['d6', 'd8', 'd10', 'd12', 'd20'];
 
@@ -109,9 +131,35 @@ const hpPercent = computed(() => {
   <div class="combat-panel" v-if="combat && char">
     
     <div class="stats-row">
-      <div class="stat-box">
-        <div class="label">护甲等级</div>
-        <div class="value shield-shape">{{ store.armorClass }}</div>
+
+      <div class="stat-box ac-box">
+        <div
+         class="label toggle-btn"
+          @click="toggleACEdit"
+           title="点击切换 配置模式/查看模式"
+         >
+          护甲等级 
+          <span class="gear-icon" v-if="!isEditingAC">
+            {{ isEditingAC ? '↩' : '⚙️' }}
+          </span>
+        </div>
+        
+        <div class="value shield-shape" v-if="isEditingAC">
+           <select 
+             class="ac-select" 
+             :value="combat.acMode || 'default'"
+             @change="updateACMode"
+             @blur="isEditingAC = false"
+           >
+             <option v-for="opt in acOptions" :key="opt.value" :value="opt.value">
+               {{ opt.label }}
+             </option>
+           </select>
+        </div>
+
+        <div class="value shield-shape" v-else @click="isEditingAC = true">
+          {{ store.armorClass }}
+        </div>
       </div>
       
       <div class="stat-box">
@@ -303,8 +351,52 @@ const hpPercent = computed(() => {
     padding: 8px 4px;
     background: #f9f9f9;
 
-    .label { font-size: 0.75rem; color: #666; text-transform: uppercase; }
-    .value { font-size: 1.5rem; font-weight: bold; color: #333; }
+    //交互样式
+    &.ac-box {
+      // cursor: pointer;
+      transition: background 0.2s;
+      
+      &:hover {
+        background: #f0f0f0;
+        .gear-icon { opacity: 1; }
+      }
+    }
+    /* 基础样式：作用于所有标题 (护甲、先攻、速度) */
+.label { 
+  font-size: 0.75rem; 
+  color: #666; 
+  text-transform: uppercase; 
+  
+  /* 特殊样式：仅作用于拥有 toggle-btn 类的标题 (只有护甲有这个类) */
+  &.toggle-btn { 
+    cursor: pointer;          /* 鼠标变手型 */
+    user-select: none;        /* 防止双击选中文字 */
+    display: flex;            /* 开启 Flex 布局 */
+    align-items: center;      /* 垂直居中 */
+    justify-content: center;  /* 水平居中 */
+    gap: 4px;                 /* 文字和图标间距 */
+    
+    &:hover { 
+      color: #333;            /* 悬停加深颜色 */
+    }
+  }
+}
+
+    //齿轮图标默认半透明
+    .gear-icon {
+      font-size: 0.8rem;
+      opacity: 0.3;
+      transition: all 0.2s;
+      
+      /* 激活状态下常亮且变色 */
+      &.active {
+        opacity: 1;
+        color: #e67e22; /* 橙色提示正在编辑 */
+        transform: rotate(-90deg); /* 给个小动画提示状态变化 */
+      }
+    }
+
+    .value { font-size: 1.5rem; font-weight: bold; color: #333;cursor: pointer; }
     
     .shield-shape {
       /* 简单的盾牌形状 CSS */
@@ -312,6 +404,20 @@ const hpPercent = computed(() => {
       width: 40px; height: 46px;
       background: #e0e0e0;
       clip-path: polygon(50% 0, 100% 20%, 100% 80%, 50% 100%, 0 80%, 0 20%);
+
+      //确保下拉框不溢出盾牌
+      overflow: hidden;
+    }
+
+    // [ADD] 下拉框样式
+    .ac-select {
+      width: 100%;
+      height: 100%;
+      font-size: 0.6rem; /* 字体要极小才能塞进盾牌里，或者只显示简写 */
+      border: none;
+      background: transparent;
+      text-align: center;
+      outline: none;
     }
   }
 }

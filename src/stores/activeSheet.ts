@@ -233,6 +233,7 @@ export const useActiveSheetStore = defineStore('activeSheet', {
       // 0. 安全检查
       if (!state.character) return 10;
       const char = state.character;
+      const combat = char.combat; // [ADD] 获取 combat 对象以读取 acMode
       
       // 1. 计算敏捷调整值 (向下取整)
       const dexMod = Math.floor((char.stats.dex - 10) / 2);
@@ -242,11 +243,12 @@ export const useActiveSheetStore = defineStore('activeSheet', {
         .map(id => char.inventory.find(i => i.instanceId === id))
         .filter(i => i !== undefined) as InventoryItem[];
 
-      // 3. 分离：主甲 (Body Armor) 和 盾牌 (Shield)
+      // =================================================================
+      // 🛑 【现有逻辑保留】 核心判定：分离主甲和盾牌
+      // =================================================================
       // 逻辑：类型是 armor，且 armorType 不是 'shield' 的就是主甲
-      // 我们假设只穿了一件主甲，取第一个找到的
       const mainArmor = equippedItems.find(i => {
-        const d = i.data as any; // 获取内部 data
+        const d = i.data as any;
         return i.type === 'armor' && d.armorType !== 'shield';
       });
 
@@ -255,42 +257,76 @@ export const useActiveSheetStore = defineStore('activeSheet', {
         const d = i.data as any;
         return i.type === 'armor' && d.armorType === 'shield';
       });
+      // =================================================================
 
       // 4. 计算基础 AC
-      let finalAC = 10 + dexMod; // 【默认情况】：无甲 = 10 + 敏捷
+      let finalAC = 10 + dexMod; // 默认基准
 
       if (mainArmor) {
-        const d = mainArmor.data as any; // 拿到防具的具体数值
-        const base = d.ac || 10;         // 防具的基础 AC
+        // ===============================================================
+        // 🛑 【现有逻辑保留】 穿甲时的计算公式 (重/中/轻)
+        // ===============================================================
+        const d = mainArmor.data as any;
+        const base = d.ac || 10;
         
         switch (d.armorType) {
           case 'heavy':
-            // 【重甲规则】：固定 AC，不享受敏捷加成，也不受敏捷减值影响
-            finalAC = base;
+            finalAC = base; // 重甲无敏捷
             break;
-            
           case 'medium':
-            // 【中甲规则】：基础 AC + 敏捷 (上限为 2)
-            finalAC = base + Math.min(dexMod, 2);
+            finalAC = base + Math.min(dexMod, 2); // 中甲敏捷上限 2
             break;
-            
           case 'light':
-            // 【轻甲规则】：基础 AC + 完整敏捷
-            finalAC = base + dexMod;
+            finalAC = base + dexMod; // 轻甲全敏捷
             break;
-            
           default:
-            // 兜底
             finalAC = base + dexMod;
+        }
+      } else {
+        // ===============================================================
+        // ✨ 【新增逻辑】 只有在“未判定出主甲”时，才检查无甲设置
+        // ===============================================================
+        const mode = combat.acMode || 'default';
+        
+        switch (mode) {
+          case 'barbarian':
+            // 野蛮人: 10 + Dex + Con
+            const conMod = Math.floor((char.stats.con - 10) / 2);
+            finalAC = 10 + dexMod + conMod;
+            break;
+          case 'monk':
+            // 武僧: 10 + Dex + Wis
+            const wisMod = Math.floor((char.stats.wis - 10) / 2);
+            finalAC = 10 + dexMod + wisMod;
+            break;
+          case 'draconic':
+            // 龙脉: 13 + Dex
+            finalAC = 13 + dexMod;
+            break;
+          case 'default':
+          default:
+            // 默认: 10 + Dex
+            finalAC = 10 + dexMod;
+            break;
         }
       }
 
+      // 5. 盾牌加值处理
       // D&D 5E 规则 - 同一时间只能获益于一面盾牌
       if (shields.length > 0) {
         // 无论装备了多少盾牌，只取第一面的数值
-        // 通常盾牌 AC 是 2，但也兼容未来的魔法盾牌 (如 +1 盾牌 => ac:3)
-        const d = shields[0].data as any;
-        finalAC += (d.ac || 2);
+        const shieldBonus = (shields[0].data as any).ac || 2;
+        
+        // ✨ 【逻辑完善】 处理武僧持盾失效的特殊规则
+        // 如果开启了武僧模式，但手里拿了盾牌，根据规则无甲防御失效，必须回退到普通模式
+        if (!mainArmor && combat.acMode === 'monk') {
+             // 回退公式：10 + Dex + Shield
+             // (此时 finalAC 里已经包含了 Wis，我们需要修正它，或者直接覆盖)
+             finalAC = 10 + dexMod + shieldBonus;
+        } else {
+             // 其他情况直接叠加
+             finalAC += shieldBonus;
+        }
       }
 
       return finalAC;

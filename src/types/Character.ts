@@ -70,6 +70,13 @@ export interface CombatStats {
   hpMax: number;
   tempHp: number;
   
+  // 新增 AC 计算模式字段
+  // default: 10 + 敏捷
+  // barbarian: 10 + 敏捷 + 体质
+  // monk: 10 + 敏捷 + 感知 (无盾)
+  // draconic: 13 + 敏捷
+  acMode?: 'default' | 'barbarian' | 'monk' | 'draconic';
+  
   hitDiceCurrent: number;
   hitDiceMax: number;
   // 生命骰类型
@@ -91,6 +98,7 @@ export interface CombatStats {
     success: number; // 0-3
     failure: number; // 0-3
   };
+
 }
 
 // ✅ 新增：法术书状态 (Character Spellbook)
