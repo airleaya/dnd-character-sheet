@@ -33,3 +33,6 @@ dist-electron
 # save file
 saves
 saves/*
+
+# generate_index.js
+generate_index.js
