@@ -58,11 +58,47 @@ export const GEAR_LIBRARY: GearDefinition[] = [
   },
   {
     id: 'lantern_hooded',
-    name: '牛眼提灯 (Lantern, Hooded)',
+    name: '遮光提灯 (Lantern, Hooded)',
     type: 'gear',
     cost: { value: 5, unit: 'gp' },
     weight: 2,
     description: '燃烧灯油。提供30尺明亮光照和30尺微光光照。你可以用一个动作降下挡板，将光照减少为5尺微光。',
+    rarity: 'Common'
+  },
+  {
+    id: 'lantern_bullseye',
+    name: '牛眼提灯 (Lantern, Bullseye)',
+    type: 'gear',
+    cost: { value: 10, unit: 'gp' },
+    weight: 2,
+    description: '燃烧灯油。提供60尺锥状明亮光照和60尺锥状微光光照。你可以用一个动作降下挡板，将光照完全遮挡。',
+    rarity: 'Common'
+  },
+  {
+    id: 'holy_symbol_amulet',
+    name: '圣徽：护身符 (Holy Symbol, Amulet)',
+    type: 'gear',
+    cost: { value: 5, unit: 'gp' },
+    weight: 1,
+    description: '挂在项链上的神圣护符。牧师和圣武士可以使用圣徽作为施法法器。',
+    rarity: 'Common'
+  },
+  {
+    id: 'holy_symbol_emblem',
+    name: '圣徽：徽章 (Holy Symbol, Emblem)',
+    type: 'gear',
+    cost: { value: 5, unit: 'gp' },
+    weight: 0,
+    description: '刻在盾牌或护甲上的神圣徽记。牧师和圣武士可以使用圣徽作为施法法器。',
+    rarity: 'Common'
+  },
+  {
+    id: 'holy_symbol_reliquary',
+    name: '圣徽：圣物箱 (Holy Symbol, Reliquary)',
+    type: 'gear',
+    cost: { value: 5, unit: 'gp' },
+    weight: 2,
+    description: '装有神圣遗物的小盒子。牧师和圣武士可以使用圣徽作为施法法器。',
     rarity: 'Common'
   },
   {
