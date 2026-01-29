@@ -11,6 +11,7 @@ import { SPELL_LIBRARY } from '../data/spells/index';
 import { SpellDefinition } from '../types/Spell';
 import { PACK_LIBRARY } from '../data/libraries/packs';
 import { AbilityKey } from '../types/Library';
+import { WEAPON_LIBRARY } from '../data/libraries/weapons';
 
 //定义法术分组的接口
 export interface SpellGroup {
@@ -412,7 +413,13 @@ export const useActiveSheetStore = defineStore('activeSheet', {
         } else if (cat.startsWith('martial')) {
           if (char.proficiencies.weapons.includes('martial')) isProficient = true;
         }
-        // TODO: 这里可以扩展“种族武器熟练”(如精灵熟练长剑)，通过 item.id === 'longsword' 判断
+        // 单项白名单判定 (Specific Weapon Check)
+        // 如果类别判定未通过，检查该具体武器是否在熟练列表中
+        if (!isProficient && item.templateId) {
+           if (char.proficiencies.weapons.includes(item.templateId)) {
+             isProficient = true;
+           }
+        }
 
         // 弹药逻辑 (保持你之前的代码)
         const needsAmmo = props.includes('ammunition');

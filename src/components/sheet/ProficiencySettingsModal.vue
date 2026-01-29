@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 import { 
   ARMOR_PROFICIENCIES, 
@@ -7,6 +7,7 @@ import {
   TOOL_PROFICIENCIES,
   COMMON_LANGUAGES 
 } from '../../data/rules/proficiencies';
+import { WEAPON_LIBRARY } from '../../data/libraries/weapons';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -17,10 +18,37 @@ const store = useActiveSheetStore();
 
 const newTool = ref('');
 const newLang = ref('');
+const newWeaponKey = ref('');
 
 // 安全访问辅助函数
 const hasArmor = (key: string) => store.character?.proficiencies?.armor?.includes(key);
 const hasWeapon = (key: string) => store.character?.proficiencies?.weapons?.includes(key);
+
+// 计算属性：获取当前已选的“特定武器” (排除 simple/martial)
+const specificWeaponProficiencies = computed(() => {
+  const list = store.character?.proficiencies?.weapons || [];
+  const categories = ['simple', 'martial'];
+  return list.filter(k => !categories.includes(k));
+});
+
+// 辅助：获取武器显示名称
+const getWeaponName = (key: string) => {
+  const def = WEAPON_LIBRARY.find(w => w.id === key);
+  return def ? def.name : key;
+};
+
+// 动作：添加特定武器
+const addSpecificWeapon = () => {
+  if (newWeaponKey.value) {
+    store.toggleProficiency('weapons', newWeaponKey.value);
+    newWeaponKey.value = '';
+  }
+};
+
+// 动作：移除特定武器
+const removeSpecificWeapon = (key: string) => {
+  store.toggleProficiency('weapons', key);
+};
 
 const toggleArmor = (key: string) => store.toggleProficiency('armor', key);
 const toggleWeapon = (key: string) => store.toggleProficiency('weapons', key);
@@ -50,6 +78,12 @@ const onToolPresetChange = (e: Event) => {
 const onLangPresetChange = (e: Event) => {
   const val = (e.target as HTMLSelectElement).value;
   if (val) newLang.value = val;
+};
+
+//武器下拉选单变更
+const onWeaponPresetChange = (e: Event) => {
+  const val = (e.target as HTMLSelectElement).value;
+  if (val) newWeaponKey.value = val;
 };
 </script>
 
@@ -90,6 +124,31 @@ const onLangPresetChange = (e: Event) => {
                 >
                   {{ item.label }}
                 </button>
+              </div>
+              
+              <h4 style="margin-top: 15px;">特定武器熟练</h4>
+              <div class="tag-list" v-if="specificWeaponProficiencies.length > 0">
+                <span 
+                  v-for="key in specificWeaponProficiencies" :key="key" 
+                  class="tag"
+                >
+                  {{ getWeaponName(key) }}
+                  <span class="tag-remove" @click="removeSpecificWeapon(key)">×</span>
+                </span>
+              </div>
+              <div class="input-row">
+                <select class="select-preset full-width" @change="onWeaponPresetChange" :value="newWeaponKey">
+                  <option value="">-- 添加特定武器 --</option>
+                  <option 
+                    v-for="w in WEAPON_LIBRARY" 
+                    :key="w.id" 
+                    :value="w.id"
+                    :disabled="hasWeapon(w.id)"
+                  >
+                    {{ w.name }}
+                  </option>
+                </select>
+                <button class="btn-add" @click="addSpecificWeapon" :disabled="!newWeaponKey">+</button>
               </div>
             </div>
 
@@ -208,6 +267,11 @@ const onLangPresetChange = (e: Event) => {
     border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; color: #555;
     outline: none;
     cursor: pointer;
+    //支持全宽模式
+    &.full-width {
+      flex: 1;
+      max-width: none;
+    }
   }
   input { flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; outline: none; &:focus { border-color: #3498db; } }
   .btn-add { background: #f1f3f5; border: 1px solid #ddd; border-radius: 4px; width: 32px; cursor: pointer; &:hover { background: #e9ecef; } }
