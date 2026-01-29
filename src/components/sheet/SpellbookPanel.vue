@@ -61,6 +61,24 @@ const recalculateSpellStats = () => {
 };
 
 // ==========================================
+// 交互反馈系统 (Toast)
+// ==========================================
+const toast = ref({ show: false, message: '', type: 'success' }); // type: 'success' | 'warning'
+let toastTimer: any = null;
+
+const showToast = (msg: string, type: 'success' | 'warning' = 'success') => {
+  toast.value = { show: true, message: msg, type };
+  
+  // 清除旧定时器
+  if (toastTimer) clearTimeout(toastTimer);
+  
+  // 1.5秒后自动消失
+  toastTimer = setTimeout(() => {
+    toast.value.show = false;
+  }, 1500);
+};
+
+// ==========================================
 // 2. 原有的拖拽与逻辑
 // ==========================================
 const dropList = ref([]);
@@ -73,10 +91,22 @@ const handleDrop = (evt: any) => {
   if (evt.added) {
     const element = evt.added.element;
     const spellId = element.spellId;
+
+    // 立即清空 dropList，防止虚拟物品残留显示
+    // 我们的 UI 是通过 store 渲染的，不是通过 dropList
+    dropList.value = [];
+
     if (spellId) {
-      store.learnSpell(spellId);
+      // 根据返回值判断反馈
+      const isSuccess = store.learnSpell(spellId);      
+      if (isSuccess) {
+        showToast(`成功抄录：${element.name || '新法术'}`, 'success');
+      } else {
+        // ⚠️ 失败反馈：不弹窗，只显示 Toast
+        showToast(`你已经学会 ${element.name || '这个法术'} 了`, 'warning');
+      }
     }else {
-      alert('错误：拖拽对象中缺少 spellId，请检查控制台详情');
+      showToast('错误：无效的法术数据', 'warning');
     }
   }
 };
@@ -105,6 +135,12 @@ const getSlotMax = (level: number) => {
       @click.self="$emit('close')"
     >
       <div class="book-frame">
+        <Transition name="fade-slide">
+          <div v-if="toast.show" class="book-toast" :class="toast.type">
+            <span class="toast-icon">{{ toast.type === 'success' ? '✨' : '⚠️' }}</span>
+            {{ toast.message }}
+          </div>
+        </Transition>
         <div class="book-spine"></div>
         <div class="book-pages">
           
@@ -337,4 +373,38 @@ const getSlotMax = (level: number) => {
 .btn-forget { border: none; background: none; cursor: pointer; opacity: 0.4; &:hover { opacity: 1; color: #e74c3c; } }
 .btn-close { padding: 5px 15px; cursor: pointer; }
 
+/* [ADD] 吐司样式 */
+.book-toast {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 30px;
+  background: rgba(44, 62, 80, 0.95);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 200; /* 在书页内容之上 */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  pointer-events: none; /* 让鼠标穿透，不影响操作 */
+
+  &.success { border: 1px solid #27ae60; color: #e8f8f5; }
+  &.warning { border: 1px solid #e67e22; color: #fef5e7; background: rgba(160, 64, 0, 0.9); }
+}
+
+/* 简单的 Vue Transition 动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -20px); /* 从上方滑入/滑出 */
+}
 </style>

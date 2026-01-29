@@ -2,7 +2,7 @@
 import { ref, computed, toRef } from 'vue';
 import draggable from 'vuedraggable';
 import { useLibraryFilter } from '../../composables/useLibraryFilter';
-
+import { useActiveSheetStore } from '../../stores/activeSheet';
 // 数据源
 import { SPELL_LIBRARY } from '../../data/spells/index';
 
@@ -15,6 +15,10 @@ const emit = defineEmits<{
   (e: 'move-item', event: MouseEvent): void;
   (e: 'leave-item'): void;
 }>();
+
+//初始化 Store 并创建检查函数
+const store = useActiveSheetStore();
+const isKnown = (spellId: string) => store.allKnownSpells.some(s => s.id === spellId);
 
 // 1. 过滤逻辑
 const queryRef = toRef(props, 'searchQuery');
@@ -107,12 +111,16 @@ const getSpellBadges = (spell: any) => {
               class="item-list"
             >
               <template #item="{ element }">
-                <div class="library-item spell-item" 
+                <div class="library-item spell-item"
+                :class="{ 'is-learned': isKnown(element.id) }"
                 @mouseenter="emit('hover-item', element, $event)" 
                 @mousemove="emit('move-item', $event)" 
                 @mouseleave="emit('leave-item')">
                   <div class="item-row">
-                    <span class="item-name">{{ element.name }}</span>
+                    <span class="item-name">
+                      {{ element.name }}
+                      <span v-if="isKnown(element.id)" class="learned-mark">✓</span>
+                    </span>
                     <span class="item-cost level-tag">{{ element.level === 0 ? '戏法' : `${element.level}环` }}</span>
                   </div>
                   <div class="badges-row">
@@ -151,6 +159,19 @@ const getSpellBadges = (spell: any) => {
 }
 
 .library-item { background-color: #1e1e1e; border-bottom: 1px solid #282828; padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: #2d2d2d; } }
+/* 已学会的样式：稍微变暗，且显示绿色标记 */
+.library-item.is-learned {
+  opacity: 0.6;
+  background-color: #1a1a1a;
+  .item-name { color: #7f8c8d; }
+  .level-tag { color: #555; }
+  .badge { opacity: 0.5; }
+}
+.learned-mark {
+  color: #27ae60;
+  font-weight: bold;
+  margin-left: 6px;
+}
 .spell-item { border-left: 2px solid transparent; &:hover { border-left-color: #9b59b6; } }
 
 .item-row { display: flex; justify-content: space-between; }

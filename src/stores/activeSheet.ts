@@ -640,14 +640,17 @@ export const useActiveSheetStore = defineStore('activeSheet', {
     // ✨ 法术管理 Actions
     // ==========================================
 
-    // 确保有 learnSpell 和 togglePreparedSpell
-    learnSpell(spellId: string) {
-      if (!this.character) return;
+    // 确保有 learnSpell 和 togglePreparedSpell；修改返回值：boolean (true=新学会, false=已存在)
+    learnSpell(spellId: string): boolean {
+      if (!this.character) return false;
       if (!this.character.spells.known.includes(spellId)) {
         this.character.spells.known.push(spellId);
         // 体验优化：如果是戏法，自动学会即准备(虽然逻辑上戏法不需要准备，但保持数据一致性也没坏处)
         // 如果想让流程更严格，这里只 push 到 known
         this.save();
+        return true; // successful
+      } else {
+        return false; // fail
       }
     },
 
