@@ -110,7 +110,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'gust',
-    name: '造风术',
+    name: '塑风术',
     level: 0,
     school: 'transmutation',
     ritual: false,
@@ -197,7 +197,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'minor_illusion',
-    name: '幻影术',
+    name: '初级幻影',
     level: 0,
     school: 'illusion',
     ritual: false,
@@ -248,7 +248,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'resistance',
-    name: '提升抗力',
+    name: '提升抗性/抗力术',
     level: 0,
     school: 'abjuration',
     ritual: false,
@@ -282,7 +282,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'spare_the_dying',
-    name: '维生术',
+    name: '维生术/稳定伤势',
     level: 0,
     school: 'necromancy',
     ritual: false,
@@ -327,7 +327,7 @@ export const CANTRIPS: SpellDefinition[] = [
     duration: '1 轮',
     target: '射程内的一个生物',
     attackType: 'none',
-    description: '<p>你伸出手指指向射程内的一个目标。你的魔法让你瞬间洞悉目标的防御弱点。在法术持续期间，你对该目标进行的第一次攻击检定具有优势。</p>',
+    description: '<p>你伸出手指指向射程内的一个目标。你的魔法让你瞬间洞悉目标的防御弱点。在你的下个回合开始，你对该目标进行的第一次攻击检定具有优势。</p>',
     classes: ['bard', 'sorcerer', 'warlock', 'wizard'],
     cantripScaling: false
   },
@@ -379,7 +379,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'chill_touch',
-    name: '寒冷之触',
+    name: '寒颤手/寒颤之触',
     level: 0,
     school: 'necromancy',
     ritual: false,
@@ -505,7 +505,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'infestation',
-    name: '虫群',
+    name: '寄生虫群/虫群疫病',
     level: 0,
     school: 'conjuration',
     ritual: false,
@@ -568,7 +568,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'mind_sliver',
-    name: '心灵刺',
+    name: '心灵挫伤/心灵刺',
     level: 0,
     school: 'enchantment',
     ritual: false,
@@ -652,7 +652,7 @@ export const CANTRIPS: SpellDefinition[] = [
   },
   {
     id: 'ray_of_frost',
-    name: '寒冰射线',
+    name: '冷冻射线',
     level: 0,
     school: 'evocation',
     ritual: false,
@@ -855,7 +855,7 @@ export const CANTRIPS: SpellDefinition[] = [
     saveAttr: 'con',
     damage: '1d6',
     damageType: 'radiant',
-    description: '<p>你说出一个神圣的真言，燃烧的光辉从你身上爆发。每一个在你周围 5 尺内且由你选择的生物都必须通过一次体质豁免，失败则受到 1d6 点光耀伤害。</p>',
+    description: '<p>你说出一个神圣的真言，燃烧的光辉从你身上爆发。每一个在你周围 5 尺内且由你选择的生物（该生物必须对你可见）都必须通过一次体质豁免，失败则受到 1d6 点光耀伤害。</p>',
     scaling: '5级(2d6), 11级(3d6), 17级(4d6)',
     classes: ['cleric'],
     cantripScaling: true

@@ -7,7 +7,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   // ==========================================
   {
     id: 'absorb_elements',
-    name: '元素吸收',
+    name: '元素吸收/吸收元素',
     level: 1,
     school: 'abjuration',
     ritual: false,
@@ -43,7 +43,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'armor_of_agathys',
-    name: '艾嘉西斯之铠',
+    name: '艾嘉西斯之铠/阿加斯之铠',
     level: 1,
     school: 'abjuration',
     ritual: false,
@@ -74,7 +74,17 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '立即 (效果持续时间不定)',
     target: '见描述',
     attackType: 'none',
-    description: '<p>你为一项宗教仪式执行某种特殊的魔法效能。从以下仪式中选择一项：赎罪、祝福圣水、成年礼、安魂礼、婚礼。</p>',
+    description: `
+      <p>你为一项宗教仪式执行某种特殊的魔法效能。施法时，从以下仪式中选择一项，其目标必须在施法过程中位于你的触及范围内：</p>
+      <ul>
+        <li><b>赎罪 (Atonement)</b>：你触碰一个阵营与原本不符的自愿生物。你进行一次 DC 为 20 的感知（洞悉）检定，若成功则恢复其原本阵营。</li>
+        <li><b>祝福圣水 (Bless Water)</b>：你触碰一瓶普通的水并使其变成一瓶<b>圣水</b>。</li>
+        <li><b>成年礼 (Coming of Age)</b>：你触碰一名到了族群成年年龄的人型生物。在接下来的 24 小时内，该生物进行属性检定时可以多掷一个 d4。该生物一生只能获益一次。</li>
+        <li><b>奉献 (Dedication)</b>：你触碰一名希望投身于神灵侍奉之中的人型生物。在接下来的 24 小时内，该生物进行豁免检定时可以多掷一个 d4。该生物一生只能获益一次。</li>
+        <li><b>安魂礼 (Funeral Rite)</b>：你触碰一具尸体。在接下来的 7 天内，该尸体不能被任何非《祈愿术》的手段转变为不死生物。</li>
+        <li><b>婚礼 (Wedding)</b>：你触碰两个希望缔结连理的人型生物。在接下来的 7 天内，只要双方距离在 30 尺以内，其 AC 获得 +2 加值。该效能通常一生只能获得一次。</li>
+      </ul>
+    `,
     scaling: '无',
     classes: ['cleric', 'paladin'],
     cantripScaling: false
@@ -102,7 +112,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     name: '防护善恶',
     level: 1,
     school: 'abjuration',
-    ritual: true,
+    ritual: false,
     castingTime: '1 动作',
     range: '触及',
     components: { v: true, s: true, m: '圣水或银粉与铁粉，法术会消耗掉' },
@@ -110,7 +120,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '10 分钟',
     target: '一个自愿生物',
     attackType: 'none',
-    description: '<p>直到法术结束前，受术生物在对抗异界生物（天界、元素、精类、邪魔）以及不死生物时获得以下增益：该类生物对受术者的攻击检定具有劣势；受术者不会被该类生物魅惑、恐慌或附体。</p>',
+    description: '<p>直到法术结束前，受术生物在对抗异界生物（天界、元素、精类、邪魔、异怪）以及不死生物时获得以下增益：该类生物对受术者的攻击检定具有劣势；受术者不会被该类生物魅惑、恐慌或附体。</p>',
     scaling: '无',
     classes: ['cleric', 'paladin', 'warlock', 'wizard'],
     cantripScaling: false
@@ -209,7 +219,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     saveAttr: 'str',
     damage: '2d6',
     damageType: 'necrotic',
-    description: '<p>你唤起旧日支配者的力量，暗黑的触手爆发而出。你周围 10 尺内的所有其他生物必须进行一次力量豁免。豁免失败者受到 2d6 点黯蚀伤害，且在其下个回合无法进行反应。</p>',
+    description: '<p>你唤起旧日支配者的力量，触手状的黑暗能量爆发而出。你周围 10 尺内的所有其他生物必须进行一次力量豁免。豁免失败者受到 2d6 点黯蚀伤害，且在其下个回合无法进行反应。</p>',
     scaling: '2环及以上(每高一环伤害+1d6)',
     classes: ['warlock'],
     cantripScaling: false
@@ -256,7 +266,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'find_familiar',
-    name: '获得魔宠',
+    name: '寻获魔宠',
     level: 1,
     school: 'conjuration',
     ritual: true,
@@ -311,7 +321,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'hail_of_thorns',
-    name: '棘刺齐射',
+    name: '荆棘之雨',
     level: 1,
     school: 'conjuration',
     ritual: false,
@@ -326,13 +336,13 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     damage: '1d10',
     damageType: 'piercing',
     description: '<p>在你下一次远程武器攻击命中生物时，除了正常的武器效果外，还会产生一阵魔法荆棘雨。目标及其周围 5 尺内的每个生物都必须进行一次敏捷豁免。失败者受到 1d10 穿刺伤害，成功者减半。</p>',
-    scaling: '2环及以上(每高一环伤害+1d10)',
+    scaling: '2环及以上(每高一环伤害+1d10，最高5d10)',
     classes: ['ranger'],
     cantripScaling: false
   },
   {
     id: 'ice_knife',
-    name: '冰刃',
+    name: '冰刃术',
     level: 1,
     school: 'conjuration',
     ritual: false,
@@ -353,7 +363,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'tensers_floating_disk',
-    name: '滕瑟浮碟术',
+    name: '滕瑟浮碟术/腾瑟浮碟术',
     level: 1,
     school: 'conjuration',
     ritual: true,
@@ -439,7 +449,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '10 分钟',
     target: '自身',
     attackType: 'none',
-    description: '<p>你能感知到周围 30 尺内是否有天界生物、元素生物、精类、邪魔或不死生物，并知晓其位置和种类。你还能侦测到被圣居或亵渎的场所。</p>',
+    description: '<p>你能感知到周围 30 尺内是否有天界生物、元素生物、精类、邪魔或不死生物，并知晓其位置和种类。你还能侦测到被圣居或亵渎的场所。</p><p>这个法术的感知能力会被特定障碍物阻挡：1 尺厚的石块、1 寸厚的普通金属、铅薄层、或 3 尺厚的木头/泥土。</p>',
     scaling: '无',
     classes: ['cleric', 'paladin'],
     cantripScaling: false
@@ -457,14 +467,14 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '10 分钟',
     target: '自身',
     attackType: 'none',
-    description: '<p>你感知到周围 30 尺内魔法的存在。你可以用动作观察一股灵光，得知其法术学派。</p>',
+    description: '<p>你感知到周围 30 尺内魔法的存在。你可以用动作观察一股灵光，得知其法术学派。</p><p>这个法术的感知能力会被特定障碍物阻挡：1 尺厚的石块、1 寸厚的普通金属、铅薄层、或 3 尺厚的木头/泥土。</p>',
     scaling: '无',
     classes: ['bard', 'cleric', 'druid', 'paladin', 'ranger', 'sorcerer', 'warlock', 'wizard'], // 全法术职业
     cantripScaling: false
   },
   {
     id: 'detect_poison_and_disease',
-    name: '侦测毒性与疾病',
+    name: '侦测毒素与疾病',
     level: 1,
     school: 'divination',
     ritual: true,
@@ -647,7 +657,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     target: '一个生物',
     attackType: 'save',
     saveAttr: 'wis',
-    description: '<p>你强迫一个生物与你单挑。目标若豁免失败，则在攻击除你以外的生物时具有劣势，且必须通过感知豁免才能移动到离你 30 尺以外的地方。</p>',
+    description: '<p>你强迫一个生物与你单挑。目标若豁免失败，则在攻击除你以外的生物时具有劣势，且必须通过感知豁免才能移动到离你 30 尺以外的地方。</p><p>如果你攻击其他生物或对其他生物施法，该效果结束。</p>',
     scaling: '无',
     classes: ['paladin'],
     cantripScaling: false
@@ -693,7 +703,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'hex',
-    name: '脆弱诅咒',
+    name: '脆弱诅咒/邪术烦恼',
     level: 1,
     school: 'enchantment',
     ritual: false,
@@ -815,7 +825,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'cure_wounds',
-    name: '治疗伤口',
+    name: '治疗伤口/疗伤术',
     level: 1,
     school: 'evocation',
     ritual: false,
@@ -996,7 +1006,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'tashas_caustic_brew',
-    name: '塔莎强酸喷涌/塔莎的腐蚀酿造',
+    name: '塔莎强酸喷涌/塔莎强酸酿',
     level: 1,
     school: 'evocation',
     ritual: false,
@@ -1132,14 +1142,14 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
     duration: '1 小时',
     target: '自身',
     attackType: 'none',
-    description: '<p>你改变自己的外貌（包括衣物和装备），可以变高变矮 1 尺，变胖变瘦，但必须保持基本的肢体结构。这种幻觉无法经受物理触摸检查。</p>',
+    description: '<p>你改变自己的外貌（包括衣物和装备），可以变高变矮 1 尺，变胖变瘦，但必须保持基本的肢体结构。这种幻觉无法经受物理触摸检查。</p><p>若要识破伪装，观察者需使用一个动作来进行智力（调查）检定，对抗你的法术豁免 DC。</p>',
     scaling: '无',
     classes: ['bard', 'sorcerer', 'wizard'],
     cantripScaling: false
   },
   {
     id: 'illusory_script',
-    name: '幻术脚本',
+    name: '迷幻手稿/幻影文字',
     level: 1,
     school: 'illusion',
     ritual: true,
@@ -1157,7 +1167,7 @@ export const LEVEL_1_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'silent_image',
-    name: '无声幻影',
+    name: '无声幻影/静影术',
     level: 1,
     school: 'illusion',
     ritual: false,

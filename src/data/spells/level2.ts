@@ -277,7 +277,7 @@ export const LEVEL_2_SPELLS: SpellDefinition[] = [
   // ==========================================
   {
     id: 'augury',
-    name: '占卜术',
+    name: '卜筮/占卜术',
     level: 2,
     school: 'divination',
     ritual: true,
@@ -386,7 +386,7 @@ export const LEVEL_2_SPELLS: SpellDefinition[] = [
   },
   {
     id: 'mind_spike',
-    name: '心灵刺',
+    name: '心灵穿刺',
     level: 2,
     school: 'divination',
     ritual: false,
