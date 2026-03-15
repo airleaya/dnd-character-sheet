@@ -158,7 +158,7 @@ export const CONSUMABLE_LIBRARY: ConsumableDefinition[] = [
   },
   {
     id: 'caltrops',
-    name: '撒菱 (Caltrops, bag of 20)',
+    name: '铁蒺藜/撒菱 (Caltrops, bag of 20)',
     type: 'consumable',
     cost: { value: 1, unit: 'gp' },
     weight: 2,
