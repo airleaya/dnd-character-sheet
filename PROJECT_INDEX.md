@@ -1,6 +1,6 @@
 # Project Context Index V8
 
-Generated: 2026/1/29 19:07:44
+Generated: 2026/3/23 20:22:17
 
 - **📦 src/**
   - **📂 components/**
@@ -41,6 +41,7 @@ Generated: 2026/1/29 19:07:44
       - **📄 LibrarySpellsPanel.vue**
           - *Props:* `{ searchQuery: string; }`
           - *Emits:* `{ (e: 'hover-item', item: any, event: MouseEvent`
+          - *Uses:* `useActiveSheetStore`
       - **📄 ProficiencySettingsModal.vue**
           - *Props:* `{ isOpen: boolean; }`
           - *Emits:* `['close']`
@@ -158,7 +159,7 @@ Generated: 2026/1/29 19:07:44
           - `rootInventory /* 只有 parentId 为 undefined 的物品才应该直接显示在顶层列表 */`
           - `getContainerContents /* 获取某容器内的所有物品 */`
         - *Actions:*
-          - `⚙️ learnSpell(spellId: string) 📝 确保有 learnSpell 和 togglePreparedSpell`
+          - `⚙️ learnSpell(spellId: string) 📝 确保有 learnSpell 和 togglePreparedSpell；修改返回值：boolean (true=新学会, false=已存在)`
           - `⚙️ togglePreparedSpell(spellId: string)`
           - `⚙️ forgetSpell(spellId: string)`
           - `⚙️ updateSpellSlot(level: number, newVal: number) 📝 1. 消耗/恢复法术位`
