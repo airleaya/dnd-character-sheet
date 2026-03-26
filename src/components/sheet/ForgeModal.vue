@@ -1,16 +1,60 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { useForge } from '../../composables/useForge';
 import EditableText from '../common/EditableText.vue';
 import EditableTextarea from '../common/EditableTextarea.vue';
 
 // 获取状态和方法
 const { draftItem, draftData, forgeMode, save, close } = useForge();
+
+// 记录鼠标按下时是否在遮罩层上
+const isMouseDownOnBackdrop = ref(false);
+
+// 数据安全层（未保存修改的拦截确认）
+const initialStateStr = ref('');
+
+// 监听 draftItem 的引用变化（通常在打开弹窗或切换编辑物品时发生赋值）
+// 注意这里只监听引用，不加 deep，这样就能正好捕获初始状态，而不会在每次输入时被覆盖
+watch(() => draftItem.value, (newVal) => {
+  if (newVal) {
+    initialStateStr.value = JSON.stringify(newVal);
+  } else {
+    initialStateStr.value = '';
+  }
+});
+
+// 安全关闭逻辑
+const safeClose = () => {
+  if (draftItem.value) {
+    const currentStr = JSON.stringify(draftItem.value);
+    // 比对当前状态与初始快照
+    if (currentStr !== initialStateStr.value) {
+      if (!window.confirm('检测到未保存的更改，确认要舍弃并退出吗？')) {
+        return; // 用户点击了“取消”，终止关闭动作
+      }
+    }
+  }
+  close(); // 执行真正的关闭
+};
+
+const onBackdropMousedown = () => {
+  isMouseDownOnBackdrop.value = true;
+};
+
+const onBackdropMouseup = () => {
+  // 只有当 mousedown 和 mouseup 都在遮罩层上时，才执行关闭操作
+  if (isMouseDownOnBackdrop.value) {
+    safeClose(); 
+  }
+  // 无论如何，松开鼠标后重置状态
+  isMouseDownOnBackdrop.value = false;
+};
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div class="modal-backdrop" v-if="draftItem" @click.self="close">
+      <div class="modal-backdrop" v-if="draftItem" @mousedown.self="onBackdropMousedown" @mouseup.self="onBackdropMouseup">
         
         <div class="modal-content">
           
@@ -19,7 +63,7 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
               <span class="emoji">🔨</span>
               <h3>{{ forgeMode === 'create' ? '打造新物品' : '改造物品' }}</h3>
             </div>
-            <button class="btn-close" @click="close" title="关闭 (Esc)">×</button>
+            <button class="btn-close" @click="safeClose" title="关闭 (Esc)">×</button>
           </div>
 
           <div class="modal-body custom-scrollbar">
@@ -118,7 +162,7 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
           </div>
 
           <div class="modal-footer">
-            <button class="btn-cancel" @click="close">取消 (Esc)</button>
+            <button class="btn-cancel" @click="safeClose">取消 (Esc)</button>
             <button class="btn-save" @click="save">保存更改</button>
           </div>
 
@@ -156,7 +200,8 @@ const { draftItem, draftData, forgeMode, save, close } = useForge();
   background: #fff;
   width: 780px; /* 增大宽度 */
   max-width: 95vw;
-  max-height: 85vh;
+  //max-height: 85vh;
+  height: 85vh;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   display: flex;
