@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, watch, onBeforeUnmount } from 'vue';
 
 const props = defineProps<{
   modelValue: string;
@@ -12,6 +12,13 @@ const emit = defineEmits(['update:modelValue', 'change']);
 const isEditing = ref(false);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
+// 容器引用
+const containerRef = ref<HTMLElement | null>(null);
+
+// 本地编辑缓存
+const editValue = ref<string>('');
+// 保存锁
+const isSaving = ref(false);
 
 // 用于记录切换瞬间的临时高度，防止高度塌陷导致滚动条跳动
 const tempMinHeight = ref<string>('auto');
@@ -26,6 +33,10 @@ const adjustHeight = (target: HTMLTextAreaElement) => {
 
 // 接收点击事件，在切换状态前锁定高度
 const startEdit = (e: MouseEvent) => {
+  // 防御和本地缓存初始化
+  if (isEditing.value) return;
+  editValue.value = props.modelValue;
+
   // 1. 获取当前展示框的实际高度，锁定外层容器，防止 DOM 卸载瞬间高度变为 0
   const target = e.currentTarget as HTMLElement;
   if (target) {
@@ -45,23 +56,56 @@ const startEdit = (e: MouseEvent) => {
   });
 };
 
-const finishEdit = (e: Event) => {
-  const target = e.target as HTMLTextAreaElement;
+const finishEdit = () => {
+  // 使用保存锁和本地缓存
+  if (isSaving.value || !isEditing.value) return;
+  isSaving.value = true;
+  
   isEditing.value = false;
-  emit('update:modelValue', target.value);
-  emit('change', target.value);
+  emit('update:modelValue', editValue.value);
+  emit('change', editValue.value);
+  
+  isSaving.value = false;
 };
+
+//全局失焦接管逻辑
+const handleClickOutside = (e: MouseEvent) => {
+  if (isEditing.value && containerRef.value && !containerRef.value.contains(e.target as Node)) {
+    finishEdit();
+  }
+};
+
+watch(isEditing, (newVal) => {
+  if (newVal) {
+    setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+  } else {
+    document.removeEventListener('mousedown', handleClickOutside);
+  }
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside);
+});
 </script>
 
 <template>
-  <div class="editable-area-container" :style="{ minHeight: tempMinHeight }">
+  <div 
+    ref="containerRef"
+    class="editable-area-container" 
+    :style="{ minHeight: tempMinHeight }"
+    @click.stop="startEdit"
+    @mousedown.stop
+  >
     <textarea
       v-if="isEditing"
       ref="inputRef"
-      :value="modelValue"
+      v-model="editValue"
       :rows="rows || 3"
       @blur="finishEdit"
       @input="(e) => adjustHeight(e.target as HTMLTextAreaElement)"
+      @mousedown.stop
       class="edit-textarea"
     ></textarea>
     
@@ -69,7 +113,6 @@ const finishEdit = (e: Event) => {
       v-else 
       class="display-text" 
       :class="{ 'empty': !modelValue }"
-      @click="startEdit"
     >
       {{ modelValue || placeholder || '点击编辑...' }}
     </div>
