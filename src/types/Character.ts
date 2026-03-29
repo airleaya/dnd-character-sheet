@@ -20,7 +20,13 @@ export interface Wallet {
   pp: number; // 铂金币
 }
 
-// ✅ 新增：熟练项结构
+// 单条职业记录结构
+export interface CharacterClassRecord {
+  classId: string;
+  subclassId: string | null;
+}
+
+// 熟练项结构
 export interface CharacterProficiencies {
   armor: string[];    // e.g. ['light', 'shield']
   weapons: string[];  // e.g. ['simple']
@@ -34,7 +40,7 @@ export interface CharacterProfile {
   name: string;
   playerName?: string; // <--- 新增
   race: string;
-  class: string; 
+  classes: CharacterClassRecord[];
   background?: string; // <--- 新增
   alignment?: string;  // <--- 新增
   level: number;

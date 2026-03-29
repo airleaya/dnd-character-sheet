@@ -3,14 +3,15 @@ import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 import EditableText from '../common/EditableText.vue';
 import ProficiencySettingsModal from './ProficiencySettingsModal.vue';
-import BioPanel from './BioPanel.vue'; // ✅ 引入新面板
+import BioPanel from './BioPanel.vue'; 
+import ClassSelector from './ClassSelector.vue';
 
 const store = useActiveSheetStore();
 
 const character = computed(() => store.character);
 const xpInput = ref<number | ''>('');
 const showProfModal = ref(false);
-const showBioModal = ref(false); // ✅ 控制 Bio Modal 显隐
+const showBioModal = ref(false); // 控制 Bio Modal 显隐
 
 const fmt = (num: number | undefined) => num?.toLocaleString() ?? '0';
 
@@ -90,10 +91,7 @@ const update = (field: string, val: any) => {
         </div>
         <div class="field">
           <label>职业</label>
-          <EditableText 
-            :model-value="character.profile.class" 
-            @update:model-value="v => update('class', v)"
-          />
+          <ClassSelector />
         </div>
         
         <div class="field">

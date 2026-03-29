@@ -77,6 +77,58 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     save();
   };
 
+  //职业与兼职管理逻辑
+  // 数据清洗与旧存档兼容
+  const ensureClassesFormat = () => {
+    if (!character.value) return;
+    const profile = character.value.profile as any;
+    // 如果不存在 classes 数组，说明是旧存档或新创建但未初始化的角色
+    if (!profile.classes || !Array.isArray(profile.classes)) {
+      profile.classes = [];
+      // 插入一个空的默认主职记录
+      profile.classes.push({ classId: '', subclassId: null });
+      // 抛弃旧的文本字段
+      if ('class' in profile) {
+        delete profile.class;
+      }
+      save();
+    }
+  };
+
+  // 新增兼职
+  const addClassRecord = () => {
+    if (!character.value) return;
+    ensureClassesFormat();
+    character.value.profile.classes.push({ classId: '', subclassId: null });
+    save();
+  };
+
+  // 移除兼职
+  const removeClassRecord = (index: number) => {
+    if (!character.value || !character.value.profile.classes) return;
+    // 强制保留至少一行作为主职
+    if (character.value.profile.classes.length > 1) {
+      character.value.profile.classes.splice(index, 1);
+      save();
+    }
+  };
+
+  // 更新具体的职业或子职
+  const updateClassRecord = (index: number, field: 'classId' | 'subclassId', value: string | null) => {
+    if (!character.value || !character.value.profile.classes) return;
+    const record = character.value.profile.classes[index];
+    if (!record) return;
+
+    if (field === 'classId') {
+      record.classId = value ?? '';
+      // 核心逻辑：切换职业时，原有子职必须清空，防止出现“法师拥有狂战道途”的数据错乱
+      record.subclassId = null;
+    } else if (field === 'subclassId') {
+      record.subclassId = value;
+    }
+    save();
+  };
+
   // 更新属性 (例如把 strength 改成 18)
   const updateStat = (statName: keyof Character['stats'], value: number) => {
     if (!character.value) return;
@@ -181,6 +233,10 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     nextLevelXp,
     updateBio,
     updateProfile,
+    ensureClassesFormat,
+    addClassRecord,
+    removeClassRecord,
+    updateClassRecord,
     updateStat,
     toggleSkill,
     toggleSavingThrow,
