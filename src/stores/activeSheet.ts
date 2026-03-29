@@ -157,6 +157,24 @@ export const useActiveSheetStore = defineStore('activeSheet', {
       return this.proficiencyBonus + this.spellAbilityMod;
     },
 
+    // 副施法属性相关的自动计算 Getter
+    secondarySpellAbilityMod(state): number {
+      if (!state.character || !state.character.spells.secondaryCastingAbility) return 0;
+      const key = state.character.spells.secondaryCastingAbility;
+      const val = state.character.stats[key];
+      return Math.floor((val - 10) / 2);
+    },
+
+    secondaryCalculatedSpellSaveDC(state): number {
+      // @ts-ignore
+      return 8 + this.proficiencyBonus + this.secondarySpellAbilityMod;
+    },
+
+    secondaryCalculatedSpellAttackMod(state): number {
+      // @ts-ignore
+      return this.proficiencyBonus + this.secondarySpellAbilityMod;
+    },
+
     // 4. 获取“已准备/已知”的法术列表 (按 ID 映射回对象)
     mySpells(state): SpellDefinition[] {
       if (!state.character) return [];
@@ -641,12 +659,18 @@ export const useActiveSheetStore = defineStore('activeSheet', {
     // ==========================================
 
     // 确保有 learnSpell 和 togglePreparedSpell；修改返回值：boolean (true=新学会, false=已存在)
-    learnSpell(spellId: string): boolean {
+    learnSpell(spellId: string, source: 'primary' | 'secondary' = 'primary'): boolean {
       if (!this.character) return false;
       if (!this.character.spells.known.includes(spellId)) {
         this.character.spells.known.push(spellId);
-        // 体验优化：如果是戏法，自动学会即准备(虽然逻辑上戏法不需要准备，但保持数据一致性也没坏处)
-        // 如果想让流程更严格，这里只 push 到 known
+        
+        // 初始化 spellSources 字典（防御性编程）
+        if (!this.character.spells.spellSources) {
+          this.character.spells.spellSources = {};
+        }
+        // 记录该法术的来源
+        this.character.spells.spellSources[spellId] = source;
+        
         this.save();
         return true; // successful
       } else {
@@ -701,6 +725,37 @@ export const useActiveSheetStore = defineStore('activeSheet', {
         this.character.spells.slots.current[level] = newMax;
       }
 
+      this.save();
+    },
+
+    // 邪术师契约法术位专门的操作方法
+    updatePactSlot(newVal: number) {
+      if (!this.character || !this.character.spells.pactSlots) return;
+      const pact = this.character.spells.pactSlots;
+      if (newVal < 0) newVal = 0;
+      if (newVal > pact.max) newVal = pact.max;
+      pact.current = newVal;
+      this.save();
+    },
+
+    updatePactSlotMax(newMax: number, newLevel?: number) {
+      if (!this.character) return;
+      if (!this.character.spells.pactSlots) {
+        this.character.spells.pactSlots = { level: 1, current: 0, max: 0 };
+      }
+      const pact = this.character.spells.pactSlots;
+      
+      if (newMax < 0) newMax = 0;
+      pact.max = newMax;
+      
+      // 允许同时更新契约法术位的环阶 (因为邪术师的法术位会自动升级)
+      if (newLevel !== undefined) {
+        pact.level = newLevel;
+      }
+      
+      if (pact.current > pact.max) {
+        pact.current = pact.max;
+      }
       this.save();
     },
 
@@ -796,7 +851,7 @@ export const useActiveSheetStore = defineStore('activeSheet', {
            data.combat.hitDiceType = 'd8'; // 默认为 d8
         }
 
-        // 🔥🔥🔥 新增：法术数据初始化 🔥🔥🔥
+        // 🔥🔥🔥 法术数据初始化 🔥🔥🔥
         if (!data.spells) {
           data.spells = {
             spellcastingAbility: 'int', // 默认为智力，用户可改
@@ -815,6 +870,14 @@ export const useActiveSheetStore = defineStore('activeSheet', {
             known: [],
             prepared: []
           };
+        }
+
+        //补全可能缺失的新增字段，兼容老存档
+        if (!data.spells.spellSources) {
+          data.spells.spellSources = {};
+        }
+        if (!data.spells.pactSlots) {
+          data.spells.pactSlots = { level: 1, current: 0, max: 0 };
         }
 
         // 🔥🔥🔥 新增：角色简介初始化 🔥🔥🔥

@@ -105,8 +105,13 @@ export interface CombatStats {
 export interface CharacterSpells {
   // 1. 核心数值 (手动设定，解决兼职计算难题)
   spellcastingAbility: AbilityKey; // 施法关键属性 (int/wis/cha)
+  secondaryCastingAbility?: AbilityKey;// 副施法属性 (兼职用，例如同时拥有智力和魅力施法)
   spellSaveDC: number;                  // 手动填写的豁免 DC (或者提供自动计算开关)
   spellAttackMod: number;          // 手动填写的攻击加值
+
+  //副施法属性的豁免 DC 和攻击加值
+  secondarySpellSaveDC?: number;
+  secondarySpellAttackMod?: number;
 
   // 2. 法术位 (Slots)
   // 数组索引 0 对应 0 环(通常不用), 1 对应 1 环... 到 9
@@ -125,6 +130,10 @@ export interface CharacterSpells {
   // 4. 法术列表 (只存 ID)
   known: string[];    // 已知法术 (法师的法术书，或术士的已知表)
   prepared: string[]; // 已准备法术 (牧师/德鲁伊/法师每日准备的)
+
+  // 法术来源映射表，Key 为法术 ID，Value 为职业/来源标识 (如 'wizard', 'warlock')
+  // 采用可选字典结构，兼顾旧存档兼容性并为兼职系统预留扩展口
+  spellSources?: Record<string, string>;
 }
 
 
