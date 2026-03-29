@@ -1,6 +1,6 @@
-# Project Context Index V8
+# Project Context Index V9
 
-Generated: 2026/3/29 16:06:47
+Generated: 2026/3/29 16:46:21
 
 - **📦 src/**
   - **📂 components/**
@@ -68,9 +68,23 @@ Generated: 2026/3/29 16:06:47
           - *Uses:* `useTooltipStore`
   - **📂 composables/**
     - **📄 useForge.ts**
-        - *Exports:* `useForge`
+        - *Type:* `Composable`
+        - *ID:* `useForge`
+        - *Getters (Computeds):*
+          - `draftData`
+        - *Actions (Functions):*
+          - `⚙️ useForge()`
+          - `⚙️ ensureCostStructure() 📝 🛡️ 新增：最小化的数据补全函数`
+          - `⚙️ handleDropData(jsonStr: string)`
+          - `⚙️ save()`
+          - `⚙️ close()`
     - **📄 useLibraryFilter.ts**
-        - *Exports:* `useLibraryFilter`
+        - *Type:* `Composable`
+        - *ID:* `useLibraryFilter`
+        - *Getters (Computeds):*
+          - `filteredList`
+        - *Actions (Functions):*
+          - `⚙️ useLibraryFilter(list: SearchableItem[], searchQuery: Ref<string>)`
   - **📂 data/**
     - **📂 libraries/**
       - **📄 armors.ts**
@@ -131,100 +145,104 @@ Generated: 2026/3/29 16:06:47
     - **📄 vTooltip.ts**
         - *Exports:* `vTooltip`
   - **📂 stores/**
+    - **📂 sheet/**
+      - **📄 useBioLogic.ts**
+          - *Type:* `Composable`
+          - *ID:* `useBioLogic`
+          - *Getters (Computeds):*
+            - `proficiencyBonus /* 🧠 Getters (计算属性) */`
+            - `skills`
+            - `passivePerception`
+            - `nextLevelXp`
+          - *Actions (Functions):*
+            - `⚙️ useBioLogic(character: Ref<Character | null>, save: ()`
+            - `⚙️ updateProfile(field: string, value: any) 📝 更新角色基础信息 (Profile) 的通用方法`
+            - `⚙️ updateStat(statName: keyof Character['stats'], value: number) 📝 更新属性 (例如把 strength 改成 18)`
+            - `⚙️ toggleSkill(skillKey: string) 📝 切换技能熟练度`
+            - `⚙️ toggleSavingThrow(attrKey: string) 📝 切换豁免熟练度`
+            - `⚙️ toggleProficiency(category: 'armor' | 'weapons', key: string) 📝 切换固定熟练项 (护甲/武器)`
+            - `⚙️ addProficiencyList(category: 'tools' | 'languages', val: string) 📝 添加动态熟练项 (工具/语言)`
+            - `⚙️ removeProficiencyList(category: 'tools' | 'languages', index: number) 📝 移除动态熟练项`
+            - `⚙️ addExperience(amount: number) 📝 增加 XP (包含自动升级逻辑)`
+            - `⚙️ resetExperience() 📝 重置 XP`
+      - **📄 useCombatLogic.ts**
+          - *Type:* `Composable`
+          - *ID:* `useCombatLogic`
+          - *Getters (Computeds):*
+            - `initiative /* 🧠 Getters (计算属性) */`
+            - `armorClass`
+            - `isWearingNonProficientArmor`
+            - `attacks`
+          - *Actions (Functions):*
+            - `⚙️ addEntry(modVal: number, suffix: string, label: string, damageDice: string, isOffhand = false)`
+            - `⚙️ applyDamage(amount: number) 📝 🛠️ Actions (操作方法)`
+            - `⚙️ resetDeathSaves()`
+            - `⚙️ applyHeal(amount: number)`
+            - `⚙️ fullHeal()`
+            - `⚙️ setTempHp(amount: number)`
+            - `⚙️ updateCombatStat(field: keyof Character['combat'], value: any)`
+            - `⚙️ toggleInspiration(index: number)`
+            - `⚙️ toggleAttackVisibility(derivedId: string)`
+            - `⚙️ toggleAttackMode(attr: AbilityKey)`
+      - **📄 useInventoryLogic.ts**
+          - *Type:* `Composable`
+          - *ID:* `useInventoryLogic`
+          - *Getters (Computeds):*
+            - `totalInventoryWeight /* 🧠 Getters (计算属性) */`
+            - `totalWeight`
+            - `getItemWeight`
+            - `carryingCapacity`
+            - `rootInventory`
+            - `getContainerContents`
+          - *Actions (Functions):*
+            - `⚙️ computeItemWeightRecursive(item: any, allItems: any[]) 📝 纯函数：递归计算重量`
+            - `⚙️ initWalletIfMissing() 📝 🛠️ Actions - 经济系统 (Wallet)`
+            - `⚙️ updateWallet(type: 'cp' | 'sp' | 'ep' | 'gp' | 'pp', value: number)`
+            - `⚙️ _createNewItem(libraryId: string, quantity: number, parentId?: string, index?: number) 📝 📦 Actions - 物品系统 (Inventory)`
+            - `⚙️ _addOrMerge(libraryId: string, quantity: number, targetParentId?: string)`
+            - `⚙️ _addPack(packId: string, index?: number, parentId?: string)`
+            - `⚙️ addItem(libraryId: string, index?: number, parentId?: string)`
+            - `⚙️ removeItem(instanceId: string)`
+            - `⚙️ moveItemToTrash(instanceId: string)`
+            - `⚙️ emptyTrash()`
+            - `⚙️ updateInventoryItem(newItem: InventoryItem)`
+            - `⚙️ updateEquippedList(newIds: string[])`
+            - `⚙️ updateItemQuantity(instanceId: string, delta: number)`
+            - `⚙️ _reinsertItem(item: any, index?: number)`
+            - `⚙️ moveItemToContainer(itemId: string, containerId: string, targetIndex?: number)`
+            - `⚙️ moveItemToRoot(itemId: string, targetIndex?: number)`
+            - `⚙️ reorderItem(itemId: string, targetIndex: number)`
+      - **📄 useSpellLogic.ts**
+          - *Type:* `Composable`
+          - *ID:* `useSpellLogic`
+          - *Actions (Functions):*
+            - `⚙️ groupSpellsByLevel(spells: SpellDefinition[], slots: any) 📝 纯函数：分组逻辑`
+            - `⚙️ togglePreparedSpell(spellId: string)`
+            - `⚙️ forgetSpell(spellId: string)`
+            - `⚙️ unprepareSpell(spellId: string)`
+            - `⚙️ updateSpellSlot(level: number, newVal: number)`
+            - `⚙️ updateSpellSlotMax(level: number, newMax: number)`
+            - `⚙️ updatePactSlot(newVal: number)`
+            - `⚙️ updatePactSlotMax(newMax: number, newLevel?: number)`
+            - `⚙️ recoverAllSlots()`
+            - `⚙️ updateSpellConfig(path: string, value: any)`
     - **📄 activeSheet.ts**
-        - *Store ID:* `activeSheet`
-        - *State:*
-          - `character /* ✅ 不再需要 ExtendedCharacter，直接用 Character */`
-          - `trash /* 页面刷新/关闭后，Store 重置，这里自然就清空了 */`
+        - *Type:* `Pinia Store (Setup)`
+        - *ID:* `activeSheet`
+        - *State (Refs/Reactives):*
           - `ui`
-          - `isSpellbookOpen`
-        - *Getters:*
-          - `allKnownSpells /* ========================================== */`
-          - `spellbookGroups`
-          - `battleSpells /* ========================================== */`
-          - `battleGroups`
-          - `spellAbilityMod /* 1. 施法关键属性调整值 */`
-          - `calculatedSpellSaveDC /* 2. 法术豁免 DC (8 + PB + Mod) */`
-          - `calculatedSpellAttackMod /* 3. 法术攻击加值 (PB + Mod) */`
-          - `secondarySpellAbilityMod /* 副施法属性相关的自动计算 Getter */`
-          - `secondaryCalculatedSpellSaveDC`
-          - `secondaryCalculatedSpellAttackMod`
-          - `mySpells /* 4. 获取“已准备/已知”的法术列表 (按 ID 映射回对象) */`
-          - `groupedSpells /* 返回结构：[ { level: 0, label: '戏法', spells: [], slots: null }, { level: 1, ... } ] */`
-          - `totalWeight /* 1. 总负重 (逻辑不变) */`
-          - `getItemWeight /* 递归计算物品重量 (修改：调用纯函数) */`
-          - `totalInventoryWeight /* 计算总负重 (修改：基于根节点递归) */`
-          - `carryingCapacity /* 规则：力量 * 15 (lb) */`
-          - `armorClass`
-          - `initiative /* 【新增】先攻 (Initiative) */`
-          - `attacks /* ✅ 4. 攻击面板 (核心修改：接入熟练度计算) */`
-          - `proficiencyBonus /* --- 新增：熟练加值 (PB) --- */`
-          - `isWearingNonProficientArmor /* 返回 true 表示穿着了不熟练的护甲 */`
-          - `for`
-          - `skills /* --- 技能列表计算引擎 --- */`
-          - `passivePerception /* --- 新增：被动觉察 (Passive Perception) --- */`
-          - `nextLevelXp /* --- 新增：升级所需经验值 --- */`
-          - `rootInventory /* 只有 parentId 为 undefined 的物品才应该直接显示在顶层列表 */`
-          - `getContainerContents /* 获取某容器内的所有物品 */`
-        - *Actions:*
-          - `⚙️ learnSpell(spellId: string, source: 'primary' | 'secondary' = 'primary') 📝 确保有 learnSpell 和 togglePreparedSpell；修改返回值：boolean (true=新学会, false=已存在)`
-          - `⚙️ togglePreparedSpell(spellId: string)`
-          - `⚙️ forgetSpell(spellId: string)`
-          - `⚙️ updateSpellSlot(level: number, newVal: number) 📝 1. 消耗/恢复法术位`
-          - `⚙️ updateSpellSlotMax(level: number, newMax: number) 📝 更新法术位上限 (用于法术书配置)`
-          - `⚙️ updatePactSlot(newVal: number) 📝 邪术师契约法术位专门的操作方法`
-          - `⚙️ updatePactSlotMax(newMax: number, newLevel?: number)`
-          - `⚙️ recoverAllSlots() 📝 2. 长休 (恢复所有法术位)`
-          - `⚙️ unprepareSpell(spellId: string) 📝 强制移除准备`
-          - `⚙️ updateSpellConfig(path: string, value: any) 📝 6. 更新施法能力配置 (修改属性、DC、法术位上限等)`
-          - `⚙️ updateBio(field: keyof import('../types/Character') 📝 更新 Bio 数据的通用方法`
-          - `⚙️ toggleAttackMode(attr: AbilityKey) 📝 [新增] 切换攻击模式开关`
-          - `⚙️ loadCharacter(id: string) 📝 载入角色时，确保 equippedIds 存在`
-          - `⚙️ toggleProficiency(category: 'armor' | 'weapons', key: string) 📝 category: 'armor' | 'weapons'`
-          - `⚙️ addProficiencyList(category: 'tools' | 'languages', val: string) 📝 修复后的 Action: 添加列表项 (增强了健壮性)`
-          - `⚙️ removeProficiencyList(category: 'tools' | 'languages', index: number) 📝 ✅ 新增 Action: 移除列表项`
-          - `⚙️ initWalletIfMissing() 📝 辅助：确保钱包存在`
-          - `⚙️ modifyCurrency(type: keyof typeof CURRENCY_RATES, amount: number)`
-          - `⚙️ while(lowPoolCP < 0) 📝 借用高位池 (打散 PP 变成 GP/SP/CP)`
-          - `⚙️ while(highPoolPP < 0) 📝 借用低位池 (用 GP 凑出 PP 支付)`
-          - `⚙️ updateWallet(type: 'cp' | 'sp' | 'ep' | 'gp' | 'pp', value: number) 📝 type 参数对应 Wallet 接口的 key ('cp', 'sp', 'gp', 'pp')`
-          - `⚙️ save()`
-          - `⚙️ _createNewItem(libraryId: string, quantity: number, parentId?: string, index?: number)`
-          - `⚙️ _addOrMerge(libraryId: string, quantity: number, targetParentId?: string)`
-          - `⚙️ _addPack(packId: string, index?: number, parentId?: string)`
-          - `⚙️ addItem(libraryId: string, index?: number, parentId?: string)`
-          - `⚙️ removeItem(instanceId: string)`
-          - `⚙️ moveItemToTrash(instanceId: string)`
-          - `⚙️ updateInventoryItem(newItem: InventoryItem) 📝 更新背包中的某个物品实例`
-          - `⚙️ updateEquippedList(newIds: string[]) 📝 【新】更新装备栏列表`
-          - `⚙️ updateStat(statName: keyof Character['stats'], value: number) 📝 更新属性 (例如把 strength 改成 18)`
-          - `⚙️ toggleSkill(skillKey: string)`
-          - `⚙️ toggleSavingThrow(attrKey: string) 📝 【新增】切换豁免熟练度`
-          - `⚙️ addExperience(amount: number) 📝 【调试版】增加 XP`
-          - `⚙️ updateProfile(field: string, value: any) 📝 【新增】更新角色基础信息 (Profile) 的通用方法`
-          - `⚙️ resetExperience() 📝 重置 XP`
-          - `⚙️ applyDamage(amount: number) 📝 1. 造成伤害`
-          - `⚙️ applyHeal(amount: number) 📝 2. 治疗`
-          - `⚙️ fullHeal() 📝 3. 一键回满`
-          - `⚙️ setTempHp(amount: number) 📝 4. 设置临时生命 (覆盖模式)`
-          - `⚙️ updateCombatStat(field: keyof Character['combat'], value: any) 📝 5. 更新通用战斗数值 (速度, 生命骰, 状态)`
-          - `⚙️ resetDeathSaves() 📝 6. 重置死亡豁免`
-          - `⚙️ toggleInspiration(index: number) 📝 7. 切换激励 (index: 0, 1, 2)`
-          - `⚙️ toggleAttackVisibility(derivedId: string) 📝 【新增】切换攻击条目的显隐状态`
-          - `⚙️ emptyTrash() 📝 为了方便，我们可以加一个专门清空垃圾箱的方法（可选）`
-          - `⚙️ _reinsertItem(item: any, index?: number) 📝 [内部助手] 将物品物理移动到数组的指定位置`
-          - `⚙️ moveItemToContainer(itemId: string, containerId: string, targetIndex?: number) 📝 动作：把物品放入容器 (支持指定位置)`
-          - `⚙️ moveItemToRoot(itemId: string, targetIndex?: number) 📝 动作：把物品移到根目录 (支持指定位置)`
-          - `⚙️ reorderItem(itemId: string, targetIndex: number) 📝 ✅ 新增：同级排序 (只改位置，不改 parentId)`
-          - `⚙️ updateItemQuantity(instanceId: string, delta: number) 📝 ✅ 【新增】更新物品数量 (用于点击 +/- 按钮)`
+        - *Actions (Functions):*
+          - `⚙️ save() 📝 2. 基础控制方法 (Base Actions)`
           - `⚙️ toggleSpellbook(isOpen: boolean)`
+          - `⚙️ loadCharacter(id: string)`
     - **📄 characterStore.ts**
-        - *Store ID:* `characterStore`
-        - *State:*
+        - *Type:* `Pinia Store (Options)`
+        - *ID:* `characterStore`
+        - *State (Refs/Reactives):*
           - `characterList`
           - `_characterCache`
           - `_filenameMap /* 🆕 新增：用于记录角色当前在硬盘上的文件名，以便改名时删除旧文件 */`
-        - *Actions:*
+        - *Actions (Functions):*
           - `⚙️ init() 📝 --- 1. 初始化 ---`
           - `⚙️ createNewCharacter() 📝 --- 2. 创建新角色 (修改：不再自动保存) ---`
           - `⚙️ saveCharacterData(char: Character) 📝 --- 3. 保存逻辑 (核心迁移逻辑) ---`
@@ -233,13 +251,14 @@ Generated: 2026/3/29 16:06:47
           - `⚙️ exportCharacter(id: string) 📝 --- 6. 导出 ---`
           - `⚙️ importCharacter(jsonStr: string) 📝 --- 7. 导入 ---`
     - **📄 tooltip.ts**
-        - *Store ID:* `tooltip`
-        - *State:*
+        - *Type:* `Pinia Store (Options)`
+        - *ID:* `tooltip`
+        - *State (Refs/Reactives):*
           - `visible`
           - `data`
           - `x`
           - `y`
-        - *Actions:*
+        - *Actions (Functions):*
           - `⚙️ show(data: TooltipData, x: number, y: number)`
           - `⚙️ hide()`
           - `⚙️ updatePosition(x: number, y: number)`
