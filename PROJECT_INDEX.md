@@ -1,6 +1,6 @@
 # Project Context Index V8
 
-Generated: 2026/3/23 20:22:17
+Generated: 2026/3/29 16:06:47
 
 - **📦 src/**
   - **📂 components/**
@@ -17,6 +17,12 @@ Generated: 2026/3/23 20:22:17
           - *Uses:* `useCharacterStore, useActiveSheetStore`
       - **📄 SidebarRight.vue**
     - **📂 sheet/**
+      - **📂 spellbook/**
+        - **📄 SpellbookLeftPanel.vue**
+            - *Emits:* `['close']`
+            - *Uses:* `useActiveSheetStore`
+        - **📄 SpellbookRightPanel.vue**
+            - *Uses:* `useActiveSheetStore`
       - **📄 ActionsPanel.vue**
           - *Uses:* `useActiveSheetStore, useTooltipStore`
       - **📄 BioPanel.vue**
@@ -49,7 +55,6 @@ Generated: 2026/3/23 20:22:17
       - **📄 SpellbookPanel.vue**
           - *Props:* `{ isOpen: boolean; }`
           - *Emits:* `['close']`
-          - *Uses:* `useActiveSheetStore`
       - **📄 StatsAndSkills.vue**
           - *Uses:* `useActiveSheetStore, useCharacterStore`
       - **📄 TrashPanel.vue**
@@ -141,6 +146,9 @@ Generated: 2026/3/23 20:22:17
           - `spellAbilityMod /* 1. 施法关键属性调整值 */`
           - `calculatedSpellSaveDC /* 2. 法术豁免 DC (8 + PB + Mod) */`
           - `calculatedSpellAttackMod /* 3. 法术攻击加值 (PB + Mod) */`
+          - `secondarySpellAbilityMod /* 副施法属性相关的自动计算 Getter */`
+          - `secondaryCalculatedSpellSaveDC`
+          - `secondaryCalculatedSpellAttackMod`
           - `mySpells /* 4. 获取“已准备/已知”的法术列表 (按 ID 映射回对象) */`
           - `groupedSpells /* 返回结构：[ { level: 0, label: '戏法', spells: [], slots: null }, { level: 1, ... } ] */`
           - `totalWeight /* 1. 总负重 (逻辑不变) */`
@@ -159,11 +167,13 @@ Generated: 2026/3/23 20:22:17
           - `rootInventory /* 只有 parentId 为 undefined 的物品才应该直接显示在顶层列表 */`
           - `getContainerContents /* 获取某容器内的所有物品 */`
         - *Actions:*
-          - `⚙️ learnSpell(spellId: string) 📝 确保有 learnSpell 和 togglePreparedSpell；修改返回值：boolean (true=新学会, false=已存在)`
+          - `⚙️ learnSpell(spellId: string, source: 'primary' | 'secondary' = 'primary') 📝 确保有 learnSpell 和 togglePreparedSpell；修改返回值：boolean (true=新学会, false=已存在)`
           - `⚙️ togglePreparedSpell(spellId: string)`
           - `⚙️ forgetSpell(spellId: string)`
           - `⚙️ updateSpellSlot(level: number, newVal: number) 📝 1. 消耗/恢复法术位`
           - `⚙️ updateSpellSlotMax(level: number, newMax: number) 📝 更新法术位上限 (用于法术书配置)`
+          - `⚙️ updatePactSlot(newVal: number) 📝 邪术师契约法术位专门的操作方法`
+          - `⚙️ updatePactSlotMax(newMax: number, newLevel?: number)`
           - `⚙️ recoverAllSlots() 📝 2. 长休 (恢复所有法术位)`
           - `⚙️ unprepareSpell(spellId: string) 📝 强制移除准备`
           - `⚙️ updateSpellConfig(path: string, value: any) 📝 6. 更新施法能力配置 (修改属性、DC、法术位上限等)`
