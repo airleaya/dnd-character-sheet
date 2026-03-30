@@ -68,7 +68,7 @@ const updatePactLevel = (delta: number) => {
       <div class="char-info">
         <h2 class="title">法术研习</h2>
         <p class="subtitle" v-if="store.character">
-          {{ store.character.profile.class || '未知职业' }} - {{ store.character.profile.playerName || store.character.profile.name || '未命名' }}
+          {{ store.character.profile.classes || '未知职业' }} - {{ store.character.profile.playerName || store.character.profile.name || '未命名' }}
         </p>
       </div>
       <button class="btn-close" @click="$emit('close')" title="关闭 (Esc)">✖</button>
@@ -78,47 +78,47 @@ const updatePactLevel = (delta: number) => {
       <h3 class="section-title">施法能力 Casting Ability</h3>
       
       <div class="ability-card">
-        <div class="ability-row">
-          <label>主职属性:</label>
+        <div class="ability-title">主职属性</div>
+        <div class="ability-body">
           <select v-model="primaryAbility" class="select-ability">
             <option v-for="opt in abilityOptions" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </option>
           </select>
-        </div>
-        <div class="stats-row">
-          <div class="stat-box">
-            <span class="stat-label">法术豁免 DC</span>
-            <span class="stat-value">{{ store.calculatedSpellSaveDC }}</span>
+          <div class="stats-row">
+            <div class="stat-box">
+              <span class="stat-label">法术豁免 DC</span>
+              <span class="stat-value">{{ store.calculatedSpellSaveDC }}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">法术攻击加值</span>
+              <span class="stat-value">+{{ store.calculatedSpellAttackMod }}</span>
+            </div>
           </div>
-          <div class="stat-box">
-            <span class="stat-label">法术攻击加值</span>
-            <span class="stat-value">+{{ store.calculatedSpellAttackMod }}</span>
-          </div>
         </div>
-      </div>
+        </div>
 
       <div class="ability-card secondary">
-        <div class="ability-row">
-          <label>兼职属性:</label>
+        <div class="ability-title">兼职属性</div>
+        <div class="ability-body">
           <select v-model="secondaryAbility" class="select-ability">
             <option value="">-- 无兼职施法 --</option>
             <option v-for="opt in abilityOptions" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </option>
           </select>
-        </div>
-        <div class="stats-row" v-if="secondaryAbility">
-          <div class="stat-box">
-            <span class="stat-label">副职豁免 DC</span>
-            <span class="stat-value">{{ store.secondaryCalculatedSpellSaveDC }}</span>
+          <div class="stats-row" v-if="secondaryAbility">
+            <div class="stat-box">
+              <span class="stat-label">副职豁免 DC</span>
+              <span class="stat-value">{{ store.secondaryCalculatedSpellSaveDC }}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">副职攻击加值</span>
+              <span class="stat-value">+{{ store.secondaryCalculatedSpellAttackMod }}</span>
+            </div>
           </div>
-          <div class="stat-box">
-            <span class="stat-label">副职攻击加值</span>
-            <span class="stat-value">+{{ store.secondaryCalculatedSpellAttackMod }}</span>
-          </div>
         </div>
-      </div>
+        </div>
     </div>
 
     <div class="section-block warlock-block">
@@ -214,7 +214,7 @@ const updatePactLevel = (delta: number) => {
 
   &.secondary { background: #faf9f7; border-style: dashed; }
 }
-
+/*
 .ability-row {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
   label { font-weight: bold; font-size: 0.9rem; color: #555; }
@@ -222,6 +222,32 @@ const updatePactLevel = (delta: number) => {
     padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-family: inherit;
     &:focus { outline: 2px solid #9b59b6; border-color: transparent; }
   }
+}*/
+
+.ability-title {
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #555;
+  padding-bottom: 8px; /* 标题与分割线的间距 */
+  margin-bottom: 12px; /* 分割线与下方内容的间距 */
+  border-bottom: 1px solid #e0e0e0; /* 作为优雅的分割线 */
+}
+
+.ability-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 下拉框与下方数据面板的间距 */
+}
+
+.select-ability {
+  width: 100%; /* 独占一行，充满容器宽度 */
+  padding: 6px 8px; /* 增加一点内边距，提升点击手感 */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  font-family: inherit;
+  color: #333;
+  &:focus { outline: 2px solid #9b59b6; border-color: transparent; }
 }
 
 .stats-row {
