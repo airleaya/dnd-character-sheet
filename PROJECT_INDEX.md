@@ -1,6 +1,6 @@
 # Project Context Index V9
 
-Generated: 2026/3/29 16:46:21
+Generated: 2026/3/30 16:27:02
 
 - **📦 src/**
   - **📂 components/**
@@ -28,6 +28,8 @@ Generated: 2026/3/29 16:46:21
       - **📄 BioPanel.vue**
           - *Props:* `{ isOpen: boolean }`
           - *Emits:* `['close']`
+          - *Uses:* `useActiveSheetStore`
+      - **📄 ClassSelector.vue**
           - *Uses:* `useActiveSheetStore`
       - **📄 CombatPanel.vue**
           - *Uses:* `useActiveSheetStore`
@@ -58,6 +60,8 @@ Generated: 2026/3/29 16:46:21
       - **📄 StatsAndSkills.vue**
           - *Uses:* `useActiveSheetStore, useCharacterStore`
       - **📄 TrashPanel.vue**
+          - *Uses:* `useActiveSheetStore`
+      - **📄 XpProgressBar.vue**
           - *Uses:* `useActiveSheetStore`
     - **📂 sidebar/**
       - **📄 ForgeDropZone.vue**
@@ -104,6 +108,8 @@ Generated: 2026/3/29 16:46:21
       - **📄 weapons.ts**
           - *Exports:* `WEAPON_LIBRARY`
     - **📂 rules/**
+      - **📄 classes.ts**
+          - *Exports:* `ClassDef, SubclassDef, CLASS_DICTIONARY, SUBCLASS_DICTIONARY`
       - **📄 conditions.ts**
           - *Exports:* `ConditionKey, ConditionDef, CONDITIONS, CONDITION_OPTIONS`
       - **📄 currency.ts**
@@ -157,6 +163,10 @@ Generated: 2026/3/29 16:46:21
           - *Actions (Functions):*
             - `⚙️ useBioLogic(character: Ref<Character | null>, save: ()`
             - `⚙️ updateProfile(field: string, value: any) 📝 更新角色基础信息 (Profile) 的通用方法`
+            - `⚙️ ensureClassesFormat() 📝 数据清洗与旧存档兼容`
+            - `⚙️ addClassRecord() 📝 新增兼职`
+            - `⚙️ removeClassRecord(index: number) 📝 移除兼职`
+            - `⚙️ updateClassRecord(index: number, field: 'classId' | 'subclassId', value: string | null) 📝 更新具体的职业或子职`
             - `⚙️ updateStat(statName: keyof Character['stats'], value: number) 📝 更新属性 (例如把 strength 改成 18)`
             - `⚙️ toggleSkill(skillKey: string) 📝 切换技能熟练度`
             - `⚙️ toggleSavingThrow(attrKey: string) 📝 切换豁免熟练度`
@@ -264,7 +274,7 @@ Generated: 2026/3/29 16:46:21
           - `⚙️ updatePosition(x: number, y: number)`
   - **📂 types/**
     - **📄 Character.ts**
-        - *Exports:* `AbilityScores, Wallet, CharacterProficiencies, CharacterProfile, CharacterBio, CombatStats, CharacterSpells, Character`
+        - *Exports:* `AbilityScores, Wallet, CharacterClassRecord, CharacterProficiencies, CharacterProfile, CharacterBio, CombatStats, CharacterSpells, Character`
     - **📄 Item.ts**
         - *Exports:* `WeaponData, ArmorData, GearData, ToolData, ConsumableData, TreasureData, ContainerData, InventoryItem`
     - **📄 Library.ts**

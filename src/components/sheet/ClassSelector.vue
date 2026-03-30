@@ -111,7 +111,11 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
       <button v-if="index > 0" class="btn-remove" @click="store.removeClassRecord(index)" title="移除兼职">×</button>
     </div>
 
-    <button class="btn-multiclass" @click="store.addClassRecord()">+ 兼职</button>
+    <button 
+      v-if="classesData.length < 2" 
+      class="btn-multiclass" 
+      @click="store.addClassRecord()"
+    >+ 兼职</button>
   </div>
 </template>
 
