@@ -13,10 +13,13 @@ export interface SubclassDef {
 
 // 占位符数据：主职
 export const CLASS_DICTIONARY: ClassDef[] = [
-  { id: '0', name: '诗人' }
+  { id: '0', name: '诗人' },
+  { id: '1', name: '的'}
 ];
 
 // 占位符数据：子职
 export const SUBCLASS_DICTIONARY: SubclassDef[] = [
-  { id: '0-0', classId: '0', name: '雄辩学院', source: 'phb' }
+  { id: '0-0', classId: '0', name: '雄辩学院', source: 'phb' },
+  { id: '0-1', classId: '1', name: 'qwe', source: 'phb' },
+  { id: '1-0', classId: '0', name: 'qwwee', source: 'phb' },
 ];

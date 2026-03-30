@@ -1,13 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 import { CLASS_DICTIONARY, SUBCLASS_DICTIONARY } from '../../data/rules/classes';
 
 const store = useActiveSheetStore();
 
+// 创建一个容器引用，用于判断点击区域
+const containerRef = ref<HTMLElement | null>(null);
+
+// 监听全局点击事件：如果点击的目标不在当前组件内部，则关闭菜单
+const handleClickOutside = (event: MouseEvent) => {
+  if (activeDropdown.value && containerRef.value && !containerRef.value.contains(event.target as Node)) {
+    activeDropdown.value = null;
+  }
+};
+
 // 挂载时确保数据格式正确
 onMounted(() => {
   store.ensureClassesFormat();
+  // 挂载全局点击监听
+  document.addEventListener('mousedown', handleClickOutside);
 });
 
 const classesData = computed(() => store.character?.profile.classes || []);
@@ -28,16 +40,14 @@ const getSubclassName = (id: string | null) => {
 const activeDropdown = ref<{ index: number, type: 'class' | 'subclass' } | null>(null);
 const searchQuery = ref('');
 
+// 优化打开逻辑，支持点击同一个按钮时“切换/折叠”菜单
 const openDropdown = (index: number, type: 'class' | 'subclass') => {
-  activeDropdown.value = { index, type };
-  searchQuery.value = ''; // 每次打开清空搜索
-};
-
-const closeDropdown = () => {
-  // 延迟关闭，以允许点击事件先生效
-  setTimeout(() => {
-    activeDropdown.value = null;
-  }, 150);
+  if (activeDropdown.value?.index === index && activeDropdown.value?.type === type) {
+    activeDropdown.value = null; // 如果已经打开，则关闭
+  } else {
+    activeDropdown.value = { index, type };
+    searchQuery.value = ''; // 每次打开清空搜索
+  }
 };
 
 // 过滤后的选项
@@ -61,109 +71,255 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 </script>
 
 <template>
-  <div class="class-selector-container" v-if="classesData.length">
-    <div v-for="(record, index) in classesData" :key="index" class="class-row">
+  <div class="class-selector-container" ref="containerRef" v-if="classesData.length">
+    <div 
+      v-for="(record, index) in classesData" 
+      :key="index" 
+      class="class-badge-wrapper"
+      :class="{ 'is-multiclass': index > 0 }"
+    >
       
-      <div class="dropdown-wrapper">
-        <button class="selector-btn" @click="openDropdown(index, 'class')" @blur="closeDropdown">
-          {{ record.classId ? getClassName(record.classId) : '请选择职业' }}
-        </button>
-        
-        <div class="dropdown-menu" v-if="activeDropdown?.index === index && activeDropdown?.type === 'class'">
-          <input v-model="searchQuery" class="search-input" placeholder="搜索职业..." @click.stop />
-          <ul class="options-list">
-            <li v-for="opt in filteredOptions" :key="opt.id" @click.stop="selectOption(index, 'class', opt.id)">
-              {{ opt.name }}
-            </li>
-            <li v-if="!filteredOptions.length" class="empty-text">无结果</li>
-          </ul>
+      <div v-if="!record.classId" class="dropdown-wrapper empty-state">
+        <button class="selector-btn badge-btn empty-btn" @click="openDropdown(index, 'class')">
+          + 选择职业
+        </button>        
+      </div>
+
+      <div v-else class="class-badge">
+        <button v-if="index > 0" class="btn-remove-badge" @click="store.removeClassRecord(index)" title="移除兼职">×</button>
+
+        <div class="dropdown-wrapper badge-top">
+          <button class="selector-btn badge-btn class-name-btn" @click="openDropdown(index, 'class')">
+            {{ getClassName(record.classId) }}
+          </button>
+          
+        </div>
+
+        <div class="badge-divider"></div>
+
+        <div class="dropdown-wrapper badge-bottom" :class="{ 'is-empty': !record.subclassId }">
+          <button class="selector-btn badge-btn subclass-name-btn" @click="openDropdown(index, 'subclass')">
+            {{ record.subclassId ? getSubclassName(record.subclassId) : '+ 添加子职' }}
+          </button>
         </div>
       </div>
 
-      <template v-if="record.classId">
-        <button 
-          v-if="!record.subclassId" 
-          class="subclass-expand-btn"
-          title="选择子职"
-          @click="openDropdown(index, 'subclass')"
-        >
-          + 子职
-        </button>
+      <div class="dropdown-menu" 
+           v-if="activeDropdown?.index === index"
+           :class="[
+             activeDropdown.type === 'class' ? 'menu-class' : 'menu-subclass',
+             { 'menu-multiclass': index > 0 }
+           ]">
+        <input v-model="searchQuery" class="search-input" :placeholder="activeDropdown.type === 'class' ? '搜索职业...' : '搜索子职...'" @click.stop />
+        <ul class="options-list">
+          <li v-for="opt in filteredOptions" :key="opt.id" @click.stop="selectOption(index, activeDropdown.type, opt.id)">
+            {{ opt.name }}
+          </li>
+          <li v-if="!filteredOptions.length" class="empty-text">无结果</li>
+        </ul>
+      </div>
 
-        <div class="dropdown-wrapper" v-if="record.subclassId || (activeDropdown?.index === index && activeDropdown?.type === 'subclass')">
-          <span class="divider">-</span>
-          <button class="selector-btn subclass" @click="openDropdown(index, 'subclass')" @blur="closeDropdown">
-            {{ record.subclassId ? getSubclassName(record.subclassId) : '请选择子职' }}
-          </button>
-          
-          <div class="dropdown-menu" v-if="activeDropdown?.index === index && activeDropdown?.type === 'subclass'">
-            <input v-model="searchQuery" class="search-input" placeholder="搜索子职..." @click.stop />
-            <ul class="options-list">
-              <li v-for="opt in filteredOptions" :key="opt.id" @click.stop="selectOption(index, 'subclass', opt.id)">
-                {{ opt.name }}
-              </li>
-              <li v-if="!filteredOptions.length" class="empty-text">无结果</li>
-            </ul>
-          </div>
-        </div>
-      </template>
-
-      <button v-if="index > 0" class="btn-remove" @click="store.removeClassRecord(index)" title="移除兼职">×</button>
     </div>
 
     <button 
-      v-if="classesData.length < 2" 
-      class="btn-multiclass" 
+      v-if="classesData.length < 2 && classesData[0]?.classId" 
+      class="btn-multiclass-add" 
       @click="store.addClassRecord()"
-    >+ 兼职</button>
+    >
+      + 兼职
+    </button>
   </div>
 </template>
 
 <style scoped lang="scss">
 .class-selector-container {
-  display: flex; flex-direction: column; gap: 4px; position: relative;
+  display: flex; 
+  flex-direction: row; /* 改为横向排列 */
+  flex-wrap: wrap; /* 允许折行 */
+  gap: 2px; 
+  align-items: center; /* 垂直居中对齐气泡和按钮 */
 }
-.class-row {
-  display: flex; align-items: center; gap: 4px; position: relative;
-}
-.dropdown-wrapper {
+
+.class-badge-wrapper {
+  display: inline-flex;
   position: relative;
 }
-.selector-btn {
-  background: transparent; border: 1px solid transparent; border-bottom: 1px dashed #7f8c8d;
-  font-size: 1rem; color: #2c3e50; cursor: pointer; padding: 2px 4px; font-weight: bold;
-  &:hover { background: #f8f9fa; border-radius: 4px; }
-  &.subclass { font-weight: normal; color: #555; }
+
+/* 核心气泡样式 */
+.class-badge {
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa; 
+  border: 1px solid #e9ecef;
+  border-radius: 4px; 
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03); 
+  position: relative;
+  overflow: hidden; 
+  min-width: 60px; 
 }
-.subclass-expand-btn {
-  background: #ecf0f1; border: none; border-radius: 4px; font-size: 0.7rem; padding: 2px 6px;
-  cursor: pointer; color: #7f8c8d; transition: all 0.2s;
-  &:hover { background: #bdc3c7; color: #2c3e50; }
+
+/* 兼职气泡缩小 */
+.is-multiclass .class-badge {
+  transform: scale(0.9); /* 整体缩小以区分主次 */
+  transform-origin: left center;
+  background: #f1f2f6; /* 背景稍微再深一点点以区分主职 */
+  margin-right: -8px; /* 补偿 scale 带来的右侧空白 */
 }
-.divider { color: #95a5a6; margin: 0 2px; }
-.btn-remove {
-  background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2rem;
-  line-height: 1; padding: 0 4px; opacity: 0.6;
+
+/* 悬浮删除按钮 (兼职右上角) */
+.btn-remove-badge {
+  position: absolute;
+  top: -1px; right: 1px;
+  background: none; border: none;
+  color: #e74c3c; font-size: 0.85rem; line-height: 1;
+  opacity: 0.3; cursor: pointer; z-index: 10;
+  transition: opacity 0.2s;
   &:hover { opacity: 1; }
 }
-.btn-multiclass {
-  align-self: flex-start; background: none; border: 1px dashed #bdc3c7; border-radius: 4px;
-  font-size: 0.75rem; color: #7f8c8d; padding: 2px 8px; cursor: pointer; margin-top: 2px;
-  &:hover { border-color: #3498db; color: #3498db; }
+
+/* 气泡内部按钮通用样式 */
+.badge-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.2s;
+  margin: 0;
+  outline: none;
+  &:hover { background-color: rgba(0,0,0,0.03); }
 }
-/* 下拉菜单样式 */
+
+/* 气泡上半部分 (职业) */
+.badge-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  .class-name-btn {
+    padding: 0 10px; 
+    font-size: 0.9rem; 
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.2;
+  }
+}
+
+/* 气泡下半部分 (子职) */
+.badge-bottom {
+  border-top: 1px solid rgba(0,0,0,0.05); 
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .subclass-name-btn {
+    padding: 0 10px; 
+    font-size: 0.7rem; 
+    color: #7f8c8d;
+    line-height: 1.2;
+  }
+  
+  /* 无子职的挤压状态 */
+  &.is-empty {
+    .subclass-name-btn {
+      padding: 0 10px;
+      font-size: 0.6rem; /* 极致缩小字号 */
+      color: #bdc3c7;
+      background: rgba(0,0,0,0.015); 
+      &:hover { background: rgba(0,0,0,0.05); color: #95a5a6; }
+    }
+  }
+}
+
+/* 空状态按钮 (未选择主职时) */
+.empty-state {
+  .empty-btn {
+    border: 1px dashed #bdc3c7;
+    border-radius: 4px;
+    padding: 2px 10px; /* 缩小空状态按钮 */
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    font-weight: bold;
+    &:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
+  }
+}
+
+/* 添加兼职按钮 */
+.btn-multiclass-add {
+  background: none; border: 1px dashed #bdc3c7; border-radius: 6px;
+  font-size: 0.8rem; color: #7f8c8d; padding: 4px 10px; cursor: pointer;
+  transition: all 0.2s; height: max-content;
+  &:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
+}
+
+/* 下拉菜单样式保持原样，微调位置 */
+.dropdown-wrapper { position: relative; width: 100%; }
+
 .dropdown-menu {
-  position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc;
-  border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100;
-  width: max-content; min-width: 150px; display: flex; flex-direction: column;
+  position: absolute; 
+  top: 0; 
+  right: calc(100% + 4px); 
+  left: auto; 
+  
+  background: #ffffff;
+  border: 1px solid #e9ecef; 
+  border-right: 3px solid #2c3e50; 
+  border-radius: 8px 4px 4px 8px;
+  
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+  
+  z-index: 100;
+  width: 120px; 
+  min-width: 120px; 
+  display: flex; 
+  flex-direction: column;
+  transform-origin: top right; 
 }
+
+/* 动态匹配气泡内字体的样式 */
+.menu-class .options-list li {
+  font-size: 0.9rem; font-weight: 700; color: #2c3e50; 
+}
+.menu-subclass .options-list li {
+  font-size: 0.7rem; color: #7f8c8d; 
+}
+.menu-multiclass {
+  transform: scale(0.9); 
+}
+
 .search-input {
-  border: none; border-bottom: 1px solid #eee; padding: 6px 8px; outline: none; font-size: 0.85rem;
+  border: none; 
+  border-bottom: 1px solid #eee;     
+  padding: 6px 12px; 
+  outline: none; 
+  font-size: 0.85rem; 
+  width: 100%; 
+  box-sizing: border-box;
+  
+  background: transparent;
+  text-align: right; 
 }
+
+// 选项列表全局右对齐，并增加渐变 hover 效果
 .options-list {
-  list-style: none; margin: 0; padding: 0; max-height: 200px; overflow-y: auto;
-  li { padding: 6px 10px; font-size: 0.9rem; cursor: pointer; transition: background 0.1s; }
-  li:hover { background: #f0f4f8; }
-  .empty-text { color: #999; text-align: center; cursor: default; }
+  list-style: none; margin: 0; padding: 0; max-height: 200px; overflow-y: auto; 
+  text-align: right; /* 全局右对齐 */
+  
+  li { 
+    padding: 6px 12px; 
+    cursor: pointer; 
+    transition: background 0.2s; 
+  }
+  
+  li:hover { 
+    background: #f0f4f8;
+  }
+  
+  .empty-text { 
+    color: #999; 
+    cursor: default; 
+    font-size: 0.8rem; 
+    padding: 8px 12px; 
+  }
 }
 </style>
