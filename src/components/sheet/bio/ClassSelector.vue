@@ -24,6 +24,26 @@ onMounted(() => {
 
 const classesData = computed(() => store.character?.profile.classes || []);
 
+// 判断是否允许添加兼职的计算属性
+const canAddMulticlass = computed(() => {
+  if (!store.character) return false;
+  
+  // 1. 必须已经选择了主职
+  if (classesData.value.length === 0 || !classesData.value[0]?.classId) return false;
+  
+  // 2. 维持原有的最多双职业限制
+  if (classesData.value.length >= 2) return false;
+
+  const profile = store.character.profile;
+  const totalAlloc = totalAllocated.value;
+
+  // 3. 核心判断：有未分配的总等级，或者主职等级 > 1（可以从中扣减出1级给兼职）
+  if (totalAlloc < profile.level) return true; 
+  
+  const mainClassLevel = classesData.value[0]?.level || 1;
+  return mainClassLevel > 1;
+});
+
 // 计算当前已分配的总等级，用于控制增减按钮的禁用状态
 const totalAllocated = computed(() => {
   return classesData.value.reduce((sum, c) => sum + (c.level || 1), 0);
@@ -146,7 +166,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
     </div>
 
     <button 
-      v-if="classesData.length < 2 && classesData[0]?.classId" 
+      v-if="canAddMulticlass"
       class="btn-multiclass-add" 
       @click="store.addClassRecord()"
     >
