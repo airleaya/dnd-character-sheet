@@ -91,7 +91,12 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
       </div>
 
       <div v-else class="class-badge">
-        <button v-if="index > 0" class="btn-remove-badge" @click="store.removeClassRecord(index)" title="移除兼职">×</button>
+        <button 
+          v-if="index > 0" 
+          class="badge-remove-control" 
+          @click="store.removeClassRecord(index)" 
+          title="移除兼职"
+        >×</button>
 
         <div class="badge-main-info">
           <div class="dropdown-wrapper badge-top">
@@ -161,6 +166,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 .class-badge {
   display: flex;
   flex-direction: row;
+  align-items: stretch;
   background: #f8f9fa; 
   border: 1px solid #e9ecef;
   border-radius: 4px; 
@@ -175,25 +181,45 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   transform: scale(0.9); /* 整体缩小以区分主次 */
   transform-origin: left center;
   background: #f1f2f6; /* 背景稍微再深一点点以区分主职 */
-  margin-right: -8px; /* 补偿 scale 带来的右侧空白 */
+  margin-right: -6px; 
 }
 
-/* 悬浮删除按钮 (兼职右上角) */
-.btn-remove-badge {
-  position: absolute;
-  top: -1px; right: 1px;
-  background: none; border: none;
-  color: #e74c3c; font-size: 0.85rem; line-height: 1;
-  opacity: 0.3; cursor: pointer; z-index: 10;
-  transition: opacity 0.2s;
-  &:hover { opacity: 1; }
+/* 区块 A：左侧悬浮响应移除按钮 */
+.badge-remove-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  width: 14px; /* 极窄宽度 */
+  padding: 0;
+  margin: 0;
+  
+  background: transparent; /* 常态与气泡底色融为一体 */
+  color: #bdc3c7; /* 常态低调淡灰色 */
+  border: none;
+  border-right: 1px solid rgba(0,0,0,0.05); /* 右侧极细的内部分割线 */
+  
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: bold;
+  line-height: 0; /* 消除行高干扰 */
+  transition: all 0.2s ease; /* 添加平滑动画效果 */
+
+  &:hover {
+    background: #e74c3c; /* 悬浮时突变为警示红 */
+    color: #ffffff;      /* 悬浮时突变为亮白色 */
+    border-right-color: #e74c3c;
+  }
 }
+
+/* 区块 B：主体信息区 */
 .badge-main-info {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1; /* 占据剩余全部可用宽度 */
 }
 
+/* 区块 C：右侧等级控制区 */
 .badge-level-controls {
   display: flex;
   flex-direction: column;
@@ -202,26 +228,26 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   background: #eef2f5;
   border-left: 1px solid #e9ecef;
   padding: 0; /* 严格去除上下左右所有 padding */
-  width: 16px; /* 控制极窄的固定宽度 */
+  width: 16px; /* 固定极窄宽度 */
   
   .level-btn {
     background: transparent;
     border: none;
     color: #7f8c8d;
-    font-size: 0.5rem; /* 缩小箭头 */
+    font-size: 0.5rem; /* 极限缩小的箭头 */
     cursor: pointer;
-    padding: 0; /* 彻底清除 padding */
-    margin: 0;  /* 彻底清除 margin */
-    height: 30%; /* 动态分配：箭头占据上下各 30% 的高度 */
+    padding: 0; 
+    margin: 0;  
+    height: 30%; /* 上下箭头各精确占据 30% 空间 */
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 0; /* 剥离字体自带行高造成的间距 */
+    line-height: 0; /* 消除行高干扰 */
     
     &:hover:not(:disabled) {
       color: #2c3e50;
-      background: rgba(0,0,0,0.05); /* 增加极微弱的反馈区域 */
+      background: rgba(0,0,0,0.05);
     }
     &:disabled {
       opacity: 0.2;
@@ -230,19 +256,21 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   }
   
   .level-text {
-    font-size: 0.75rem; /* 缩小数字 */
+    font-size: 0.75rem; /* 紧凑的数字 */
     font-weight: bold;
     color: #2c3e50;
     margin: 0;
     padding: 0;
-    height: 40%; /* 动态分配：数字占据中间 40% 的高度 */
+    height: 40%; /* 数字区域精确占据 40% 空间 */
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 0;
+    line-height: 0; /* 消除行高干扰 */
   }
 }
+
+
 /* 气泡内部按钮通用样式 */
 .badge-btn {
   width: 100%;
