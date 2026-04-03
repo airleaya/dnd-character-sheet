@@ -41,23 +41,52 @@ const update = (field: string, val: any) => {
 };
 
 // 生命骰更新处理
-const handleHitDiceUpdate = (delta: number) => {
-  if (!combat.value) return;
+const isEditingHitDice = ref(false);
+
+const toggleHitDiceEdit = () => {
+  isEditingHitDice.value = !isEditingHitDice.value;
+};
+
+// 获取激活的生命骰（只显示 max > 0 的类型）
+const activeHitDice = computed(() => {
+  if (!combat.value || !combat.value.hitDice) return [];
+  return Object.entries(combat.value.hitDice)
+    .filter(([_, data]) => data.max > 0)
+    .map(([type, data]) => ({ type, ...data }));
+});
+
+const handleHitDiceUpdate = (type: string, delta: number) => {
+  if (!combat.value || !combat.value.hitDice) return;
   
-  const current = combat.value.hitDiceCurrent;
-  const max = combat.value.hitDiceMax;
-  
-  // 计算新值
-  let newVal = current + delta;
-  
-  // 限制范围
+  const hd = combat.value.hitDice[type];
+  if (!hd) return;
+
+  let newVal = hd.current + delta;
   if (newVal < 0) newVal = 0;
-  if (newVal > max) newVal = max;
+  if (newVal > hd.max) newVal = hd.max;
   
-  // 只有值改变时才更新
-  if (newVal !== current) {
-    update('hitDiceCurrent', newVal);
+  if (newVal !== hd.current) {
+    // 深拷贝修改后赋值，确保触发 Store 响应式
+    const newHitDice = JSON.parse(JSON.stringify(combat.value.hitDice));
+    newHitDice[type].current = newVal;
+    update('hitDice', newHitDice);
   }
+};
+
+const updateHitDiceMax = (type: string, newMax: number) => {
+  if (!combat.value) return;
+  const newHitDice = JSON.parse(JSON.stringify(combat.value.hitDice || {}));
+  
+  if (!newHitDice[type]) {
+    newHitDice[type] = { current: 0, max: 0 };
+  }
+  newHitDice[type].max = newMax;
+  
+  // 约束：如果最大值变小，导致当前值溢出，则自动修正当前值
+  if (newHitDice[type].current > newMax) {
+    newHitDice[type].current = newMax;
+  }
+  update('hitDice', newHitDice);
 };
 
 // HP 按钮处理
@@ -240,36 +269,40 @@ const hpPercent = computed(() => {
         </div>
 
         <div class="resource-item hit-dice">
-          <div class="res-label header-row">
+          <div 
+            class="res-label header-row toggle-btn" 
+            @click="toggleHitDiceEdit"
+            title="点击切换 配置模式/查看模式"
+          >
             <span>生命骰</span>
-            <select 
-              class="hd-type-select"
-              :value="combat.hitDiceType || 'd8'"
-              @change="(e) => update('hitDiceType', (e.target as HTMLSelectElement).value)"
-            >
-              <option v-for="d in hitDiceOptions" :key="d" :value="d">{{ d }}</option>
-            </select>
-          </div>
-          <div class="hd-controls">
-            <button 
-              @click="handleHitDiceUpdate(-1)"
-              :disabled="combat.hitDiceCurrent <= 0"
-            >-</button>
-            
-            <span class="hd-val">
-              {{ combat.hitDiceCurrent }} / 
-              <span class="hd-max-edit">
-                <EditableText 
-                  :model-value="combat.hitDiceMax" 
-                  @update:model-value="v => update('hitDiceMax', Number(v))"
-                />
-              </span>
+            <span class="gear-icon" :class="{ active: isEditingHitDice }">
+              {{ isEditingHitDice ? '↩' : '⚙️' }}
             </span>
+          </div>
+          
+          <div class="hd-list" v-if="!isEditingHitDice">
+            <div v-if="activeHitDice.length === 0" class="empty-hint">暂无可用生命骰</div>
+            <div class="hd-controls" v-for="hd in activeHitDice" :key="hd.type">
+              <span class="hd-type-badge">{{ hd.type }}</span>
+              <div class="hd-btn-group">
+                <button @click="handleHitDiceUpdate(hd.type, -1)" :disabled="hd.current <= 0">-</button>
+                <span class="hd-val">{{ hd.current }} / {{ hd.max }}</span>
+                <button @click="handleHitDiceUpdate(hd.type, 1)" :disabled="hd.current >= hd.max">+</button>
+              </div>
+            </div>
+          </div>
 
-            <button 
-              @click="handleHitDiceUpdate(1)"
-              :disabled="combat.hitDiceCurrent >= combat.hitDiceMax"
-            >+</button>
+          <div class="hd-list edit-mode" v-else>
+             <div class="hd-edit-row" v-for="d in hitDiceOptions" :key="d">
+                <span class="hd-type-badge">{{ d }}</span>
+                <span class="hd-max-edit">
+                  最大: 
+                  <EditableText 
+                    :model-value="combat.hitDice?.[d]?.max || 0" 
+                    @update:model-value="v => updateHitDiceMax(d, Number(v))"
+                  />
+                </span>
+             </div>
           </div>
         </div>
 
@@ -523,7 +556,33 @@ const hpPercent = computed(() => {
   }
 }
 
-/* 生命骰 */
+.resource-item.hit-dice {
+  .toggle-btn {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    &:hover { color: #333; }
+  }
+  .gear-icon {
+    font-size: 0.8rem; opacity: 0.3; transition: all 0.2s;
+    &.active { opacity: 1; color: #e67e22; transform: rotate(-90deg); }
+  }
+  .hd-list {
+    display: flex; flex-direction: column; gap: 4px; margin-top: 4px;
+  }
+  .hd-edit-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fdfdfd; border: 1px dashed #ccc; border-radius: 4px; padding: 2px 6px;
+    font-size: 0.8rem;
+  }
+  .hd-type-badge {
+    font-weight: bold; color: #555; width: 28px;
+    font-size: 0.85rem; text-transform: uppercase;
+  }
+  .empty-hint { font-size: 0.75rem; color: #999; text-align: center; padding: 4px; }
+}
+
 /* 生命骰控制区 */
 .hd-controls {
   display: flex; 
@@ -531,7 +590,13 @@ const hpPercent = computed(() => {
   justify-content: space-between;
   background: #f5f5f5; 
   border-radius: 4px; 
-  padding: 2px;
+  padding: 2px 6px;
+
+  .hd-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
   button { 
     width: 20px; 
@@ -540,30 +605,24 @@ const hpPercent = computed(() => {
     background: #ddd; 
     cursor: pointer; 
     border-radius: 2px;
-    display: flex;             /* 确保加减号居中 */
+    display: flex;
     align-items: center; 
     justify-content: center;
-    padding-bottom: 2px;       /* 微调字符位置 */
+    padding-bottom: 2px;
 
     &:disabled {
-    opacity: 0.3;          /* 变淡 */
-    cursor: not-allowed;   /* 鼠标变成禁止符号 */
-    pointer-events: none;  /* 禁止点击 */
-  }
+      opacity: 0.3;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
   }
 
   .hd-val { 
     font-size: 0.9rem; 
     font-weight: bold; 
-    display: flex;             /* 让斜杠和数字横向排列 */
+    display: flex;
     align-items: center;
-    gap: 4px;                  /* 增加 斜杠 与 前后数字 的间距 */
-  }
-  
-  /* 新增：最大值编辑容器 */
-  .hd-max-edit {
-    min-width: 1.2em;          /* 给一个最小宽度，防止数字为空时点不到 */
-    display: inline-flex;
+    min-width: 36px;
     justify-content: center;
   }
 }

@@ -77,28 +77,27 @@ export interface CombatStats {
   hpMax: number;
   tempHp: number;
   
-  // 新增 AC 计算模式字段
+  // AC 计算模式字段
   // default: 10 + 敏捷
   // barbarian: 10 + 敏捷 + 体质
   // monk: 10 + 敏捷 + 感知 (无盾)
   // draconic: 13 + 敏捷
   acMode?: 'default' | 'barbarian' | 'monk' | 'draconic';
+
+  // 用基于字典的多类型生命骰
+  // Key 为骰子类型 (例如 'd6', 'd8')
+  hitDice: Record<string, { current: number; max: number }>;
   
-  hitDiceCurrent: number;
-  hitDiceMax: number;
-  // 生命骰类型
-  hitDiceType: string; // e.g. 'd6', 'd8', 'd10', 'd12'
-  
-  // 【新增】速度 (手动修改)
+  // 速度 (手动修改)
   speed: number; 
 
-  // 【新增】力竭 (0-6级)
+  // 力竭 (0-6级)
   exhaustion: number;
 
-  // 【新增】激励 (3个槽位，true表示已获得)
+  // 激励 (3个槽位，true表示已获得)
   inspiration: boolean[]; 
 
-  // 【新增】状态 (文本备注)
+  // 状态 (文本备注)
   conditions: string;
 
   deathSaves: {
@@ -108,7 +107,7 @@ export interface CombatStats {
 
 }
 
-// ✅ 新增：法术书状态 (Character Spellbook)
+// 法术书状态 (Character Spellbook)
 export interface CharacterSpells {
   // 1. 核心数值 (手动设定，解决兼职计算难题)
   spellcastingAbility: AbilityKey; // 施法关键属性 (int/wis/cha)
@@ -175,7 +174,7 @@ export interface Character {
 
   proficiencies: CharacterProficiencies;
 
-  // ✅ 新增：法术书状态
+  // 法术书状态
   spells: CharacterSpells;
 
   //[新增] 激活的额外攻击属性模式

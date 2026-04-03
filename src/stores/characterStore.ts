@@ -20,11 +20,37 @@ const getFilename = (char: Character): string => {
   return `${char.id}.json`;
 };
 
+// 旧数据兼容清洗辅助函数
+const migrateLegacyData = (char: any) => {
+  if (!char.combat) return;
+  
+  // 如果发现旧存档的生命骰字段，则进行迁移清洗
+  if (char.combat.hitDiceType || char.combat.hitDiceCurrent !== undefined) {
+    const type = char.combat.hitDiceType || 'd6';
+    const current = char.combat.hitDiceCurrent || 0;
+    const max = char.combat.hitDiceMax || 0;
+
+    char.combat.hitDice = {
+      [type]: { current, max }
+    };
+
+    // 彻底销毁旧字段，保持状态树纯净
+    delete char.combat.hitDiceType;
+    delete char.combat.hitDiceCurrent;
+    delete char.combat.hitDiceMax;
+  }
+  
+  // 兜底：如果完全没有，初始化为空对象
+  if (!char.combat.hitDice) {
+    char.combat.hitDice = {};
+  }
+};
+
 export const useCharacterStore = defineStore('characterStore', {
   state: () => ({
     characterList: [] as CharacterMeta[], 
     _characterCache: new Map<string, Character>(),
-    // 🆕 新增：用于记录角色当前在硬盘上的文件名，以便改名时删除旧文件
+    // 用于记录角色当前在硬盘上的文件名，以便改名时删除旧文件
     _filenameMap: new Map<string, string>(),
   }),
 
@@ -42,6 +68,7 @@ export const useCharacterStore = defineStore('characterStore', {
         this._filenameMap.clear(); // 清空文件名映射
 
         result.data.forEach((char: Character) => {
+          migrateLegacyData(char);
           this._characterCache.set(char.id, char);
           
           // 记录初始文件名
@@ -69,7 +96,7 @@ export const useCharacterStore = defineStore('characterStore', {
         profile: { name: '新角色', playerName: '', race: '人类', background: '', alignment: '', level: 1, xp: 0, classes: [{ classId: '', subclassId: null, level: 1 }] },
         bio: { age: '', height: '', weight: '', eyes: '', skin: '', hair: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', backstory: '', featureText: '', treasureNotes: '' },
         stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-        combat: { hpCurrent: 10, hpMax: 10, tempHp: 0, hitDiceCurrent: 1, hitDiceMax: 1, hitDiceType: 'd6', deathSaves: { success: 0, failure: 0 }, speed: 30, exhaustion: 0, inspiration: [false, false, false], conditions: '' },
+        combat: { hpCurrent: 10, hpMax: 10, tempHp: 0, hitDice: { 'd6': { current: 1, max: 1 } }, deathSaves: { success: 0, failure: 0 }, speed: 30, exhaustion: 0, inspiration: [false, false, false], conditions: '' },
         inventory: [], equippedIds: [], wallet: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, skillProficiencies: {}, savingThrows: { str: false, dex: false, con: false, int: false, wis: false, cha: false }, hiddenAttacks: [],
         proficiencies: { armor: [], weapons: [], tools: [], languages: [] },
         spells: { spellcastingAbility: 'int', spellSaveDC: 10, spellAttackMod: 2, slots: { current: [0,0,0,0,0,0,0,0,0,0], max: [0,0,0,0,0,0,0,0,0,0] }, pactSlots: { level: 1, current: 0, max: 0 }, known: [], prepared: [] },
@@ -185,7 +212,7 @@ export const useCharacterStore = defineStore('characterStore', {
         if (!data.spells) data.spells = { spellcastingAbility: 'int', spellSaveDC: 10, spellAttackMod: 2, slots: { current: [0,0,0,0,0,0,0,0,0,0], max: [0,0,0,0,0,0,0,0,0,0] }, pactSlots: { level: 1, current: 0, max: 0 }, known: [], prepared: [] };
         if (!data.proficiencies) data.proficiencies = { armor: [], weapons: [], tools: [], languages: [] };
         if (!data.savingThrows) data.savingThrows = { str: false, dex: false, con: false, int: false, wis: false, cha: false };
-        if (!data.combat.hitDiceType) data.combat.hitDiceType = 'd6'
+        migrateLegacyData(data);
 
         await this.saveCharacterData(data);
         return data.id;
