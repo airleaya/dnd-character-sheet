@@ -492,7 +492,8 @@ onUnmounted(() => {
         @dragleave="onDragLeave"
         @drop="onDrop($event, null)"
       >
-        <div class="group-header">
+        <div class="group-header" @click="charStore.toggleUngrouped()">
+          <span class="group-toggle">{{ charStore.ungroupedExpanded ? '▼' : '▶' }}</span>
           <span class="group-name">未分组 ({{ charStore.ungroupedList.length }})</span>
         </div>
         <ul class="char-list">

@@ -63,6 +63,7 @@ export const useCharacterStore = defineStore('characterStore', {
     _filenameMap: new Map<string, string>(),
     // 分组状态
     groups: [] as CharacterGroup[],
+    ungroupedExpanded: true,
   }),
 
   getters: {
@@ -268,23 +269,34 @@ export const useCharacterStore = defineStore('characterStore', {
           const parsed = JSON.parse(stored) as CharacterGroup[];
           const allCharIds = new Set(this.characterList.map(c => c.id));
           
-          // 清洗无效的角色 ID (防止删除了角色但 localStorage 没清空)
           this.groups = parsed.map(group => ({
             ...group,
+            // 确保旧数据也有折叠属性，默认为展开
+            isExpanded: group.isExpanded !== undefined ? group.isExpanded : true,
             characterIds: group.characterIds.filter(id => allCharIds.has(id))
           }));
-        } else {
-          this.groups = [];
+        }
+
+        // 读取未分组区域的状态
+        const ungroupedState = localStorage.getItem('dnd_app_ungrouped_expanded');
+        if (ungroupedState !== null) {
+          this.ungroupedExpanded = ungroupedState === 'true';
         }
       } catch (e) {
         console.error('加载分组数据失败', e);
-        this.groups = [];
       }
     },
 
     // 保存分组数据到本地
     saveGroups() {
       localStorage.setItem('dnd_app_groups', JSON.stringify(this.groups));
+      localStorage.setItem('dnd_app_ungrouped_expanded', String(this.ungroupedExpanded));
+    },
+
+    // 切换未分组区域状态
+    toggleUngrouped() {
+      this.ungroupedExpanded = !this.ungroupedExpanded;
+      this.saveGroups();
     },
 
     // 创建新分组
