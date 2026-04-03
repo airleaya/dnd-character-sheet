@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import draggable from 'vuedraggable';
-import { useActiveSheetStore } from '../../stores/activeSheet';
-import type { InventoryItem, ArmorData } from '../../types/Item';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
+import type { InventoryItem, ArmorData } from '../../../types/Item';
 
 const store = useActiveSheetStore();
 const rejectedItems = ref<InventoryItem[]>([]); 

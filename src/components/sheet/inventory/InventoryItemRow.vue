@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, inject } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
 import draggable from 'vuedraggable';
-import { calcRealIndex,setupDragData } from '../../utils/inventoryDropUtils';
+import { calcRealIndex,setupDragData } from '../../../utils/inventoryDropUtils';
 
 const props = defineProps<{
   item: any; // 当前物品对象

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SidebarLeft from './SidebarLeft.vue';
 import SidebarRight from './SidebarRight.vue';
-import ForgeModal from '../sheet/ForgeModal.vue';
+import ForgeModal from '../sheet/modals/ForgeModal.vue';
 
 //debug
 import { useForge } from '../../composables/useForge';

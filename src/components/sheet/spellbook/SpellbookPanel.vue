@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, provide } from 'vue'; // 👈 记得引入 computed
-import SpellbookLeftPanel from './spellbook/SpellbookLeftPanel.vue';
-import SpellbookRightPanel from './spellbook/SpellbookRightPanel.vue';
+import SpellbookLeftPanel from './SpellbookLeftPanel.vue';
+import SpellbookRightPanel from './SpellbookRightPanel.vue';
 
 const props = defineProps<{
   isOpen: boolean;

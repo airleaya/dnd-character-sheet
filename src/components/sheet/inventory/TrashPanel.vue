@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import draggable from 'vuedraggable';
-import { useActiveSheetStore } from '../../stores/activeSheet';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
 
 const store = useActiveSheetStore();
 

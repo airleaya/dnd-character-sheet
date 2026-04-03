@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
-import EditableText from '../common/EditableText.vue';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
+import EditableText from '../../common/EditableText.vue';
 
 const store = useActiveSheetStore();
 const char = computed(() => store.character);

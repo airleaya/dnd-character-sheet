@@ -2,8 +2,8 @@
 import { ref, nextTick } from 'vue';
 
 // 引入拆分后的组件
-import LibraryItemsPanel from '../sheet/LibraryItemsPanel.vue';
-import LibrarySpellsPanel from '../sheet/LibrarySpellsPanel.vue';
+import LibraryItemsPanel from '../sheet/library/LibraryItemsPanel.vue';
+import LibrarySpellsPanel from '../sheet/library/LibrarySpellsPanel.vue';
 import LibraryTooltip from '../sidebar/LibraryTooltip.vue';
 import ForgeDropZone from '../sidebar/ForgeDropZone.vue';
 

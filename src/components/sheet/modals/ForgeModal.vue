@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useForge } from '../../composables/useForge';
-import EditableText from '../common/EditableText.vue';
-import EditableTextarea from '../common/EditableTextarea.vue';
+import { useForge } from '../../../composables/useForge';
+import EditableText from '../../common/EditableText.vue';
+import EditableTextarea from '../../common/EditableTextarea.vue';
 
 // 获取状态和方法
 const { draftItem, draftData, forgeMode, save, close } = useForge();

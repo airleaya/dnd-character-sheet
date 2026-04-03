@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
 
 const store = useActiveSheetStore();
 const character = computed(() => store.character);

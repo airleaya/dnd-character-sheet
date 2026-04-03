@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
-import { CLASS_DICTIONARY, SUBCLASS_DICTIONARY } from '../../data/rules/classes';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { CLASS_DICTIONARY, SUBCLASS_DICTIONARY } from '../../../data/rules/classes';
 
 const store = useActiveSheetStore();
 

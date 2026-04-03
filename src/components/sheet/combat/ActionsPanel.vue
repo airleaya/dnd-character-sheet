@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
-import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
-import { calculateCantripDamage } from '../../utils/spellUtils';
-import { useTooltipStore } from '../../stores/tooltip';
-import { getSchoolLabel } from '../../data/rules/dndRules';
-import { AbilityKey } from '../../types/Library';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { WEAPON_PROPERTIES } from '../../../data/rules/weaponProperties';
+import { calculateCantripDamage } from '../../../utils/spellUtils';
+import { useTooltipStore } from '../../../stores/tooltip';
+import { getSchoolLabel } from '../../../data/rules/dndRules';
+import { AbilityKey } from '../../../types/Library';
 
 
 const store = useActiveSheetStore();

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, toRef } from 'vue';
 import draggable from 'vuedraggable';
-import { useLibraryFilter } from '../../composables/useLibraryFilter';
-import { useActiveSheetStore } from '../../stores/activeSheet';
+import { useLibraryFilter } from '../../../composables/useLibraryFilter';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
 // 数据源
-import { SPELL_LIBRARY } from '../../data/spells/index';
+import { SPELL_LIBRARY } from '../../../data/spells/index';
 
 const props = defineProps<{
   searchQuery: string;

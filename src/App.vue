@@ -3,14 +3,14 @@ import { onMounted } from 'vue';
 import AppLayout from './components/layout/AppLayout.vue';
 import { useCharacterStore } from './stores/characterStore';
 import { useActiveSheetStore } from './stores/activeSheet';
-import HeaderInfo from './components/sheet/HeaderInfo.vue';
-import InventoryPanel from './components/sheet/InventoryPanel.vue';
-import CombatPanel from './components/sheet/CombatPanel.vue';
-import ActionsPanel from './components/sheet/ActionsPanel.vue';
-import EquipmentSlots from './components/sheet/EquipmentSlots.vue';
-import StatsAndSkills from './components/sheet/StatsAndSkills.vue';
+import HeaderInfo from './components/sheet/bio/HeaderInfo.vue';
+import InventoryPanel from './components/sheet/inventory/InventoryPanel.vue';
+import CombatPanel from './components/sheet/combat/CombatPanel.vue';
+import ActionsPanel from './components/sheet/combat/ActionsPanel.vue';
+import EquipmentSlots from './components/sheet/inventory/EquipmentSlots.vue';
+import StatsAndSkills from './components/sheet/bio/StatsAndSkills.vue';
 import GlobalTooltip from './components/ui/GlobalTooltip.vue'; // 引入组件
-import SpellbookPanel from './components/sheet/SpellbookPanel.vue';
+import SpellbookPanel from './components/sheet/spellbook/SpellbookPanel.vue';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();

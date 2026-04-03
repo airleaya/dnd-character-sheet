@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
-import EditableText from '../common/EditableText.vue';
-import ProficiencySettingsModal from './ProficiencySettingsModal.vue';
-import BioPanel from './BioPanel.vue'; 
-import ClassSelector from './ClassSelector.vue';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
+import EditableText from '../../common/EditableText.vue';
+import ProficiencySettingsModal from './../modals/ProficiencySettingsModal.vue';
+import BioPanel from './../bio/BioPanel.vue'; 
+import ClassSelector from './../bio/ClassSelector.vue';
 import XpProgressBar from './XpProgressBar.vue';
 
 const store = useActiveSheetStore();

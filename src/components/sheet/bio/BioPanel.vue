@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
-import EditableText from '../common/EditableText.vue';
-import EditableTextarea from '../common/EditableTextarea.vue';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
+import EditableText from '../../common/EditableText.vue';
+import EditableTextarea from '../../common/EditableTextarea.vue';
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits(['close']);

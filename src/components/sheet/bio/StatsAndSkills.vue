@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
-import EditableText from '../common/EditableText.vue';
-import type { Character } from '../../types/Character';
-import { useCharacterStore } from '../../stores/characterStore';
-import type { AbilityScores } from '../../types/Character';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
+import EditableText from '../../common/EditableText.vue';
+import type { Character } from '../../../types/Character';
+import { useCharacterStore } from '../../../stores/characterStore';
+import type { AbilityScores } from '../../../types/Character';
 
 const store = useActiveSheetStore();
 

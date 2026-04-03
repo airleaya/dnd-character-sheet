@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useActiveSheetStore } from '../../stores/activeSheet';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
 import { 
   ARMOR_PROFICIENCIES, 
   WEAPON_PROFICIENCIES, 
   TOOL_PROFICIENCIES,
   COMMON_LANGUAGES 
-} from '../../data/rules/proficiencies';
-import { WEAPON_LIBRARY } from '../../data/libraries/weapons';
+} from '../../../data/rules/proficiencies';
+import { WEAPON_LIBRARY } from '../../../data/libraries/weapons';
 
 const props = defineProps<{
   isOpen: boolean;

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, provide } from 'vue';
 import draggable from 'vuedraggable';
-import { useActiveSheetStore } from '../../stores/activeSheet';
+import { useActiveSheetStore } from '../../../stores/activeSheet';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
-import { calcRealIndex,setupDragData } from '../../utils/inventoryDropUtils';
-import { formatCost } from '../../utils/currencyUtils';
+import { calcRealIndex,setupDragData } from '../../../utils/inventoryDropUtils';
+import { formatCost } from '../../../utils/currencyUtils';
 
 const store = useActiveSheetStore();
 
