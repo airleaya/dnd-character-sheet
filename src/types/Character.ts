@@ -24,6 +24,7 @@ export interface Wallet {
 export interface CharacterClassRecord {
   classId: string;
   subclassId: string | null;
+  level?:number;
 }
 
 // 熟练项结构

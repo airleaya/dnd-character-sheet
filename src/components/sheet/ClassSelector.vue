@@ -24,6 +24,11 @@ onMounted(() => {
 
 const classesData = computed(() => store.character?.profile.classes || []);
 
+// 计算当前已分配的总等级，用于控制增减按钮的禁用状态
+const totalAllocated = computed(() => {
+  return classesData.value.reduce((sum, c) => sum + (c.level || 1), 0);
+});
+
 // 获取对应主职的可用子职列表
 const getAvailableSubclasses = (classId: string) => {
   return SUBCLASS_DICTIONARY.filter(sub => sub.classId === classId);
@@ -88,21 +93,28 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
       <div v-else class="class-badge">
         <button v-if="index > 0" class="btn-remove-badge" @click="store.removeClassRecord(index)" title="移除兼职">×</button>
 
-        <div class="dropdown-wrapper badge-top">
-          <button class="selector-btn badge-btn class-name-btn" @click="openDropdown(index, 'class')">
-            {{ getClassName(record.classId) }}
-          </button>
-          
+        <div class="badge-main-info">
+          <div class="dropdown-wrapper badge-top">
+            <button class="selector-btn badge-btn class-name-btn" @click="openDropdown(index, 'class')">
+              {{ getClassName(record.classId) }}
+            </button>
+          </div>
+
+          <div class="badge-divider"></div>
+
+          <div class="dropdown-wrapper badge-bottom" :class="{ 'is-empty': !record.subclassId }">
+            <button class="selector-btn badge-btn subclass-name-btn" @click="openDropdown(index, 'subclass')">
+              {{ record.subclassId ? getSubclassName(record.subclassId) : '+ 添加子职' }}
+            </button>
+          </div>
         </div>
 
-        <div class="badge-divider"></div>
-
-        <div class="dropdown-wrapper badge-bottom" :class="{ 'is-empty': !record.subclassId }">
-          <button class="selector-btn badge-btn subclass-name-btn" @click="openDropdown(index, 'subclass')">
-            {{ record.subclassId ? getSubclassName(record.subclassId) : '+ 添加子职' }}
-          </button>
+        <div v-if="classesData.length > 1" class="badge-level-controls">
+          <button class="level-btn up" @click.stop="store.updateClassLevel(index, 1)" :disabled="totalAllocated >= (store.character?.profile.level || 1)">▲</button>
+          <span class="level-text">{{ record.level || 1 }}</span>
+          <button class="level-btn down" @click.stop="store.updateClassLevel(index, -1)" :disabled="(record.level || 1) <= 1">▼</button>
         </div>
-      </div>
+        </div>
 
       <div class="dropdown-menu" 
            v-if="activeDropdown?.index === index"
@@ -148,7 +160,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 /* 核心气泡样式 */
 .class-badge {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   background: #f8f9fa; 
   border: 1px solid #e9ecef;
   border-radius: 4px; 
@@ -176,7 +188,61 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   transition: opacity 0.2s;
   &:hover { opacity: 1; }
 }
+.badge-main-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
 
+.badge-level-controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #eef2f5;
+  border-left: 1px solid #e9ecef;
+  padding: 0; /* 严格去除上下左右所有 padding */
+  width: 16px; /* 控制极窄的固定宽度 */
+  
+  .level-btn {
+    background: transparent;
+    border: none;
+    color: #7f8c8d;
+    font-size: 0.5rem; /* 缩小箭头 */
+    cursor: pointer;
+    padding: 0; /* 彻底清除 padding */
+    margin: 0;  /* 彻底清除 margin */
+    height: 30%; /* 动态分配：箭头占据上下各 30% 的高度 */
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0; /* 剥离字体自带行高造成的间距 */
+    
+    &:hover:not(:disabled) {
+      color: #2c3e50;
+      background: rgba(0,0,0,0.05); /* 增加极微弱的反馈区域 */
+    }
+    &:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+  }
+  
+  .level-text {
+    font-size: 0.75rem; /* 缩小数字 */
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 0;
+    padding: 0;
+    height: 40%; /* 动态分配：数字占据中间 40% 的高度 */
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+}
 /* 气泡内部按钮通用样式 */
 .badge-btn {
   width: 100%;

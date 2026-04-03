@@ -86,12 +86,24 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     if (!profile.classes || !Array.isArray(profile.classes)) {
       profile.classes = [];
       // 插入一个空的默认主职记录
-      profile.classes.push({ classId: '', subclassId: null });
+      // 初始化时，将未分配的 level 默认等于角色总等级
+      profile.classes.push({ classId: '', subclassId: null, level: profile.level || 1 });
       // 抛弃旧的文本字段
       if ('class' in profile) {
         delete profile.class;
       }
       save();
+    }
+    // 遍历现有记录，兼容没有 level 字段的旧数据
+    else {
+      let modified = false;
+      profile.classes.forEach((c: any, i: number) => {
+        if (c.level === undefined) {
+          c.level = i === 0 ? profile.level : 1; // 默认主职继承全部等级，兼职默认1级
+          modified = true;
+        }
+      });
+      if (modified) save();
     }
   };
 
@@ -99,7 +111,23 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   const addClassRecord = () => {
     if (!character.value) return;
     ensureClassesFormat();
-    character.value.profile.classes.push({ classId: '', subclassId: null });
+    // 新增兼职前的等级容量校验与自动扣减逻辑
+    const profile = character.value.profile;
+    const totalAllocated = profile.classes.reduce((sum: number, c: any) => sum + (c.level || 1), 0);
+    
+    if (totalAllocated >= profile.level) {
+      // 尝试从主职业扣除 1 级给新兼职
+      const mainClass = profile.classes[0];
+      const mainClassLevel = mainClass?.level || 1; // 提取当前主职业等级，带有后备默认值
+
+      if (mainClassLevel > 1 && mainClass) {
+        mainClass.level = mainClassLevel - 1; // 安全赋值
+      } else {
+        console.warn('角色总等级不足，无法分配新兼职');
+        return; // 阻止添加
+      }
+    }
+    profile.classes.push({ classId: '', subclassId: null, level: 1 });
     save();
   };
 
@@ -125,6 +153,30 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
       record.subclassId = null;
     } else if (field === 'subclassId') {
       record.subclassId = value;
+    }
+    save();
+  };
+
+  // 更新职业等级
+  const updateClassLevel = (index: number, delta: number) => {
+    if (!character.value || !character.value.profile.classes) return;
+    const profile = character.value.profile;
+    const record = profile.classes[index];
+    if (!record) return;
+
+    const totalAllocated = profile.classes.reduce((sum: number, c: any) => sum + (c.level || 1), 0);
+    const currentLevel = record.level || 1;
+
+    if (delta === 1) {
+      // 向上调节：检查是否有未分配等级 (总和必须小于角色总等级)
+      if (totalAllocated < profile.level) {
+        record.level = currentLevel + 1;
+      }
+    } else if (delta === -1) {
+      // 向下调节：最低不能低于 1 级
+      if (currentLevel > 1) {
+        record.level = currentLevel - 1;
+      }
     }
     save();
   };
@@ -237,6 +289,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     addClassRecord,
     removeClassRecord,
     updateClassRecord,
+    updateClassLevel,
     updateStat,
     toggleSkill,
     toggleSavingThrow,
