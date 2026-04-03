@@ -455,7 +455,7 @@ onUnmounted(() => {
           </template>
           </div>
 
-        <ul class="char-list" v-show="group.isExpanded">
+        <ul class="char-list" v-if="group.isExpanded">
           <li 
             v-for="char in group.chars" 
             :key="char.id"
@@ -496,7 +496,8 @@ onUnmounted(() => {
           <span class="group-toggle">{{ charStore.ungroupedExpanded ? '▼' : '▶' }}</span>
           <span class="group-name">未分组 ({{ charStore.ungroupedList.length }})</span>
         </div>
-        <ul class="char-list">
+        
+        <ul class="char-list" v-if="charStore.ungroupedExpanded">
           <li 
             v-for="char in charStore.ungroupedList" 
             :key="char.id"
