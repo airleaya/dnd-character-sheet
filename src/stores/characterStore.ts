@@ -2,9 +2,18 @@ import { defineStore } from 'pinia';
 import { generateUUID } from '../utils/idGenerator';
 import type { Character } from '../types/Character';
 
+// 分组元数据接口
+export interface CharacterGroup {
+  id: string;
+  name: string;
+  characterIds: string[]; // 存储角色 ID
+  isExpanded: boolean;    // UI 折叠状态
+}
+
 interface CharacterMeta {
   id: string;
   name: string;
+  playerName?: string;
   race: string;
   level: number;
   classes: any[];
@@ -52,7 +61,26 @@ export const useCharacterStore = defineStore('characterStore', {
     _characterCache: new Map<string, Character>(),
     // 用于记录角色当前在硬盘上的文件名，以便改名时删除旧文件
     _filenameMap: new Map<string, string>(),
+    // 分组状态
+    groups: [] as CharacterGroup[],
   }),
+
+  getters: {
+    // 获取每个分组及其包含的角色详细元数据
+    groupedList: (state) => {
+      return state.groups.map(group => {
+        const chars = group.characterIds
+          .map(id => state.characterList.find(c => c.id === id))
+          .filter((c): c is CharacterMeta => c !== undefined);
+        return { ...group, chars };
+      });
+    },
+    // 获取未分配任何分组的角色
+    ungroupedList: (state) => {
+      const groupedIds = new Set(state.groups.flatMap(g => g.characterIds));
+      return state.characterList.filter(c => !groupedIds.has(c.id));
+    }
+  },
 
   actions: {
     // --- 1. 初始化 ---
@@ -77,12 +105,14 @@ export const useCharacterStore = defineStore('characterStore', {
           this.characterList.push({
             id: char.id,
             name: char.profile.name,
+            playerName: char.profile.playerName,
             race: char.profile.race,
             level: char.profile.level,
             classes: char.profile.classes || [],
             avatarUrl: char.profile.avatarUrl
           });
         });
+        this.loadGroups();
       }
     },
 
@@ -110,6 +140,7 @@ export const useCharacterStore = defineStore('characterStore', {
       this.characterList.push({
         id: newChar.id,
         name: newChar.profile.name,
+        playerName: newChar.profile.playerName,
         race: newChar.profile.race,
         level: newChar.profile.level,
         classes: newChar.profile.classes || [],
@@ -130,7 +161,7 @@ export const useCharacterStore = defineStore('characterStore', {
       this._characterCache.set(char.id, char);
       
       const metaIndex = this.characterList.findIndex(c => c.id === char.id);
-      const meta = { id: char.id, name: char.profile.name, race: char.profile.race, level: char.profile.level, classes: char.profile.classes || [], avatarUrl: char.profile.avatarUrl };
+      const meta = { id: char.id, name: char.profile.name, playerName: char.profile.playerName, race: char.profile.race, level: char.profile.level, classes: char.profile.classes || [], avatarUrl: char.profile.avatarUrl };
       if (metaIndex !== -1) 
         {this.characterList[metaIndex] = meta;}
       else {
@@ -187,6 +218,12 @@ export const useCharacterStore = defineStore('characterStore', {
       this._characterCache.delete(id);
       this._filenameMap.delete(id);
       this.characterList = this.characterList.filter(c => c.id !== id);
+
+      // 删除角色时，从所有分组中移除该角色的引用
+      this.groups.forEach(group => {
+        group.characterIds = group.characterIds.filter(charId => charId !== id);
+      });
+      this.saveGroups();
     },
 
     // --- 6. 导出 ---
@@ -220,6 +257,104 @@ export const useCharacterStore = defineStore('characterStore', {
         console.error(e);
         return null;
       }
+    },
+
+    // --- 8. 分组管理逻辑 ---
+    // 加载分组数据 (带数据清洗)
+    loadGroups() {
+      try {
+        const stored = localStorage.getItem('dnd_app_groups');
+        if (stored) {
+          const parsed = JSON.parse(stored) as CharacterGroup[];
+          const allCharIds = new Set(this.characterList.map(c => c.id));
+          
+          // 清洗无效的角色 ID (防止删除了角色但 localStorage 没清空)
+          this.groups = parsed.map(group => ({
+            ...group,
+            characterIds: group.characterIds.filter(id => allCharIds.has(id))
+          }));
+        } else {
+          this.groups = [];
+        }
+      } catch (e) {
+        console.error('加载分组数据失败', e);
+        this.groups = [];
+      }
+    },
+
+    // 保存分组数据到本地
+    saveGroups() {
+      localStorage.setItem('dnd_app_groups', JSON.stringify(this.groups));
+    },
+
+    // 创建新分组
+    createGroup() {
+      let maxNum = 0;
+      const regex = /^未命名分组\s*(\d+)$/;
+      
+      // 遍历现有分组，找出最大的编号
+      this.groups.forEach(g => {
+        if (g.name === '未命名分组') {
+          maxNum = Math.max(maxNum, 1);
+        } else {
+          const match = g.name.match(regex);
+          if (match) {
+            maxNum = Math.max(maxNum, parseInt(match[1], 10));
+          }
+        }
+      });
+      
+      const newName = maxNum === 0 ? '未命名分组 1' : `未命名分组 ${maxNum + 1}`;
+
+      this.groups.push({
+        id: generateUUID(),
+        name: newName,
+        characterIds: [],
+        isExpanded: true
+      });
+      this.saveGroups();
+    },
+
+    // 删除分组 (角色不会被删除，仅变为未分组)
+    deleteGroup(groupId: string) {
+      this.groups = this.groups.filter(g => g.id !== groupId);
+      this.saveGroups();
+    },
+
+    // 重命名分组
+    renameGroup(groupId: string, newName: string) {
+      const group = this.groups.find(g => g.id === groupId);
+      if (group) {
+        group.name = newName;
+        this.saveGroups();
+      }
+    },
+
+    // 切换分组展开/折叠
+    toggleGroup(groupId: string) {
+      const group = this.groups.find(g => g.id === groupId);
+      if (group) {
+        group.isExpanded = !group.isExpanded;
+        this.saveGroups();
+      }
+    },
+
+    // 将角色移入某个分组 (groupId 为 null 表示移入未分组)
+    moveCharacterToGroup(charId: string, targetGroupId: string | null) {
+      // 1. 先从所有分组中移除
+      this.groups.forEach(g => {
+        g.characterIds = g.characterIds.filter(id => id !== charId);
+      });
+      
+      // 2. 如果指定了目标分组，则加入
+      if (targetGroupId) {
+        const targetGroup = this.groups.find(g => g.id === targetGroupId);
+        if (targetGroup && !targetGroup.characterIds.includes(charId)) {
+          targetGroup.characterIds.push(charId);
+        }
+      }
+      
+      this.saveGroups();
     }
   }
 });

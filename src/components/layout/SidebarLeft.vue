@@ -8,6 +8,67 @@ const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
 const fileInput = ref<HTMLInputElement | null>(null); // 文件输入框引用
 
+// 原生拖拽相关状态
+const dragOverGroupId = ref<string | null>(null);
+
+const onDragStart = (e: DragEvent, charId: string) => {
+  if (e.dataTransfer) {
+    e.dataTransfer.setData('text/plain', charId);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+};
+
+const onDragOver = (e: DragEvent, groupId: string | null) => {
+  e.preventDefault(); // 必须调用，允许 drop
+  dragOverGroupId.value = groupId;
+};
+
+const onDragLeave = () => {
+  dragOverGroupId.value = null;
+};
+
+const onDrop = (e: DragEvent, targetGroupId: string | null) => {
+  e.preventDefault();
+  dragOverGroupId.value = null;
+  const charId = e.dataTransfer?.getData('text/plain');
+  if (charId) {
+    charStore.moveCharacterToGroup(charId, targetGroupId);
+  }
+};
+
+// 分组操作方法
+const editingGroupId = ref<string | null>(null);
+const editGroupName = ref('');
+
+const handleCreateGroup = () => {
+  // 直接调用，无需参数，Store 会自动命名
+  charStore.createGroup();
+};
+
+const startRenameGroup = (e: Event, groupId: string, oldName: string) => {
+  e.stopPropagation();
+  editingGroupId.value = groupId;
+  editGroupName.value = oldName;
+};
+
+const confirmRenameGroup = (groupId: string) => {
+  if (editGroupName.value.trim()) {
+    charStore.renameGroup(groupId, editGroupName.value.trim());
+  }
+  editingGroupId.value = null;
+};
+
+const cancelRenameGroup = () => {
+  editingGroupId.value = null;
+};
+
+const handleDeleteGroup = (e: Event, groupId: string, name: string) => {
+  e.stopPropagation();
+  if (confirm(`确定要删除分组 "${name}" 吗？\n(组内的角色不会被删除，将移回未分组列表)`)) {
+    charStore.deleteGroup(groupId);
+  }
+};
+
   // --- 🆕 批量操作状态 ---
 const isBulkMode = ref(false);
 const selectedIds = ref<Set<string>>(new Set());
@@ -339,13 +400,16 @@ onUnmounted(() => {
   <aside class="sidebar-left">
     <div class="header">
       <h2>我的角色</h2>
-      <button 
-          class="btn-text" 
-          :class="{ active: isBulkMode }"
-          @click="toggleBulkMode"
-        >
-          {{ isBulkMode ? '完成' : '管理' }}
+      <div class="header-actions">
+        <button v-if="!isBulkMode" @click="handleCreateGroup" class="btn-text-small" title="新建分组">+ 分组</button>
+        <button 
+            class="btn-text" 
+            :class="{ active: isBulkMode }"
+            @click="toggleBulkMode"
+          >
+            {{ isBulkMode ? '完成' : '管理' }}
         </button>
+      </div>
       <button v-if="!isBulkMode" @click="handleCreate" class="btn-create" title="新建空白角色卡">+ 新建卡</button>
       <div v-else class="bulk-header">
         <span>已选: {{ selectedIds.size }}</span>
@@ -353,32 +417,116 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <ul class="char-list">
-      <li 
-        v-for="char in charStore.characterList" 
-        :key="char.id"
-        :class="{ 
-          active: !isBulkMode && activeStore.character?.id === char.id,
-          selected: isBulkMode && selectedIds.has(char.id)
-        }"
-        @click="handleItemClick(char.id)"
+    <div class="list-container">
+      
+      <div 
+        v-for="group in charStore.groupedList" 
+        :key="group.id" 
+        class="group-block"
+        :class="{ 'drag-over': dragOverGroupId === group.id }"
+        @dragover="onDragOver($event, group.id)"
+        @dragleave="onDragLeave"
+        @drop="onDrop($event, group.id)"
       >
-        <div class="char-row">
-          <div v-if="isBulkMode" class="checkbox-wrapper">
-             <input 
-              type="checkbox" 
-              :checked="selectedIds.has(char.id)"
-              readonly 
+        <div class="group-header" @click="charStore.toggleGroup(group.id)">
+          <span class="group-toggle">{{ group.isExpanded ? '▼' : '▶' }}</span>
+          
+          <template v-if="editingGroupId === group.id">
+            <input 
+              v-model="editGroupName" 
+              class="inline-edit-input"
+              @click.stop
+              @keyup.enter="confirmRenameGroup(group.id)" 
+              @keyup.esc="cancelRenameGroup"
+              autoFocus
             />
+            <div class="group-tools" style="display: flex;">
+              <button @click.stop="confirmRenameGroup(group.id)" title="确认">✓</button>
+              <button @click.stop="cancelRenameGroup" title="取消">×</button>
+            </div>
+          </template>
+
+          <template v-else>
+            <span class="group-name">{{ group.name }} ({{ group.chars.length }})</span>
+            <div class="group-tools" v-if="!isBulkMode">
+              <button @click.stop="startRenameGroup($event, group.id, group.name)" title="重命名">✏️</button>
+              <button @click.stop="handleDeleteGroup($event, group.id, group.name)" title="删除分组">×</button>
+            </div>
+          </template>
           </div>
-          <div class="char-info">
-            <div class="char-name">{{ char.name }}</div>
-            <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ getClassNames(char.classes) }}</div>
-          </div>
-          <button v-if="!isBulkMode" class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
+
+        <ul class="char-list" v-show="group.isExpanded">
+          <li 
+            v-for="char in group.chars" 
+            :key="char.id"
+            :class="{ 
+              active: !isBulkMode && activeStore.character?.id === char.id,
+              selected: isBulkMode && selectedIds.has(char.id)
+            }"
+            draggable="true"
+            @dragstart="onDragStart($event, char.id)"
+            @click="handleItemClick(char.id)"
+          >
+            <div class="char-row">
+              <div v-if="isBulkMode" class="checkbox-wrapper">
+                 <input type="checkbox" :checked="selectedIds.has(char.id)" readonly />
+              </div>
+              <div class="char-info">
+                <div class="char-name">
+                  {{ char.name }}
+                  <span class="player-name">({{ char.playerName || '未知玩家' }})</span>
+                </div>
+                <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ getClassNames(char.classes) }}</div>
+              </div>
+              <button v-if="!isBulkMode" class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
+            </div>
+          </li>
+          <div v-if="group.chars.length === 0" class="empty-group">无角色</div>
+        </ul>
+      </div>
+
+      <div 
+        class="group-block default-group"
+        :class="{ 'drag-over': dragOverGroupId === 'ungrouped' }"
+        @dragover="onDragOver($event, 'ungrouped')"
+        @dragleave="onDragLeave"
+        @drop="onDrop($event, null)"
+      >
+        <div class="group-header">
+          <span class="group-name">未分组 ({{ charStore.ungroupedList.length }})</span>
         </div>
-      </li>
-    </ul>
+        <ul class="char-list">
+          <li 
+            v-for="char in charStore.ungroupedList" 
+            :key="char.id"
+            :class="{ 
+              active: !isBulkMode && activeStore.character?.id === char.id,
+              selected: isBulkMode && selectedIds.has(char.id)
+            }"
+            draggable="true"
+            @dragstart="onDragStart($event, char.id)"
+            @click="handleItemClick(char.id)"
+          >
+            <div class="char-row">
+              <div v-if="isBulkMode" class="checkbox-wrapper">
+                 <input type="checkbox" :checked="selectedIds.has(char.id)" readonly />
+              </div>
+              <div class="char-info">
+                <div class="char-name">
+                  {{ char.name }}
+                  <span class="player-name">({{ char.playerName || '未知玩家' }})</span>
+                </div>
+                <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ getClassNames(char.classes) }}</div>
+              </div>
+              <button v-if="!isBulkMode" class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+
     <div class="footer-wrapper">
       
       <div class="zoom-bar">
@@ -448,30 +596,108 @@ onUnmounted(() => {
     
     h2 { font-size: 1.2rem; margin-bottom: 0.5rem; color: #ecf0f1; }
     
+    // [ADD] Header 中的额外操作按钮布局
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+      .btn-text-small {
+        background: none; border: none; color: #3498db; cursor: pointer; font-size: 0.85rem;
+        &:hover { text-decoration: underline; color: #5dade2; }
+      }
+      .btn-text {
+        background: none; border: 1px solid transparent; color: #bdc3c7; cursor: pointer; font-size: 0.8rem;
+        padding: 2px 8px; border-radius: 4px;
+        &:hover { color: white; background: rgba(255,255,255,0.1); }
+        &.active { color: #f1c40f; border-color: #f1c40f; }
+      }
+    }
+
     .btn-create {
       width: 100%; padding: 0.6rem; background-color: #27ae60; color: white;
       border: none; cursor: pointer; border-radius: 4px; font-weight: bold;
       transition: background 0.2s;
       &:hover { background-color: #2ecc71; }
     }
+
+    .bulk-header {
+      display: flex; justify-content: space-between; align-items: center; 
+      font-size: 0.9rem; color: #bdc3c7; padding: 0.6rem 0;
+      .btn-text-small { background: none; border: none; color: #3498db; cursor: pointer; font-size: 0.8rem; &:hover { text-decoration: underline; } }
+    }
   }
 
+  // 包裹列表结构
+  .list-container {
+    flex: 1; 
+    overflow-y: auto; 
+    padding-bottom: 1rem;
+  }
+
+  // 分组块样式
+  .group-block {
+    border-bottom: 1px solid #233140;
+    transition: background-color 0.2s;
+    
+    &.drag-over {
+      background-color: rgba(46, 204, 113, 0.2); // 拖拽悬浮时的背景高亮
+      border: 1px dashed #2ecc71;
+    }
+
+    .group-header {
+      display: flex; align-items: center; padding: 0.5rem 1rem;
+      background-color: #1a252f; cursor: pointer; user-select: none;
+      
+      .group-toggle { font-size: 0.7rem; margin-right: 0.5rem; color: #7f8c8d; width: 12px;}
+      .group-name { font-size: 0.9rem; font-weight: bold; color: #bdc3c7; flex: 1; }
+      .inline-edit-input {
+        flex: 1; padding: 2px 4px; margin-right: 4px; border-radius: 2px;
+        border: 1px solid #3498db; background: #2c3e50; color: #fff; outline: none;
+      }
+      .group-tools {
+        display: none; // 默认隐藏，hover时显示
+        button { background: none; border: none; color: #7f8c8d; cursor: pointer; padding: 0 4px; }
+        button:hover { color: #ecf0f1; }
+      }
+      
+      &:hover .group-tools { display: flex; }
+    }
+    
+    .empty-group {
+      padding: 0.5rem 1rem 0.5rem 2.2rem; font-size: 0.8rem; color: #7f8c8d; font-style: italic;
+    }
+  }
+
+  // 角色列表样式
   .char-list {
     list-style: none; padding: 0; margin: 0;
-    flex: 1; overflow-y: auto; /* 让列表占据剩余空间并滚动 */
 
     li {
       padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #34495e; transition: background 0.2s;
+      &.selected { background-color: rgba(52, 152, 219, 0.2); }
       &:hover { background-color: #34495e; .btn-delete { opacity: 1; } }
       &.active { background-color: #2980b9; border-bottom-color: #3498db; }
 
+      .checkbox-wrapper {
+        margin-right: 10px; display: flex; align-items: center;
+        input { cursor: pointer; width: 16px; height: 16px; }
+      }
+
       .char-row { display: flex; justify-content: space-between; align-items: center; }
       
-      .char-name { font-weight: bold; font-size: 1rem; color: #fff; }
+      .char-name { 
+        font-weight: bold; font-size: 1rem; color: #fff; 
+        .player-name {
+          font-size: 0.8rem;
+          color: #f39c12; // 玩家名使用不同的显眼颜色
+          font-weight: normal;
+          margin-left: 4px;
+        }
+      }
       .char-meta { font-size: 0.8rem; color: #bdc3c7; margin-top: 2px; }
 
       .btn-delete {
-        opacity: 0; /* 平时隐藏 */
+        opacity: 0; 
         background: none; border: none; color: #e74c3c; font-size: 1.5rem; cursor: pointer;
         padding: 0 4px; line-height: 1; transition: opacity 0.2s, transform 0.2s;
         &:hover { transform: scale(1.2); color: #ff6b6b; }
@@ -479,85 +705,35 @@ onUnmounted(() => {
     }
   }
 
-  /* 新增：底部容器，背景色统一 */
+  /* 底部容器 */
   .footer-wrapper {
     flex-shrink: 0;
     border-top: 1px solid #34495e; 
     background: #233140;
   }
 
-  /* 新增：缩放条样式 */
+  /* 缩放条样式 */
   .zoom-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 1rem 0; /* 顶部留空 */
-    gap: 8px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px 1rem 0; gap: 8px;
 
-    .zoom-display {
-      font-size: 0.9rem;
-      font-family: monospace;
-      color: #bdc3c7;
-      min-width: 40px;
-      text-align: center;
-      user-select: none;
-    }
+    .zoom-display { font-size: 0.9rem; font-family: monospace; color: #bdc3c7; min-width: 40px; text-align: center; user-select: none; }
 
     .btn-zoom {
-      background: #34495e;
-      border: 1px solid #455a64;
-      color: #ecf0f1;
-      border-radius: 4px;
-      width: 24px;
-      height: 24px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: #34495e; border: 1px solid #455a64; color: #ecf0f1; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
       &:hover { background: #3e5871; border-color: #5dade2; }
       &.btn-reset { margin-left: auto; font-size: 0.8rem; }
     }
   }
 
   .footer-tools {
-    padding: 1rem; border-top: none; background: #233140;
-    display: flex; gap: 10px; flex-shrink: 0;
+    padding: 1rem; border-top: none; background: #233140; display: flex; gap: 10px; flex-shrink: 0;
 
     .btn-tool {
-      flex: 1; padding: 8px; border: 1px solid #455a64; border-radius: 4px;
-      cursor: pointer; font-size: 0.9rem; color: #ecf0f1; background: #34495e;
-      transition: all 0.2s;
+      flex: 1; padding: 8px; border: 1px solid #455a64; border-radius: 4px; cursor: pointer; font-size: 0.9rem; color: #ecf0f1; background: #34495e; transition: all 0.2s;
       &:hover:not(:disabled) { background: #3e5871; border-color: #5dade2; }
       &:disabled { opacity: 0.5; cursor: not-allowed; }
-      /* 给保存按钮加个特殊色（可选） */
       &.btn-save:hover:not(:disabled) { border-color: #f1c40f; color: #f1c40f; }
-    }
-  }
-
-  .title-row {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;
-  h2 { margin: 0; }
-  .btn-text {
-    background: none; border: 1px solid transparent; color: #bdc3c7; cursor: pointer; font-size: 0.8rem;
-    padding: 2px 8px; border-radius: 4px;
-    &:hover { color: white; background: rgba(255,255,255,0.1); }
-    &.active { color: #f1c40f; border-color: #f1c40f; }
-  }
-  }
-
-  .bulk-header {
-    display: flex; justify-content: space-between; align-items: center; 
-    font-size: 0.9rem; color: #bdc3c7; padding: 0.6rem 0;
-    .btn-text-small { background: none; border: none; color: #3498db; cursor: pointer; font-size: 0.8rem; &:hover { text-decoration: underline; } }
-  }
-
-  .char-list li {
-    /* 新增选中态样式 */
-    &.selected { background-color: rgba(52, 152, 219, 0.2); }
-    
-    .checkbox-wrapper {
-      margin-right: 10px; display: flex; align-items: center;
-      input { cursor: pointer; width: 16px; height: 16px; }
     }
   }
 
