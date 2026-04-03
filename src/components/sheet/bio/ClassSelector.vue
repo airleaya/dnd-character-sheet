@@ -208,7 +208,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   transform: scale(0.9); /* 整体缩小以区分主次 */
   transform-origin: left center;
   background: #f1f2f6; /* 背景稍微再深一点点以区分主职 */
-  margin-right: -6px; 
+  margin-right: -8px; 
 }
 
 /* 区块 A：左侧悬浮响应移除按钮 */
@@ -217,7 +217,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   align-items: center;
   justify-content: center;
   
-  width: 14px; /* 极窄宽度 */
+  width: 10px; /* 极窄宽度 */
   padding: 0;
   margin: 0;
   
