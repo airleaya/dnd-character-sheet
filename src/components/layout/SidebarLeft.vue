@@ -2,6 +2,7 @@
 import { ref,onMounted,onUnmounted,nextTick } from 'vue';
 import { useCharacterStore } from '../../stores/characterStore';
 import { useActiveSheetStore } from '../../stores/activeSheet';
+import { CLASS_DICTIONARY } from '../../data/rules/classes';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
@@ -15,6 +16,20 @@ const selectedIds = ref<Set<string>>(new Set());
 const toggleBulkMode = () => {
   isBulkMode.value = !isBulkMode.value;
   selectedIds.value.clear(); // 退出或进入时都清空选择
+};
+
+// 辅助方法：将角色的职业数组翻译并拼接为形如 "战士/法师" 的字符串
+const getClassNames = (classes: any[]) => {
+  if (!classes || classes.length === 0) return '未选职业';
+  
+  const names = classes.map(c => {
+    if (!c.classId) return '未选';
+    const found = CLASS_DICTIONARY.find(dict => dict.id === c.classId);
+    return found ? found.name : '未知';
+  });
+  
+  // 过滤掉未选的状态并拼接，如果全没选则显示为未选职业
+  return names.filter(n => n !== '未选').join('/') || '未选职业';
 };
 
 // 处理列表项点击
@@ -358,7 +373,7 @@ onUnmounted(() => {
           </div>
           <div class="char-info">
             <div class="char-name">{{ char.name }}</div>
-            <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ char.class }}</div>
+            <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ getClassNames(char.classes) }}</div>
           </div>
           <button v-if="!isBulkMode" class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
         </div>

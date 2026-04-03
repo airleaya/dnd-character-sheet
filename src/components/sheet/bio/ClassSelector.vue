@@ -77,6 +77,13 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 
 <template>
   <div class="class-selector-container" ref="containerRef" v-if="classesData.length">
+    <button 
+      v-if="classesData.length === 0" 
+      class="btn-multiclass-add" 
+      @click="store.addClassRecord()"
+    >
+      + 添加主职业
+    </button>
     <div 
       v-for="(record, index) in classesData" 
       :key="index" 

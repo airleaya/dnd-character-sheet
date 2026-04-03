@@ -7,7 +7,7 @@ interface CharacterMeta {
   name: string;
   race: string;
   level: number;
-  class: string;
+  classes: any[];
   avatarUrl?: string; 
 }
 
@@ -52,7 +52,7 @@ export const useCharacterStore = defineStore('characterStore', {
             name: char.profile.name,
             race: char.profile.race,
             level: char.profile.level,
-            class: char.profile.class,
+            classes: char.profile.classes || [],
             avatarUrl: char.profile.avatarUrl
           });
         });
@@ -66,7 +66,7 @@ export const useCharacterStore = defineStore('characterStore', {
       const newChar: Character = {
         id: newId,
         lastModified: Date.now(),
-        profile: { name: '新角色', playerName: '', race: '人类', class: '战士', background: '', alignment: '', level: 1, xp: 0 },
+        profile: { name: '新角色', playerName: '', race: '人类', background: '', alignment: '', level: 1, xp: 0, classes: [{ classId: '', subclassId: null, level: 1 }] },
         bio: { age: '', height: '', weight: '', eyes: '', skin: '', hair: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', backstory: '', featureText: '', treasureNotes: '' },
         stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
         combat: { hpCurrent: 10, hpMax: 10, tempHp: 0, hitDiceCurrent: 1, hitDiceMax: 1, hitDiceType: 'd6', deathSaves: { success: 0, failure: 0 }, speed: 30, exhaustion: 0, inspiration: [false, false, false], conditions: '' },
@@ -85,7 +85,7 @@ export const useCharacterStore = defineStore('characterStore', {
         name: newChar.profile.name,
         race: newChar.profile.race,
         level: newChar.profile.level,
-        class: newChar.profile.class,
+        classes: newChar.profile.classes || [],
         avatarUrl: newChar.profile.avatarUrl
       });
 
@@ -103,7 +103,7 @@ export const useCharacterStore = defineStore('characterStore', {
       this._characterCache.set(char.id, char);
       
       const metaIndex = this.characterList.findIndex(c => c.id === char.id);
-      const meta = { id: char.id, name: char.profile.name, race: char.profile.race, level: char.profile.level, class: char.profile.class, avatarUrl: char.profile.avatarUrl };
+      const meta = { id: char.id, name: char.profile.name, race: char.profile.race, level: char.profile.level, classes: char.profile.classes || [], avatarUrl: char.profile.avatarUrl };
       if (metaIndex !== -1) 
         {this.characterList[metaIndex] = meta;}
       else {
