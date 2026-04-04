@@ -120,8 +120,9 @@ const updatePactLevel = (delta: number) => {
         </div>
         </div>
     </div>
-
-    <div class="section-block warlock-block">
+    
+    </* 邪术师相关设定为整理好，暂时不展示。 */>
+    <div class="section-block warlock-block" v-if=false>
       <h3 class="section-title pact-title">契约魔法 Pact Magic (邪术师)</h3>
       <div class="slot-rows">
         <div class="slot-row">
