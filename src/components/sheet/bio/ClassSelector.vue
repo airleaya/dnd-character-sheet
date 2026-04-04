@@ -96,7 +96,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 </script>
 
 <template>
-  <div class="class-selector-container" ref="containerRef" v-if="classesData.length">
+  <div class="class-selector-container" ref="containerRef">
     <button 
       v-if="classesData.length === 0" 
       class="btn-multiclass-add" 

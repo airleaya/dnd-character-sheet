@@ -43,7 +43,7 @@ export interface CharacterProfile {
   race: string;
   classes: CharacterClassRecord[];
   background?: string; // <--- 新增
-  alignment?: string;  // <--- 新增
+  alignment?: number;  // <--- 新增
   level: number;
   xp: number;
   avatarUrl?: string; 

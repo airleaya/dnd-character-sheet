@@ -83,10 +83,10 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     if (!character.value) return;
     const profile = character.value.profile as any;
     // 如果不存在 classes 数组，说明是旧存档或新创建但未初始化的角色
-    if (!profile.classes || !Array.isArray(profile.classes)) {
+    if (!profile.classes || !Array.isArray(profile.classes) || profile.classes.length === 0) {
       profile.classes = [];
       // 插入一个空的默认主职记录
-      // 初始化时，将未分配的 level 默认等于角色总等级
+      // 初始化时，将未分配的 level 默认等于角色总等级,同时确保空组时也进行初始化。
       profile.classes.push({ classId: '', subclassId: null, level: profile.level || 1 });
       // 抛弃旧的文本字段
       if ('class' in profile) {
