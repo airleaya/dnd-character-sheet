@@ -6,6 +6,7 @@ import ProficiencySettingsModal from './../modals/ProficiencySettingsModal.vue';
 import BioPanel from './../bio/BioPanel.vue'; 
 import ClassSelector from './../bio/ClassSelector.vue';
 import XpProgressBar from './XpProgressBar.vue';
+import AlignmentPicker from './AlignmentPicker.vue';
 
 const store = useActiveSheetStore();
 
@@ -43,13 +44,10 @@ const update = (field: string, val: any) => {
             @update:model-value="v => update('name', v)"
           />
         </div>
-        <div class="alignment-bubble" title="阵营">
-          <EditableText 
-            :model-value="character.profile.alignment || ''" 
-            @update:model-value="v => update('alignment', v)"
-            placeholder="阵营"
-          />
-        </div>
+        <AlignmentPicker 
+          :model-value="character.profile.alignment"
+          @update:model-value="v => update('alignment', v)"
+        />
       </div>
       
       <div class="row-player-name">
@@ -173,17 +171,6 @@ const update = (field: string, val: any) => {
         line-height: 1.1; 
       }
       
-      .alignment-bubble {
-        background-color: #f1f2f6;
-        color: #2c3e50;
-        border-radius: 999px; /* 气泡胶囊形状 */
-        padding: 4px 12px;
-        font-size: 0.85rem;
-        font-weight: bold;
-        display: inline-flex;
-        align-items: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      }
     }
 
     /* 第二行：玩家名作为附属，紧贴第一行 */

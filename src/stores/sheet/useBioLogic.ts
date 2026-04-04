@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import type { Ref } from 'vue';
 import type { Character } from '../../types/Character';
 import { SKILL_DEFINITIONS, XP_TABLE } from '../../data/rules/dndRules';
-
+import { ALIGNMENT_MIGRATION_MAP } from '../../data/rules/alignment';
 export function useBioLogic(character: Ref<Character | null>, save: () => void) {
   // ==========================================
   // 🧠 Getters (计算属性)
@@ -82,6 +82,15 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   const ensureClassesFormat = () => {
     if (!character.value) return;
     const profile = character.value.profile as any;
+
+    // 阵营历史数据清洗
+    // 如果发现阵营是字符串，尝试使用字典将其转换为数字编码
+    if (typeof profile.alignment === 'string') {
+      const cleanStr = profile.alignment.trim().toLowerCase();
+      profile.alignment = ALIGNMENT_MIGRATION_MAP[cleanStr] || undefined;
+      save(); // 清洗后保存
+    }
+
     // 如果不存在 classes 数组，说明是旧存档或新创建但未初始化的角色
     if (!profile.classes || !Array.isArray(profile.classes) || profile.classes.length === 0) {
       profile.classes = [];
