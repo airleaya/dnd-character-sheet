@@ -59,6 +59,14 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     return nextStage ? nextStage.xp : null;
   });
 
+  // 新增：计算当前等级的起始经验值要求，作为进度条计算的基准底数
+  const currentLevelBaseXp = computed(() => {
+    if (!character.value) return 0;
+    const currentLevel = character.value.profile.level;
+    const currentStage = XP_TABLE.find(x => x.level === currentLevel);
+    return currentStage ? currentStage.xp : 0;
+  });
+
   // ==========================================
   // 🛠️ Actions (操作方法)
   // ==========================================
@@ -292,6 +300,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     skills,
     passivePerception,
     nextLevelXp,
+    currentLevelBaseXp,
     updateBio,
     updateProfile,
     ensureClassesFormat,

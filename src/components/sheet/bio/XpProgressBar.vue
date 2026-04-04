@@ -12,7 +12,18 @@ const xpPercentage = computed(() => {
   const current = character.value.profile.xp || 0;
   const next = store.nextLevelXp;
   if (!next) return 100; // 满级处理
-  return Math.min(100, Math.max(0, (current / next) * 100));
+  
+  // 获取当前等级的起始XP阈值 (应对未导出或异常时的回退值为 0)
+  const base = store.currentLevelBaseXp || 0;
+  
+  // 容错处理：如果当前XP由于某种原因低于本级基础要求
+  if (current <= base) return 0;
+  
+  // 容错处理：如果当前XP已经达到或超过下级要求但未触发升级
+  if (current >= next) return 100;
+  
+  // 计算区间进度：(当前值 - 本级起点) / (下级终点 - 本级起点)
+  return ((current - base) / (next - base)) * 100;
 });
 
 const fmt = (num: number | undefined) => num?.toLocaleString() ?? '0';
