@@ -2,9 +2,30 @@
 import { computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import type { AbilityKey } from '../../../types/Library';
+import { CLASS_DICTIONARY } from '../../../data/rules/classes';
 
 const emit = defineEmits(['close']);
 const store = useActiveSheetStore();
+
+// 格式化职业和角色名称的计算属性
+const formattedClasses = computed(() => {
+  const classes = store.character?.profile?.classes;
+  if (!classes || !Array.isArray(classes) || classes.length === 0) {
+    return '未知职业';
+  }
+  // 遍历职业数组，仅映射主职名称并拼接等级
+  return classes.map(c => {
+    const classDef = CLASS_DICTIONARY.find(cls => cls.id === c.classId);
+    const className = classDef ? classDef.name : '未知';
+    return `${className} ${c.level}`;
+  }).join(' / ');
+});
+
+const characterName = computed(() => {
+  if (!store.character) return '未命名';
+  // 优先展示角色名，其次玩家名，兜底未命名
+  return store.character.profile.name || store.character.profile.playerName || '未命名';
+});
 
 // ==========================================
 // 1. 施法属性配置
@@ -67,9 +88,10 @@ const updatePactLevel = (delta: number) => {
     <div class="panel-header">
       <div class="char-info">
         <h2 class="title">法术研习</h2>
-        <p class="subtitle" v-if="store.character">
-          {{ store.character.profile.classes || '未知职业' }} - {{ store.character.profile.playerName || store.character.profile.name || '未命名' }}
-        </p>
+        <template v-if="store.character">
+          <p class="subtitle">{{ formattedClasses || '未知职业' }}</p>
+          <p class="subtitle">{{ characterName || '未命名' }}</p>
+        </template>
       </div>
       <button class="btn-close" @click="$emit('close')" title="关闭 (Esc)">✖</button>
     </div>
