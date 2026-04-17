@@ -9,7 +9,7 @@ const { handleDropData } = useForge();
 const isHovering = ref(false);
 
 // 1. 强行接管进入事件
-const onDragEnter = (e: DragEvent) => {
+const onDragEnter = () => {
   isHovering.value = true;
 };
 
@@ -24,7 +24,7 @@ const onDragOver = (e: DragEvent) => {
   isHovering.value = true;
 };
 
-const onDragLeave = (e: DragEvent) => {
+const onDragLeave = () => {
   isHovering.value = false;
 };
 

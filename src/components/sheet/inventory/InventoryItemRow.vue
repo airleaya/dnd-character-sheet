@@ -2,17 +2,29 @@
 import { ref, computed, inject } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import draggable from 'vuedraggable';
-import { calcRealIndex,setupDragData } from '../../../utils/inventoryDropUtils';
+import { calcRealIndex, setupDragData } from '../../../utils/inventoryDropUtils';
+import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
+import type { InventoryItem } from '../../../types/Item';
+
+type InventoryTooltipApi = {
+  onEnter: (item: InventoryItem, event: MouseEvent) => void;
+  onLeave: () => void;
+};
+
+
 
 const props = defineProps<{
-  item: any; // 当前物品对象
+  item: InventoryItem;
 }>();
 
 const store = useActiveSheetStore();
 const isExpanded = ref(false);
 
-const tooltipApi = inject('inventoryTooltip', {
-  onEnter: (item: any, e: MouseEvent) => {},
+const hasIsAmmunition = (item: InventoryItem) => 'isAmmunition' in item.data && item.data.isAmmunition === true;
+const ignoresContentWeight = (item: InventoryItem) => 'ignoreContentWeight' in item.data && item.data.ignoreContentWeight === true;
+
+const tooltipApi = inject<InventoryTooltipApi>('inventoryTooltip', {
+  onEnter: () => {},
   onLeave: () => {}
 });
 
@@ -26,7 +38,7 @@ const STACKABLE_IDS = ['dart', 'rations', 'torch', 'oil'];
 // 判断当前物品是否“可堆叠” (控制 +/- 按钮是否显示)
 const isStackable = computed(() => {
   if (props.item.type === 'consumable') return true;
-  if (props.item.data?.isAmmunition) return true;
+  if (hasIsAmmunition(props.item)) return true;
   if (STACKABLE_IDS.includes(props.item.templateId)) return true;
   return false;
 });
@@ -34,16 +46,14 @@ const isStackable = computed(() => {
 // 获取容器内容
 const childItems = computed({
   get: () => store.getContainerContents(props.item.instanceId),
-  set: (val) => { /* draggable 写入 */ }
+  set: () => { /* draggable 写入 */ }
 });
 
 // 🔥 核心逻辑：智能箭袋代理
 // 如果是箭袋 (ignoreContentWeight=true)，且里面只有 1 种物品，则“穿透”控制内部物品
 const proxyTargetItem = computed(() => {
-  const data = props.item.data || {};
-  
-  // 必须是“忽略重量”的容器 (特征：箭袋/次元袋)
-  if (props.item.type === 'container' && data.ignoreContentWeight) {
+    // 必须是“忽略重量”的容器 (特征：箭袋/次元袋)
+  if (props.item.type === 'container' && ignoresContentWeight(props.item)) {
     const children = childItems.value;
     
     // 情况 A: 只有一个种类的物品 -> 代理它
@@ -83,31 +93,33 @@ const handleQuantityChange = (delta: number) => {
 
 const containerTotalWeight = computed(() => {
   const base = props.item.weight * props.item.quantity;
-  const data = props.item.data || {};
-  if (data.ignoreContentWeight) {
+    if (ignoresContentWeight(props.item)) {
     return base.toFixed(1);
   }
-  const contentWeight = childItems.value.reduce((sum: number, i: any) => sum + (i.weight * i.quantity), 0);
+  const contentWeight = childItems.value.reduce((sum: number, i: InventoryItem) => sum + (i.weight * i.quantity), 0);
   return (base + contentWeight).toFixed(1);
 });
 
-const onDropIntoContainer = (evt: any) => {
+const onDropIntoContainer = (evt: InventoryDragChangeEvent) => {
   const currentChildren = store.getContainerContents(props.item.instanceId);
   const insertIndex = calcRealIndex(currentChildren, evt, store.character!.inventory);
 
-  if (evt.added) {
-    const newItem = evt.added.element;
-    if (!newItem.instanceId) {
-      store.addItem(newItem.libraryId, insertIndex, props.item.instanceId);
-    } else {
-      store.moveItemToContainer(newItem.instanceId, props.item.instanceId, insertIndex);
+    if (evt.added && evt.added.element && typeof evt.added.element === 'object') {
+      const newItem = evt.added.element as { instanceId?: string; libraryId?: string };
+      if (!newItem.instanceId && newItem.libraryId) {
+        store.addItem(newItem.libraryId, insertIndex, props.item.instanceId);
+      } else if (newItem.instanceId) {
+        store.moveItemToContainer(newItem.instanceId, props.item.instanceId, insertIndex);
+      }
+    } else if (evt.moved && evt.moved.element && typeof evt.moved.element === 'object') {
+      const movedItem = evt.moved.element as { instanceId?: string };
+      if (movedItem.instanceId) {
+        store.reorderItem(movedItem.instanceId, insertIndex);
+      }
     }
-  } else if (evt.moved) {
-    store.reorderItem(evt.moved.element.instanceId, insertIndex);
-  }
 };
 
-const onDragStart = (e: DragEvent, item: any) => {
+const onDragStart = (e: DragEvent, item: InventoryItem) => {
   setupDragData(e, 'inventory-item', item.instanceId);
 };
 

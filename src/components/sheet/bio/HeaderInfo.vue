@@ -7,6 +7,7 @@ import BioPanel from './../bio/BioPanel.vue';
 import ClassSelector from './../bio/ClassSelector.vue';
 import XpProgressBar from './XpProgressBar.vue';
 import AlignmentPicker from './AlignmentPicker.vue';
+import type { CharacterProfile } from '../../../types/Character';
 
 const store = useActiveSheetStore();
 
@@ -15,13 +16,11 @@ const character = computed(() => store.character);
 const showProfModal = ref(false);
 const showBioModal = ref(false); // 控制 Bio Modal 显隐
 
-const fmt = (num: number | undefined) => num?.toLocaleString() ?? '0';
-
 // const handleAddXp 已移动至XpProgressBar中
 // const handleResetXp 已移动至XpProgressBar中
 
-const update = (field: string, val: any) => {
-  store.updateProfile(field as any, val);
+const update = <K extends keyof CharacterProfile>(field: K, val: CharacterProfile[K]) => {
+  store.updateProfile(field, val);
 };
 </script>
 

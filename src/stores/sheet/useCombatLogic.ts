@@ -1,10 +1,30 @@
 import { computed } from 'vue';
 import type { Ref } from 'vue';
 import type { Character } from '../../types/Character';
-import type { InventoryItem } from '../../types/Item';
+import type { ArmorData, InventoryItem, WeaponData } from '../../types/Item';
 import type { AbilityKey } from '../../types/Library';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { ATTR_MAP } from '../../data/rules/dndRules';
+
+interface AttackEntry {
+  id: string;
+  baseId: string;
+  name: string;
+  hit: string;
+  damage: string;
+  range: string;
+  properties: string[];
+  isHidden: boolean;
+  needsAmmo: boolean;
+  ammoType?: string;
+  ammoCount: number | null;
+  availableAmmoIds?: string[];
+}
+
+const isArmorItem = (item: InventoryItem): item is InventoryItem & { data: ArmorData } => item.type === 'armor';
+const isWeaponItem = (item: InventoryItem): item is InventoryItem & { data: WeaponData } => item.type === 'weapon';
+const isAmmoConsumable = (item: InventoryItem, requiredType: string) =>
+  item.type === 'consumable' && 'ammoType' in item.data && item.data.ammoType === requiredType;
 
 // 注意：这里我们需要传入 proficiencyBonus 的引用，因为计算攻击命中时需要用到熟练加值
 export function useCombatLogic(
@@ -33,43 +53,47 @@ export function useCombatLogic(
     const dexMod = Math.floor((char.stats.dex - 10) / 2);
 
     // 2. 获取已装备物品
-    const equippedItems = char.equippedIds
+        const equippedItems = char.equippedIds
       .map(id => char.inventory.find(i => i.instanceId === id))
-      .filter(i => i !== undefined) as InventoryItem[];
+      .filter((item): item is InventoryItem => item !== undefined);
+    const equippedArmor = equippedItems.filter(isArmorItem);
 
     // 3. 分离主甲和盾牌
-    const mainArmor = equippedItems.find(i => {
-      const d = i.data as any;
-      return i.type === 'armor' && d.armorType !== 'shield';
-    });
-    const shields = equippedItems.filter(i => {
-      const d = i.data as any;
-      return i.type === 'armor' && d.armorType === 'shield';
-    });
+    const mainArmor = equippedArmor.find(i => i.data.armorType !== 'shield');
+    const shields = equippedArmor.filter(i => i.data.armorType === 'shield');
 
     // 4. 计算基础 AC
     let finalAC = 10 + dexMod;
 
-    if (mainArmor) {
-      const d = mainArmor.data as any;
-      const base = d.ac || 10;
-      switch (d.armorType) {
-        case 'heavy':  finalAC = base; break;
-        case 'medium': finalAC = base + Math.min(dexMod, 2); break;
-        case 'light':  finalAC = base + dexMod; break;
-        default:       finalAC = base + dexMod;
+        if (mainArmor) {
+      const armorData = mainArmor.data;
+      const base = armorData.ac || 10;
+      switch (armorData.armorType) {
+        case 'heavy':
+          finalAC = base;
+          break;
+        case 'medium':
+          finalAC = base + Math.min(dexMod, 2);
+          break;
+        case 'light':
+          finalAC = base + dexMod;
+          break;
+        default:
+          finalAC = base + dexMod;
       }
     } else {
       const mode = combat.acMode || 'default';
       switch (mode) {
-        case 'barbarian':
+        case 'barbarian': {
           const conMod = Math.floor((char.stats.con - 10) / 2);
           finalAC = 10 + dexMod + conMod;
           break;
-        case 'monk':
+        }
+        case 'monk': {
           const wisMod = Math.floor((char.stats.wis - 10) / 2);
           finalAC = 10 + dexMod + wisMod;
           break;
+        }
         case 'draconic':
           finalAC = 13 + dexMod;
           break;
@@ -81,8 +105,8 @@ export function useCombatLogic(
     }
 
     // 5. 盾牌加值处理
-    if (shields.length > 0) {
-      const shieldBonus = (shields[0].data as any).ac || 2;
+        if (shields.length > 0) {
+      const shieldBonus = shields[0]?.data.ac || 2;
       if (!mainArmor && combat.acMode === 'monk') {
          // 武僧持盾失效回退
          finalAC = 10 + dexMod + shieldBonus;
@@ -98,13 +122,12 @@ export function useCombatLogic(
     if (!character.value) return false;
     const char = character.value;
     
-    const equippedArmor = char.inventory.filter(i => 
-      char.equippedIds.includes(i.instanceId) && i.type === 'armor'
+        const equippedArmor = char.inventory.filter(
+      (item): item is InventoryItem & { data: ArmorData } => char.equippedIds.includes(item.instanceId) && isArmorItem(item)
     );
 
     for (const item of equippedArmor) {
-      const data = item.data as any;
-      const type = data.armorType;
+      const type = item.data.armorType;
       if (type && !char.proficiencies.armor.includes(type)) {
         return true;
       }
@@ -125,7 +148,7 @@ export function useCombatLogic(
     const activeModes = (char.activeAttackModes || [])
       .filter(k => k !== 'str' && k !== 'dex') as AbilityKey[];
 
-    const attackList: any[] = [];
+    const attackList: AttackEntry[] = [];
 
     // A. 徒手打击
     const unarmedHit = strMod + pb;
@@ -164,10 +187,9 @@ export function useCombatLogic(
     });
 
     // B. 武器逻辑
-    char.inventory.forEach(item => {
-      if (item.type !== 'weapon') return;
-      const data = item.data as any;
-      if (!data) return;
+        char.inventory.forEach(item => {
+      if (!isWeaponItem(item)) return;
+      const data = item.data;
       const props = data.properties || [];
 
       // 熟练度判定
@@ -182,10 +204,10 @@ export function useCombatLogic(
       // 弹药逻辑
       const needsAmmo = props.includes('ammunition');
       const requiredType = data.requiredAmmoType;
-      let ammoCount = 0;
-      let ammoItemIds: string[] = [];
+            let ammoCount = 0;
+      const ammoItemIds: string[] = [];
       if (needsAmmo && requiredType) {
-        const matchingStacks = char.inventory.filter(i => i.type === 'consumable' && (i.data as any)?.ammoType === requiredType);
+        const matchingStacks = char.inventory.filter(i => isAmmoConsumable(i, requiredType));
         matchingStacks.forEach(stack => {
           ammoCount += (stack.quantity || 0);
           ammoItemIds.push(stack.instanceId);
@@ -209,8 +231,10 @@ export function useCombatLogic(
 
         const rawType = data.damageType || 'none';
         const typeKey = rawType.toLowerCase();
-        const dictItem = DAMAGE_TYPES ? (DAMAGE_TYPES as any)[typeKey] : undefined;
-        const typeLabel = dictItem ? dictItem.label : typeKey;
+                const damageDef = typeKey in DAMAGE_TYPES
+          ? DAMAGE_TYPES[typeKey as keyof typeof DAMAGE_TYPES]
+          : undefined;
+        const typeLabel = damageDef ? damageDef.label : typeKey;
 
         attackList.push({
           id: derivedId,
@@ -313,9 +337,9 @@ export function useCombatLogic(
     save();
   };
 
-  const updateCombatStat = (field: keyof Character['combat'], value: any) => {
+    const updateCombatStat = <K extends keyof Character['combat']>(field: K, value: Character['combat'][K]) => {
     if (!character.value) return;
-    (character.value.combat as any)[field] = value;
+    character.value.combat[field] = value;
     save();
   };
 

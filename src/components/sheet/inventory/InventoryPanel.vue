@@ -4,8 +4,11 @@ import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
-import { calcRealIndex,setupDragData } from '../../../utils/inventoryDropUtils';
+import { calcRealIndex, setupDragData } from '../../../utils/inventoryDropUtils';
+import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
 import { formatCost } from '../../../utils/currencyUtils';
+import type { ItemCost } from '../../../types/Library';
+import type { InventoryItem } from '../../../types/Item';
 
 const store = useActiveSheetStore();
 
@@ -35,52 +38,82 @@ const adjustMoney = (type: 'pp' | 'gp' | 'sp' | 'cp', isAdd: boolean) => {
 // 📦 物品列表逻辑
 // =========================================
 
+type InventoryTooltipBadge = {
+  text: string;
+  color: 'blue' | 'orange' | 'cyan' | 'red';
+};
+
+
+
+const getItemCost = (item: InventoryItem): ItemCost | undefined => {
+  if ('cost' in item.data) {
+    return item.data.cost as ItemCost | undefined;
+  }
+  return undefined;
+};
+
+const getContainerCapacity = (item: InventoryItem): string => {
+  if ('capacityVolume' in item.data && typeof item.data.capacityVolume === 'string') {
+    return item.data.capacityVolume;
+  }
+  return '未知';
+};
+
 const rootItems = computed({
   get: () => store.rootInventory,
-  set: (val) => {
+  set: () => {
     // draggable 需要 setter，即使我们主要靠 change 事件处理逻辑
   }
 });
 
-const handleRootDrop = (evt: any) => {
+const handleRootDrop = (evt: InventoryDragChangeEvent) => {
   const insertIndex = calcRealIndex(store.rootInventory, evt, store.character!.inventory);
 
-  if (evt.added) {
-    const newItem = evt.added.element;
-    if (!newItem.instanceId) {
-      store.addItem(newItem.libraryId, insertIndex);
-    } else {
-      store.moveItemToRoot(newItem.instanceId, insertIndex);
+    if (evt.added && evt.added.element && typeof evt.added.element === 'object') {
+      const newItem = evt.added.element as { instanceId?: string; libraryId?: string };
+      if (!newItem.instanceId && newItem.libraryId) {
+        store.addItem(newItem.libraryId, insertIndex);
+      } else if (newItem.instanceId) {
+        store.moveItemToRoot(newItem.instanceId, insertIndex);
+      }
     }
-  }
-  else if (evt.moved) {
-    store.reorderItem(evt.moved.element.instanceId, insertIndex);
-  }
+    else if (evt.moved && evt.moved.element && typeof evt.moved.element === 'object') {
+      const movedItem = evt.moved.element as { instanceId?: string };
+      if (movedItem.instanceId) {
+        store.reorderItem(movedItem.instanceId, insertIndex);
+      }
+    }
 };
 
 // =========================================
 // 🖱️ 悬浮窗逻辑 (Tooltip)
 // =========================================
-const hoveredItem = ref<any>(null);
+const hoveredItem = ref<InventoryItem | null>(null);
 const tooltipStyle = ref({ top: '0px', left: '0px' });
 
 // 1. 获取徽章 (Badges)
-const getBadges = (item: any) => {
-  const badges = [];
-  const data = item.data || {};
+const getBadges = (item: InventoryItem): InventoryTooltipBadge[] => {
+  const badges: InventoryTooltipBadge[] = [];
+  const data = item.data;
 
-  // 这里的属性取值取决于你的 Item 数据结构
-  // 因为 item.data 包含了大部分属性
-  if (data.charges) badges.push({ text: `${data.charges}次`, color: 'blue' });
-  if (item.type === 'container') badges.push({ text: '容器', color: 'orange' });
-  if (data.ac) badges.push({ text: `AC ${data.ac}`, color: 'cyan' });
-  if (data.damage) badges.push({ text: data.damage, color: 'red' });
-  
+  if ('charges' in data && typeof data.charges === 'number' && data.charges > 0) {
+    badges.push({ text: `${data.charges}次`, color: 'blue' });
+  }
+  if (item.type === 'container') {
+    badges.push({ text: '容器', color: 'orange' });
+  }
+  if ('ac' in data && typeof data.ac === 'number') {
+    badges.push({ text: `AC ${data.ac}`, color: 'cyan' });
+  }
+  if ('damage' in data && typeof data.damage === 'string') {
+    badges.push({ text: data.damage, color: 'red' });
+  }
+
   return badges;
 };
 
 // 2. 显示悬浮窗
-const onShowTooltip = (item: any, event: MouseEvent) => {
+const onShowTooltip = (item: InventoryItem, event: MouseEvent) => {
   hoveredItem.value = item;
   // 简单的位置计算：鼠标右下方偏移
   tooltipStyle.value = {
@@ -101,7 +134,7 @@ provide('inventoryTooltip', {
 });
 
 // 拖拽开始处理函数
-const onDragStart = (e: DragEvent, item: any) => {
+const onDragStart = (e: DragEvent, item: InventoryItem) => {
   setupDragData(e, 'inventory-item', item.instanceId);
 };
 </script>
@@ -208,7 +241,7 @@ const onDragStart = (e: DragEvent, item: any) => {
               <span>重量: {{ store.getItemWeight(hoveredItem) }} lb</span>
               
               <span class="gold" v-if="hoveredItem.type !== 'container'">
-                {{ formatCost(hoveredItem.data?.cost || hoveredItem.cost) }}
+                {{ formatCost(getItemCost(hoveredItem)) }}
               </span>
             </div>
             
@@ -226,7 +259,7 @@ const onDragStart = (e: DragEvent, item: any) => {
             <div class="desc">{{ hoveredItem.description }}</div>
             
             <div v-if="hoveredItem.type === 'container'" class="extra-info">
-               容量: {{ hoveredItem.data?.capacityVolume || '未知' }}
+               容量: {{ getContainerCapacity(hoveredItem) }}
             </div>
           </div>
         </div>

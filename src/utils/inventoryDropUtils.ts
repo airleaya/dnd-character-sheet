@@ -1,15 +1,38 @@
 //src/utils/InventoryDropUtils.ts
 
+export type DragPayload =
+  | { type: 'inventory-item'; instanceId: string }
+  | { type: 'library-item'; id: string };
+
+export type DraggableInventoryLike = {
+  instanceId: string;
+};
+
+export type InventoryDragChangeEvent = {
+  added?: {
+    newIndex: number;
+    element?: unknown;
+  };
+  moved?: {
+    newIndex: number;
+    oldIndex: number;
+    element?: unknown;
+  };
+};
+
+type DragEventWithFlag = DragEvent & {
+  __dragHandled?: boolean;
+};
 
 // 传递数据的全局变量
-let _globalDragPayload: any = null;
+let _globalDragPayload: string | null = null;
 // 获取数据接口
 export const getGlobalDragPayload = () => {
   return _globalDragPayload;
 };
 export const clearGlobalDragPayload = () => {
   _globalDragPayload = null;
-}
+};
 
 /**
  * 计算物品在全局 Inventory 数组中应该插入的真实索引
@@ -18,7 +41,11 @@ export const clearGlobalDragPayload = () => {
  * @param globalInventory Store 中的完整物品大数组
  * @returns 全局索引 number
  */
-export const calcRealIndex = (viewList: any[], evt: any, globalInventory: any[]): number => {
+export const calcRealIndex = (
+  viewList: DraggableInventoryLike[],
+  evt: InventoryDragChangeEvent,
+  globalInventory: DraggableInventoryLike[]
+): number => {
   let visualIndex = 0;
   let targetVisualIndex = 0;
 
@@ -72,18 +99,21 @@ export const calcRealIndex = (viewList: any[], evt: any, globalInventory: any[])
  * 3. 允许冒泡：确保 vuedraggable 排序功能正常工作。
  */
 export const setupDragData = (
-  e: DragEvent, 
-  type: 'inventory-item' | 'library-item', 
+  e: DragEvent,
+  type: 'inventory-item' | 'library-item',
   id: string,
-  _unusedStopPropagation?: boolean 
+  _allowExtraArg?: boolean
 ) => {
+  void _allowExtraArg;
   if (!e.dataTransfer) {
     console.error('❌ [DRAG START] No dataTransfer object found!');
     return;}
 
   // 🛑 智能防冲突逻辑
   // 检查事件是否已经被“更深层级”的子组件处理过
-  if ((e as any).__dragHandled) {
+    const dragEvent = e as DragEventWithFlag;
+
+  if (dragEvent.__dragHandled) {
     console.log('⚠️ [DRAG START] Prevented by child element');
     // 如果已经处理过，我们什么都不做，直接返回。
     // 这意味着当前层级（父容器）不会覆盖数据，也不会被视为拖拽源。
@@ -92,19 +122,19 @@ export const setupDragData = (
   
   // 🏷️ 标记事件已被处理
   // 这行代码会跟随事件冒泡，后续的父级 handler 都能看到这个标记
-  (e as any).__dragHandled = true;
+  dragEvent.__dragHandled = true;
 
   // 📦 准备数据
-  const payload = {
-    type,
-    ...(type === 'inventory-item' ? { instanceId: id } : { id: id })
-  };
+    const payload: DragPayload = type === 'inventory-item'
+    ? { type, instanceId: id }
+    : { type, id };
   
   // ✨ 同步写入 (关键修正)
   // 必须在当前 tick 完成，否则原生 drop 区域读取不到数据
   const jsonStr = JSON.stringify(payload);  
   // 同时写入全局变量中
-  _globalDragPayload = jsonStr
+    _globalDragPayload = jsonStr;
+
   e.dataTransfer.setData('text/plain', jsonStr);
   e.dataTransfer.effectAllowed = 'copyMove';
 

@@ -3,6 +3,7 @@ import { ref, computed, toRef } from 'vue';
 import draggable from 'vuedraggable';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
+import type { LibraryItem } from '../../../types/Library';
 
 // 导入所有数据源
 import { WEAPON_LIBRARY } from '../../../data/libraries/weapons';
@@ -20,7 +21,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'hover-item', item: any, event: MouseEvent): void;
+  (e: 'hover-item', item: LibraryItem, event: MouseEvent): void;
   (e: 'move-item', event: MouseEvent): void;
   (e: 'leave-item'): void;
 }>();
@@ -39,7 +40,7 @@ const { filteredList: consumables } = useLibraryFilter(CONSUMABLE_LIBRARY, query
 const { filteredList: treasures } = useLibraryFilter(TREASURE_LIBRARY, queryRef);
 
 // 分组逻辑
-interface SubGroup { title: string; items: any[]; }
+interface SubGroup { title: string; items: LibraryItem[]; }
 interface MainGroup { id: string; label: string; subGroups: SubGroup[]; }
 
 const libraryTree = computed<MainGroup[]>(() => {
@@ -92,11 +93,11 @@ const isVisible = (key: string) => !!expandedState.value[key] || props.searchQue
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
 
 // 拖拽辅助
-const cloneItem = (item: any) => ({ libraryId: item.id });
+const cloneItem = (item: LibraryItem) => ({ libraryId: item.id });
 
 // const handleDragStart = () => emit('leave-item');
 
-const onNativeDragStart = (e: DragEvent, item: any) => {
+const onNativeDragStart = (e: DragEvent, item: LibraryItem) => {
   // alert(`[1] 拖拽开始: ${item.name} (ID: ${item.id})`); // 取消注释这行来测试
 
   emit('leave-item'); // 保留原来的功能：拖拽开始时关闭 tooltip
@@ -108,12 +109,12 @@ const onDragEnd = () => {
 };
 
 // 徽章逻辑
-const getBadges = (item: any) => {
-  const badges = [];
-  if (item.charges) badges.push({ text: `${item.charges}次`, color: 'blue' });
-  if (item.capacityVolume) badges.push({ text: '容器', color: 'orange' });
-  if (item.ac) badges.push({ text: `AC ${item.ac}`, color: 'cyan' });
-  if (item.damage) badges.push({ text: item.damage, color: 'red' });
+const getBadges = (item: LibraryItem) => {
+  const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'red' }> = [];
+  if ('maxCharges' in item && item.maxCharges) badges.push({ text: `${item.maxCharges}次`, color: 'blue' });
+  if ('capacityVolume' in item && item.capacityVolume) badges.push({ text: '容器', color: 'orange' });
+  if ('ac' in item && item.ac) badges.push({ text: `AC ${item.ac}`, color: 'cyan' });
+  if ('damage' in item && item.damage) badges.push({ text: item.damage, color: 'red' });
   return badges;
 };
 </script>

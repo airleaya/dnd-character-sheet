@@ -1,16 +1,15 @@
 // src/composables/useLibraryFilter.ts
-import { Ref, computed } from 'vue';
+import { computed } from 'vue';
+import type { Ref } from 'vue';
 import { getSchoolLabel } from '../data/rules/dndRules';
 
-// 定义一个基础的 Item 接口，确保有必要的字段
 interface SearchableItem {
   id: string;
   name: string;
-  school?: string; // 法术特有
-  [key: string]: any;
+  school?: string;
 }
 
-export function useLibraryFilter(list: SearchableItem[], searchQuery: Ref<string>) {
+export function useLibraryFilter<T extends SearchableItem>(list: T[], searchQuery: Ref<string>) {
   
   const filteredList = computed(() => {
     const q = searchQuery.value.toLowerCase().trim();

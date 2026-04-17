@@ -1,6 +1,6 @@
 // src/utils/itemFactory.ts
 import { generateUUID } from './idGenerator';
-import type { InventoryItem } from '../types/Item';
+import type { ConsumableData, ContainerData, InventoryItem } from '../types/Item';
 import type { ConsumableDefinition } from '../types/Library';
 
 // 1. 引入所有数据仓库
@@ -39,12 +39,14 @@ export function createItemFromLibrary(templateId: string): InventoryItem | null 
     return null;
   }
 
-  // 4. 准备动态数据 (Data)
-  // 提取 id，剩余的属性放入 dataProps
-  const { id, ...dataProps } = def;
-  
+    // 4. 准备动态数据 (Data)
+    // 提取 id，剩余的属性放入 dataProps
+  const { id: definitionId, ...dataProps } = def;
+  void definitionId;
+
+
   // 浅拷贝一份 data，以便我们注入动态状态
-  const instanceData: any = { ...dataProps };
+  const instanceData: InventoryItem['data'] = { ...dataProps };
 
   // ==========================================
   // 🟢 特殊逻辑初始化
@@ -52,18 +54,20 @@ export function createItemFromLibrary(templateId: string): InventoryItem | null 
   
   // A. 消耗品：次数初始化
   if (def.type === 'consumable') {
-    const consDef = def as ConsumableDefinition;
+        const consDef = def as ConsumableDefinition;
+    const consumableData = instanceData as ConsumableData;
     // 如果定义了最大次数，说明是次数类物品 (如医疗包)
     // 我们需要初始化当前剩余次数
     if (consDef.maxCharges) {
-      instanceData.charges = consDef.maxCharges;
+      consumableData.charges = consDef.maxCharges;
     }
   }
 
   // B. 容器：状态初始化
-  if (def.type === 'container') {
+    if (def.type === 'container') {
+    const containerData = instanceData as ContainerData;
     // 默认给容器一个打开状态，方便 UI 处理
-    instanceData.isOpen = true; 
+    containerData.isOpen = true;
   }
 
   // ==========================================

@@ -30,6 +30,40 @@
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
 
+### [0.10.2] - Phase 1 完成（日期待补）
+- 类型：Refactor / Tooling / CI
+- 条目：完成代码健康计划 Phase 1（建立工程护栏）
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `README.md`
+  - `.github/workflows/ci.yml`
+  - `CODE_HEALTH_PLAN.md`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `src/stores/sheet/useSpellLogic.ts`
+  - `src/stores/characterStore.ts`
+  - `src/utils/inventoryDropUtils.ts`
+  - `src/utils/itemFactory.ts`
+  - `src/types/Item.ts`
+  - `src/vite-env.d.ts`
+  - `src/components/sheet/inventory/*.vue`
+  - `src/components/sheet/combat/CombatPanel.vue`
+  - `src/directives/vTooltip.ts`
+  - `src/composables/useForge.ts`
+- 说明：
+  - 已补充 `typecheck / lint / lint:fix / format / format:check` 脚本，建立本地检查入口
+  - 已引入 ESLint + Prettier，并完成一轮全仓风格与类型治理
+  - 已新增最小 GitHub Actions CI，自动执行安装、类型检查、Lint 与构建
+  - 在 Phase 1 推进过程中，同步清理了关键模块中的高频类型债与风格问题，使仓库从 116 条 lint warning 收敛到 0
+  - 当前项目已达到“本地可检查、CI 可阻断、类型与风格可持续维护”的最小工程护栏目标
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 已纳入 CI 流程
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 1
+
+
 ### [未标注版本] - 已完成
 - 类型：规则 / 数据
 - 条目：没有无甲防护

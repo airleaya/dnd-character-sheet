@@ -13,7 +13,7 @@ export function calculateCantripDamage(baseDamage: string, characterLevel: numbe
   
   if (!match) return baseDamage; // 格式太复杂了解析不了，直接返回原值
 
-  let count = parseInt(match[1]); // 骰子数量 (1)
+  const count = parseInt(match[1]); // 骰子数量 (1)
   const die = match[2];           // 骰子面数 (10)
   const suffix = match[3];        // 后缀 (如果有)
 

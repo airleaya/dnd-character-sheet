@@ -3,6 +3,7 @@ import { ref, computed, toRef } from 'vue';
 import draggable from 'vuedraggable';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import type { SpellDefinition } from '../../../types/Spell';
 // 数据源
 import { SPELL_LIBRARY } from '../../../data/spells/index';
 
@@ -11,7 +12,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'hover-item', item: any, event: MouseEvent): void;
+  (e: 'hover-item', item: SpellDefinition, event: MouseEvent): void;
   (e: 'move-item', event: MouseEvent): void;
   (e: 'leave-item'): void;
 }>();
@@ -25,7 +26,7 @@ const queryRef = toRef(props, 'searchQuery');
 const { filteredList: spells } = useLibraryFilter(SPELL_LIBRARY, queryRef);
 
 // 2. 分组逻辑 (戏法 - 9环)
-interface SubGroup { title: string; items: any[]; }
+interface SubGroup { title: string; items: SpellDefinition[]; }
 interface MainGroup { id: string; label: string; subGroups: SubGroup[]; }
 
 const spellLibraryTree = computed<MainGroup[]>(() => {
@@ -56,7 +57,7 @@ const isVisible = (key: string) => !!expandedState.value[key] || props.searchQue
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
 
 // 4. 拖拽逻辑：必须生成唯一 ID
-const cloneSpell = (spell: any) => {
+const cloneSpell = (spell: SpellDefinition) => {
   const dragId = `drag_${spell.id}_${Date.now()}`;
   return { 
     id: dragId, 
@@ -68,8 +69,8 @@ const cloneSpell = (spell: any) => {
 const handleDragStart = () => emit('leave-item');
 
 // 5. 徽章显示逻辑
-const getSpellBadges = (spell: any) => {
-  const badges = [];
+const getSpellBadges = (spell: SpellDefinition) => {
+  const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'gray' }> = [];
   let time = spell.castingTime;
   if (time.includes('动作')) time = '1A';
   if (time.includes('附赠')) time = 'BA';
@@ -79,7 +80,7 @@ const getSpellBadges = (spell: any) => {
   if (spell.concentration) badges.push({ text: 'C', color: 'orange' });
   if (spell.ritual) badges.push({ text: 'R', color: 'cyan' });
   
-  const comps = [];
+  const comps: string[] = [];
   if (spell.components.v) comps.push('V');
   if (spell.components.s) comps.push('S');
   if (spell.components.m) comps.push('M');

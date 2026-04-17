@@ -22,6 +22,10 @@ onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside);
 });
 
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside);
+});
+
 const classesData = computed(() => store.character?.profile.classes || []);
 
 // 判断是否允许添加兼职的计算属性

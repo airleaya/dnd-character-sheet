@@ -2,9 +2,7 @@
 import { computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import EditableText from '../../common/EditableText.vue';
-import type { Character } from '../../../types/Character';
-import { useCharacterStore } from '../../../stores/characterStore';
-import type { AbilityScores } from '../../../types/Character';
+import type { AbilityScores, Character } from '../../../types/Character';
 
 const store = useActiveSheetStore();
 
@@ -54,17 +52,26 @@ const adjustStat = (key: keyof Character['stats'], delta: number) => {
   store.updateStat(key, newVal);
 };
 
+type SkillView = {
+  key: string;
+  label: string;
+  attr: string;
+  mod: string;
+  rawMod: number;
+  profLevel: boolean;
+};
+
 const groupedSkills = computed(() => {
-  // @ts-ignore
-  if (!store.skills) return {};
-  const groups: Record<string, any[]> = {};
-  
-  // @ts-ignore
-  store.skills.forEach((skill: any) => {
-    const attrKey = skill.attr.toLowerCase();
-    if (!groups[attrKey]) groups[attrKey] = [];
-    groups[attrKey].push(skill);
+  const groups: Partial<Record<keyof AbilityScores, SkillView[]>> = {};
+
+  store.skills.forEach((skill) => {
+    const attrKey = skill.attr.toLowerCase() as keyof AbilityScores;
+    if (!groups[attrKey]) {
+      groups[attrKey] = [];
+    }
+    groups[attrKey]!.push(skill as SkillView);
   });
+
   return groups;
 });
 </script>
@@ -118,11 +125,11 @@ const groupedSkills = computed(() => {
           v-for="skill in groupedSkills[attr.key]" 
           :key="skill.key" 
           class="skill-row"
-          :class="{ 'proficient': skill.profLevel > 0 }"
+          :class="{ proficient: skill.profLevel }"
           @click="store.toggleSkill(skill.key)"
         >
           <div class="skill-left">
-            <div class="prof-dot" :class="{ filled: skill.profLevel > 0 }"></div>
+            <div class="prof-dot" :class="{ filled: skill.profLevel }"></div>
             <span class="skill-name">{{ skill.label }}</span>
           </div>
           <div class="skill-mod">{{ skill.mod }}</div>

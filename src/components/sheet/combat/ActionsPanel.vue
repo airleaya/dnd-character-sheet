@@ -5,7 +5,8 @@ import { WEAPON_PROPERTIES } from '../../../data/rules/weaponProperties';
 import { calculateCantripDamage } from '../../../utils/spellUtils';
 import { useTooltipStore } from '../../../stores/tooltip';
 import { getSchoolLabel } from '../../../data/rules/dndRules';
-import { AbilityKey } from '../../../types/Library';
+import type { AbilityKey } from '../../../types/Library';
+import type { SpellComponents, SpellDefinition } from '../../../types/Spell';
 
 
 const store = useActiveSheetStore();
@@ -65,16 +66,16 @@ const onTraitLeave = () => {
 
 
 // 👇 2. 添加格式化辅助函数 (与 SidebarRight 保持一致)
-const formatComponents = (comps: any) => {
+const formatComponents = (comps?: SpellComponents) => {
   if (!comps) return '-';
-  const parts = [];
+  const parts: string[] = [];
   if (comps.v) parts.push('V');
   if (comps.s) parts.push('S');
-  if (comps.m) parts.push(comps.m === true ? 'M' : `M (${comps.m})`);
+  if (comps.m) parts.push(`M (${comps.m})`);
   return parts.join(', ');
 };
 
-const getAttackSaveInfo = (spell: any) => {
+const getAttackSaveInfo = (spell: SpellDefinition) => {
   if (spell.attackType === 'melee') return '近战法术攻击';
   if (spell.attackType === 'ranged') return '远程法术攻击';
   if (spell.attackType === 'save') return `${spell.saveAttr?.toUpperCase() || ''} 豁免`;
@@ -86,8 +87,7 @@ const getAttackSaveInfo = (spell: any) => {
 // 1. 攻击部分逻辑 (Attacks Logic)
 // ==========================================
 const getLabel = (key: string) => {
-  // @ts-ignore
-  return WEAPON_PROPERTIES[key]?.label || key;
+  return WEAPON_PROPERTIES[key as keyof typeof WEAPON_PROPERTIES]?.label || key;
 };
 
 // 分流逻辑

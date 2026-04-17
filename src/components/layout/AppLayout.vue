@@ -2,10 +2,6 @@
 import SidebarLeft from './SidebarLeft.vue';
 import SidebarRight from './SidebarRight.vue';
 import ForgeModal from '../sheet/modals/ForgeModal.vue';
-
-//debug
-import { useForge } from '../../composables/useForge';
-const { draftItem } = useForge();
 </script>
 
 <template>

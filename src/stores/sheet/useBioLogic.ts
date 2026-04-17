@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import type { Ref } from 'vue';
-import type { Character } from '../../types/Character';
+import type { Character, CharacterClassRecord, CharacterProfile } from '../../types/Character';
 import { SKILL_DEFINITIONS, XP_TABLE } from '../../data/rules/dndRules';
 import { ALIGNMENT_MIGRATION_MAP } from '../../data/rules/alignment';
 export function useBioLogic(character: Ref<Character | null>, save: () => void) {
@@ -45,7 +45,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
 
   // --- 被动觉察 (Passive Perception) ---
   const passivePerception = computed(() => {
-    const perception = skills.value.find((s: any) => s.key === 'perception');
+    const perception = skills.value.find((s) => s.key === 'perception');
     return 10 + (perception ? perception.rawMod : 0);
   });
 
@@ -79,9 +79,9 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   };
 
   // 更新角色基础信息 (Profile) 的通用方法
-  const updateProfile = (field: string, value: any) => {
+    const updateProfile = <K extends keyof Character['profile']>(field: K, value: Character['profile'][K]) => {
     if (!character.value) return;
-    (character.value.profile as any)[field] = value;
+    character.value.profile[field] = value;
     save();
   };
 
@@ -89,7 +89,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   // 数据清洗与旧存档兼容
   const ensureClassesFormat = () => {
     if (!character.value) return;
-    const profile = character.value.profile as any;
+    const profile: CharacterProfile = character.value.profile;
 
     // 阵营历史数据清洗
     // 如果发现阵营是字符串，尝试使用字典将其转换为数字编码
@@ -114,7 +114,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     // 遍历现有记录，兼容没有 level 字段的旧数据
     else {
       let modified = false;
-      profile.classes.forEach((c: any, i: number) => {
+      profile.classes.forEach((c: CharacterClassRecord, i: number) => {
         if (c.level === undefined) {
           c.level = i === 0 ? profile.level : 1; // 默认主职继承全部等级，兼职默认1级
           modified = true;
@@ -130,7 +130,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     ensureClassesFormat();
     // 新增兼职前的等级容量校验与自动扣减逻辑
     const profile = character.value.profile;
-    const totalAllocated = profile.classes.reduce((sum: number, c: any) => sum + (c.level || 1), 0);
+    const totalAllocated = profile.classes.reduce((sum: number, c: CharacterClassRecord) => sum + (c.level || 1), 0);
     
     if (totalAllocated >= profile.level) {
       // 尝试从主职业扣除 1 级给新兼职
@@ -181,7 +181,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     const record = profile.classes[index];
     if (!record) return;
 
-    const totalAllocated = profile.classes.reduce((sum: number, c: any) => sum + (c.level || 1), 0);
+    const totalAllocated = profile.classes.reduce((sum: number, c: CharacterClassRecord) => sum + (c.level || 1), 0);
     const currentLevel = record.level || 1;
 
     if (delta === 1) {

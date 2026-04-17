@@ -299,8 +299,30 @@ npm run dev
 - `npm run dev`：启动 Vite 开发环境
 - `npm run build`：构建前端并使用 `electron-builder` 打包
 - `npm run preview`：预览 Vite 构建结果
+- `npm run typecheck`：执行 Vue + TypeScript 类型检查
+- `npm run lint`：执行 ESLint 检查
+- `npm run lint:fix`：自动修复部分 ESLint 问题
+- `npm run format`：使用 Prettier 格式化项目文件
+- `npm run format:check`：检查 Prettier 格式是否一致
 
 > 说明：仓库当前的 `package.json` 中 `dev` 脚本是 `vite`。如果你的本地开发流程需要 Electron 窗口自动联动启动，请结合现有 Vite / Electron 插件配置实际验证。
+
+### 3.1 开发前建议先执行检查
+
+```bash README.md
+npm run typecheck
+npm run lint
+npm run build
+```
+
+推荐在提交前至少执行一次：
+
+```bash README.md
+npm run format
+npm run lint
+npm run typecheck
+```
+
 
 ### 4. 构建发布版本
 
@@ -401,12 +423,38 @@ Windows 目标包括：
 
 ---
 
+## 工程质量与自动检查
+
+项目已开始补充基础工程护栏：
+
+- `ESLint`：静态检查代码风格与常见问题
+- `Prettier`：统一格式化输出
+- `vue-tsc`：执行 Vue + TypeScript 类型检查
+- `GitHub Actions`：在 push / pull request 时执行最小 CI
+
+当前 CI 工作流会执行：
+
+- `npm ci`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+
+如果后续扩展测试体系，建议再补充：
+
+- 单元测试
+- 存档回归测试
+- 关键规则计算测试
+
+---
+
 ## 相关文档
 
 - `PROJECT_INDEX.md`：项目结构索引
 - `TODOLIST.md`：未完成事项与计划
 - `UPDATE_LOG.md`：已完成更新记录
+- `CODE_HEALTH_PLAN.md`：代码健康度评估与治理计划
 - `问题收集.txt`：原始问题记录
+
 
 ---
 
@@ -414,7 +462,8 @@ Windows 目标包括：
 
 作者信息见 `package.json`：
 
-- **雪荔枝 snowlitch & gemini 3.0 Pro**
+- **雪荔枝 snowlitch & Gemini 3.0 Pro & Codex**
+
 
 如果你正在继续维护这个项目，建议把版本更新、规则补全和兼容策略持续写入 `UPDATE_LOG.md`，这样会让整个仓库更清晰、更可持续。
 

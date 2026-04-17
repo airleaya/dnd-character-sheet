@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref,onMounted,onUnmounted,nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useCharacterStore } from '../../stores/characterStore';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 import { CLASS_DICTIONARY } from '../../data/rules/classes';
+import type { CharacterClassRecord } from '../../types/Character';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
@@ -80,7 +81,7 @@ const toggleBulkMode = () => {
 };
 
 // 辅助方法：将角色的职业数组翻译并拼接为形如 "战士/法师" 的字符串
-const getClassNames = (classes: any[]) => {
+const getClassNames = (classes: CharacterClassRecord[]) => {
   if (!classes || classes.length === 0) return '未选职业';
   
   const names = classes.map(c => {
@@ -203,13 +204,6 @@ const handleCreate = async () => {
   window.focus();
 };
 
-// 切换角色
-const handleSelect = (id: string) => {
-  activeStore.loadCharacter(id);
-};
-
-
-
 // 📤 导出当前选中的角色 (增强版)
 const handleExport = () => {
   // 1. 获取当前正在查看的角色对象
@@ -231,7 +225,7 @@ const handleExport = () => {
     try {
       const json = JSON.stringify(charInMemory, null, 2);
       // 生成文件名
-      const safeName = charInMemory.profile.name.replace(/[^a-z0-9\u4e00-\u9fa5\._\-]/gi, '_');
+      const safeName = charInMemory.profile.name.replace(/[^a-z0-9\u4e00-\u9fa5._-]/gi, '_');
       const filename = `${safeName}_Lv${charInMemory.profile.level}.json`;
       
       result = { json, filename };

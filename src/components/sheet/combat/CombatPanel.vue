@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import EditableText from '../../common/EditableText.vue';
+import type { Character } from '../../../types/Character';
+import type { CombatStats } from '../../../types/Character';
 
 const store = useActiveSheetStore();
 const char = computed(() => store.character);
@@ -19,7 +21,7 @@ const acOptions = [
 
 //更新护甲模式
 const updateACMode = (e: Event) => {
-  const val = (e.target as HTMLSelectElement).value;
+  const val = (e.target as HTMLSelectElement).value as CombatStats['acMode'];
   store.updateCombatStat('acMode', val);
   isEditingAC.value = false; // 选完自动关闭
 };
@@ -36,8 +38,8 @@ const hitDiceOptions = ['d6', 'd8', 'd10', 'd12', 'd20'];
 const hpInput = ref<number | ''>('');
 
 // 通用更新函数
-const update = (field: string, val: any) => {
-  store.updateCombatStat(field as any, val);
+const update = <K extends keyof Character['combat']>(field: K, val: Character['combat'][K]) => {
+  store.updateCombatStat(field, val);
 };
 
 // 生命骰更新处理
@@ -50,8 +52,8 @@ const toggleHitDiceEdit = () => {
 // 获取激活的生命骰（只显示 max > 0 的类型）
 const activeHitDice = computed(() => {
   if (!combat.value || !combat.value.hitDice) return [];
-  return Object.entries(combat.value.hitDice)
-    .filter(([_, data]) => data.max > 0)
+    return Object.entries(combat.value.hitDice)
+    .filter(([, data]) => data.max > 0)
     .map(([type, data]) => ({ type, ...data }));
 });
 

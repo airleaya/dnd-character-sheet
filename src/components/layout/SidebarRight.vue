@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
+import type { LibraryItem } from '../../types/Library';
+import type { SpellDefinition } from '../../types/Spell';
 
 // 引入拆分后的组件
 import LibraryItemsPanel from '../sheet/library/LibraryItemsPanel.vue';
@@ -9,18 +12,22 @@ import ForgeDropZone from '../sidebar/ForgeDropZone.vue';
 
 // 状态管理
 type RootTab = 'items' | 'spells' | 'features';
+type TooltipType = 'item' | 'spell';
+
+type HoveredLibraryItem = LibraryItem | SpellDefinition;
+
 const activeTab = ref<RootTab>('items');
 const searchQuery = ref('');
 
 // --- Tooltip 坐标与状态逻辑 ---
-const hoveredItem = ref<any>(null);
+const hoveredItem = ref<HoveredLibraryItem | null>(null);
 const tooltipPos = ref({ x: 0, y: 0 });
 // 用来告诉 Tooltip 组件现在显示的是法术还是物品
-const currentTooltipType = ref<'item' | 'spell'>('item');
+const currentTooltipType = ref<TooltipType>('item');
 
 //获取 DOM 元素的引用
 const sidebarRef = ref<HTMLElement | null>(null);
-const tooltipRef = ref<any>(null); // 用于访问 Tooltip 组件的 $el
+const tooltipRef = ref<ComponentPublicInstance | null>(null); // 用于访问 Tooltip 组件的 $el
 
 // 计算 Tooltip 位置
 // 将计算位置移动到onhoveritem中实现
@@ -37,7 +44,7 @@ let closeTimer: NodeJS.Timeout | null = null;
 
 
 // 统一处理来自子组件的 Hover 事件
-const onHoverItem = async (item: any, e: MouseEvent, type: 'item' | 'spell') => {
+const onHoverItem = async (item: HoveredLibraryItem, e: MouseEvent, type: TooltipType) => {
   // 如果之前准备关闭，现在又移回来了（或者移到了另一个项），立刻取消关闭
   if (closeTimer) {
     clearTimeout(closeTimer);
@@ -116,7 +123,7 @@ const scheduleClose = () => {
 </script>
 
 <template>
-  <div class="sidebar-right">
+  <div ref="sidebarRef" class="sidebar-right">
     
     <div class="root-tabs">
       <button class="root-tab-btn" :class="{ active: activeTab === 'items' }" @click="activeTab = 'items'">📦 物品</button>

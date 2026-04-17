@@ -2,7 +2,10 @@ import { computed } from 'vue';
 import type { Ref } from 'vue';
 import type { Character } from '../../types/Character';
 import { SPELL_LIBRARY } from '../../data/spells/index';
+import type { AbilityKey } from '../../types/Library';
 import type { SpellDefinition } from '../../types/Spell';
+
+type SpellSlots = Character['spells']['slots'];
 
 // 定义法术分组的接口
 export interface SpellGroup {
@@ -16,7 +19,7 @@ export interface SpellGroup {
 }
 
 // 纯函数：分组逻辑
-function groupSpellsByLevel(spells: SpellDefinition[], slots: any): SpellGroup[] {
+function groupSpellsByLevel(spells: SpellDefinition[], slots: SpellSlots): SpellGroup[] {
   const groups: SpellGroup[] = [];
   // 0环
   const cantrips = spells.filter(s => s.level === 0);
@@ -229,10 +232,12 @@ export function useSpellLogic(
     save();
   };
 
-  const updateSpellConfig = (path: string, value: any) => {
+    const updateSpellConfig = (path: string, value: string) => {
     if (!character.value) return;
-    if (path === 'ability') character.value.spells.spellcastingAbility = value;
-    save();
+    if (path === 'ability') {
+      character.value.spells.spellcastingAbility = value as AbilityKey;
+      save();
+    }
   };
 
   return {

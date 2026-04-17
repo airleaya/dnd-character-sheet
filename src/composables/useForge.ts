@@ -3,19 +3,27 @@ import { useActiveSheetStore } from '../stores/activeSheet';
 import { createItemFromLibrary } from '../utils/itemFactory';
 import type { InventoryItem } from '../types/Item';
 
+type ForgeDraftData = Record<string, unknown> & {
+  cost?: {
+    value?: number;
+    unit?: string;
+  };
+};
+
 // --- 全局单例状态 ---
 const draftItem = ref<InventoryItem | null>(null);
 const forgeMode = ref<'create' | 'edit'>('create');
 
 export function useForge() {
-  const store = useActiveSheetStore();
-  const draftData = computed(() => draftItem.value?.data as any || {});
+    const store = useActiveSheetStore();
+  const draftData = computed<ForgeDraftData>(() => (draftItem.value?.data as ForgeDraftData) ?? {});
+
 
 
   // 🛡️ 新增：最小化的数据补全函数
   const ensureCostStructure = () => {
     if (!draftItem.value) return;
-    const data = draftItem.value.data as any;
+    const data = draftItem.value.data as ForgeDraftData;
     
     // 如果 cost 不存在，或者格式不对，初始化它
     // 基于 Library.ts 的 ItemCost 定义: { value, unit }
@@ -63,9 +71,15 @@ export function useForge() {
           // 调试：如果是测试ID，强行创建一个
           if (payload.id === 'TEST-ID') {
              console.warn('⚠️ Force creating TEST ITEM');
-             draftItem.value = { 
-               instanceId: 'test-inst', templateId: 'test', name: '测试物品', type: 'gear', weight: 1, quantity: 1, data: {} 
-             } as any;
+                          draftItem.value = {
+               instanceId: 'test-inst',
+               templateId: 'test',
+               name: '测试物品',
+               type: 'gear',
+               weight: 1,
+               quantity: 1,
+               data: {}
+             };
              forgeMode.value = 'create';
              ensureCostStructure(); // ✅ 确保新物品有价格结构
           }

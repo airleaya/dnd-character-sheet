@@ -9,11 +9,13 @@ import {
 } from '../../../data/rules/proficiencies';
 import { WEAPON_LIBRARY } from '../../../data/libraries/weapons';
 
-const props = defineProps<{
+defineProps<{
   isOpen: boolean;
 }>();
 
-const emit = defineEmits(['close']);
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
 const store = useActiveSheetStore();
 
 const newTool = ref('');

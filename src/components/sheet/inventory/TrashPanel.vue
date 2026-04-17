@@ -2,10 +2,18 @@
 import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 
+type TrashChangeEvent = {
+  added?: {
+    element: {
+      instanceId?: string;
+    };
+  };
+};
+
 const store = useActiveSheetStore();
 
 // 处理垃圾箱变动
-const handleTrashChange = (evt: any) => {
+const handleTrashChange = (evt: TrashChangeEvent) => {
   // 监听 "added" 事件 (当物品从背包拖进垃圾箱时)
   if (evt.added) {
     const { element } = evt.added;

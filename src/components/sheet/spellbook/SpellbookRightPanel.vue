@@ -11,15 +11,25 @@ const showToast = inject<((msg: string, type?: 'success' | 'warning') => void)>(
 // ==========================================
 // 1. 拖拽与学习逻辑
 // ==========================================
-const dropList = ref([]);
+type DroppedSpell = {
+  id?: string;
+  spellId?: string;
+  name?: string;
+};
+
+type DragChangeEvent = {
+  added?: {
+    element: DroppedSpell;
+  };
+};
+
+const dropList = ref<DroppedSpell[]>([]);
 // 新增：决定拖入法术时标记为何种来源
 const learningSource = ref<'primary' | 'secondary'>('primary');
 
-const onMove = (evt: any) => {
-  return true;
-};
+const onMove = () => true;
 
-const handleDrop = (evt: any) => {
+const handleDrop = (evt: DragChangeEvent) => {
   if (evt.added) {
     const element = evt.added.element;
     const spellId = element.spellId;

@@ -1,8 +1,7 @@
 // src/types/Item.ts
-import type { 
-  ItemDefinition, 
-  WeaponDefinition, 
-  ArmorDefinition, 
+import type {
+  WeaponDefinition,
+  ArmorDefinition,
   GearDefinition,
   ToolDefinition,
   ConsumableDefinition,
@@ -27,6 +26,7 @@ export type ConsumableData = Omit<ConsumableDefinition, CommonExclude> & {
   charges?: number; 
 };
 export type TreasureData = Omit<TreasureDefinition, CommonExclude>;
+export type MiscItemData = Record<string, unknown>;
 export type ContainerData = Omit<ContainerDefinition, CommonExclude> & {
   // 容器实例特有属性
   isOpen?: boolean; // 比如：箱子是否打开
@@ -51,13 +51,13 @@ export interface InventoryItem {
 
   // --- ✅ 动态数据 (特有属性联合类型) ---
   // 这里使用了具体的类型，而不是 Record<string, any>，会有更好的智能提示
-  data: 
-    | WeaponData 
-    | ArmorData 
-    | GearData 
-    | ToolData 
-    | ConsumableData 
+    data:
+    | WeaponData
+    | ArmorData
+    | GearData
+    | ToolData
+    | ConsumableData
     | TreasureData
     | ContainerData
-    | Record<string, any>; // 兜底，兼容未知情况
+    | MiscItemData; // 兜底，兼容未知情况
 }

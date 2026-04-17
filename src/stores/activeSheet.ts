@@ -65,10 +65,11 @@ export const useActiveSheetStore = defineStore('activeSheet', () => {
         data.activeAttackModes = [];
       }
 
-      // 补全战斗数据：生命骰类型
-      if (!data.combat.hitDiceType) {
-         data.combat.hitDiceType = 'd8'; // 默认为 d8
+            // 补全战斗数据：确保生命骰对象存在
+      if (!data.combat.hitDice) {
+        data.combat.hitDice = {};
       }
+
 
       // 法术数据初始化
       if (!data.spells) {

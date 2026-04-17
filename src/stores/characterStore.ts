@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { generateUUID } from '../utils/idGenerator';
-import type { Character } from '../types/Character';
+import type { Character, CharacterClassRecord } from '../types/Character';
 
 // 分组元数据接口
 export interface CharacterGroup {
@@ -16,8 +16,8 @@ interface CharacterMeta {
   playerName?: string;
   race: string;
   level: number;
-  classes: any[];
-  avatarUrl?: string; 
+  classes: CharacterClassRecord[];
+  avatarUrl?: string;
 }
 
 // 🔧 辅助函数：生成标准化的文件名
@@ -29,8 +29,16 @@ const getFilename = (char: Character): string => {
   return `${char.id}.json`;
 };
 
+type LegacyCharacterData = Character & {
+  combat?: Character['combat'] & {
+    hitDiceType?: string;
+    hitDiceCurrent?: number;
+    hitDiceMax?: number;
+  };
+};
+
 // 旧数据兼容清洗辅助函数
-const migrateLegacyData = (char: any) => {
+const migrateLegacyData = (char: LegacyCharacterData) => {
   if (!char.combat) return;
   
   // 如果发现旧存档的生命骰字段，则进行迁移清洗
@@ -311,7 +319,7 @@ export const useCharacterStore = defineStore('characterStore', {
         } else {
           const match = g.name.match(regex);
           if (match) {
-            maxNum = Math.max(maxNum, parseInt(match[1], 10));
+            maxNum = Math.max(maxNum, parseInt(match[1] ?? '0', 10));
           }
         }
       });

@@ -112,7 +112,7 @@ app.whenReady().then(() => {
         try {
           const content = fs.readFileSync(path.join(SAVE_DIR, file), 'utf-8');
           return JSON.parse(content);
-        } catch (err) { return null; }
+        } catch { return null; }
       }).filter(Boolean);
       return { success: true, data: characters };
     } catch (e) {

@@ -6,19 +6,22 @@ import { createItemFromLibrary } from '../../utils/itemFactory';
 import { CURRENCY_RATES } from '../../data/rules/currency';
 import { PACK_LIBRARY } from '../../data/libraries/packs';
 
+const ignoresContentWeight = (item: InventoryItem) => 'ignoreContentWeight' in item.data && item.data.ignoreContentWeight === true;
+
 // 纯函数：递归计算重量
-function computeItemWeightRecursive(item: any, allItems: any[]): number {
-  let w = (item.weight || 0) * (item.quantity || 1);
+function computeItemWeightRecursive(item: InventoryItem, allItems: InventoryItem[]): number {
+  const itemWeight = item.weight ?? 0;
+  const itemQuantity = item.quantity ?? 1;
+  const weight = itemWeight * itemQuantity;
   if (item.type === 'container') {
-    const data = item.data || {};
-    if (data.ignoreContentWeight) return w;
+    if (ignoresContentWeight(item)) return weight;
     const children = allItems.filter(child => child.parentId === item.instanceId);
     const childrenWeight = children.reduce((acc, child) => {
       return acc + computeItemWeightRecursive(child, allItems);
     }, 0);
-    return w + childrenWeight;
+    return weight + childrenWeight;
   }
-  return w;
+  return weight;
 }
 
 export function useInventoryLogic(
@@ -42,7 +45,7 @@ export function useInventoryLogic(
 
   const totalWeight = computed(() => totalInventoryWeight.value);
 
-  const getItemWeight = computed(() => (item: any): number => {
+    const getItemWeight = computed(() => (item: InventoryItem): number => {
     if (!character.value) return 0;
     const val = computeItemWeightRecursive(item, character.value.inventory);
     return parseFloat(val.toFixed(2));
@@ -287,16 +290,14 @@ export function useInventoryLogic(
   };
 
   // --- 移动与排序 ---
-  const _reinsertItem = (item: any, index?: number) => {
+    const _reinsertItem = (item: InventoryItem, index?: number) => {
     if (!character.value) return;
     const oldIndex = character.value.inventory.indexOf(item);
     if (oldIndex > -1) {
       character.value.inventory.splice(oldIndex, 1);
     }
-    let finalIndex = (typeof index === 'number') ? index : character.value.inventory.length;
-    if (oldIndex > -1 && oldIndex < finalIndex) {
-      finalIndex--;
-    }
+    const targetIndex = typeof index === 'number' ? index : character.value.inventory.length;
+    const finalIndex = oldIndex > -1 && oldIndex < targetIndex ? targetIndex - 1 : targetIndex;
     character.value.inventory.splice(finalIndex, 0, item);
   };
 
