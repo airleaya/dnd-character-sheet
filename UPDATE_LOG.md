@@ -1,0 +1,178 @@
+# UPDATE_LOG
+
+> 用途：记录**已经完成**的修复、优化与功能更新，强调“发生了什么变化”。  
+> 与 `TODOLIST.md` 的区别：
+> - `TODOLIST.md` 关注：**还要做什么**
+> - `UPDATE_LOG.md` 关注：**已经做了什么**
+
+当前基线版本：`0.10.2`
+默认记录人：**雪荔枝**
+
+---
+
+## 建议记录模板
+
+### [版本号] - YYYY-MM-DD
+- 类型：Bugfix / Feature / Refactor / Data / UI
+- 条目：问题标题
+- 负责人：雪荔枝
+- 关联文件：
+  - `路径/文件名`
+- 说明：
+  - 做了哪些改动
+  - 为什么这样改
+  - 是否涉及旧存档兼容
+- 验证结果：
+  - 如何验证通过
+- 关联待办：`TODOLIST.md` 中的对应条目
+
+---
+
+## 历史完成记录（由 `问题收集.txt` 整理）
+
+### [未标注版本] - 已完成
+- 类型：规则 / 数据
+- 条目：没有无甲防护
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/types/Character.ts`
+- 说明：已补充无甲防护相关支持。
+
+### [未标注版本] - 已完成
+- 类型：数据
+- 条目：物品牛眼提灯用的提灯的属性
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/data/libraries/gears.ts`
+  - `src/utils/itemFactory.ts`
+- 说明：已修正牛眼提灯 / 提灯的属性定义。
+
+### [未标注版本] - 已完成
+- 类型：规则 / 数据
+- 条目：没有详细的针对某件武器的熟练项
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/data/rules/proficiencies.ts`
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+- 说明：已补充更细粒度的武器熟练支持。
+
+### [未标注版本] - 已完成
+- 类型：数据
+- 条目：没有圣徽
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/data/libraries/gears.ts`
+- 说明：已补充圣徽条目。
+
+### [未标注版本] - 已完成
+- 类型：交互 / 法术书
+- 条目：将已学会的法术拖入法术书中不会出现反馈
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/components/sheet/spellbook/*.vue`
+  - `src/stores/sheet/useSpellLogic.ts`
+- 说明：已补充拖拽后的界面反馈或状态更新。
+
+### [未标注版本] - 2026-04-03
+- 类型：UI / 角色管理
+- 条目：左侧的角色卡管理器中需要折叠栏便于用户进行大量的角色卡管理
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/stores/characterStore.ts`
+- 说明：已完成左侧角色分组 / 折叠相关支持。
+
+### [未标注版本] - 2026-03-26
+- 类型：Bugfix / Forge
+- 条目：diy物品界面缩放导致无法正常保存的问题
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/composables/useForge.ts`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `electron/preload.ts`
+- 说明：已修复缩放条件下 DIY 物品保存异常。
+
+### [未标注版本] - 已完成
+- 类型：数据
+- 条目：七彩喷射的描述错误
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/data/spells/*.ts`
+- 说明：已修正法术描述文本。
+
+### [未标注版本] - 2026-04-03
+- 类型：Bugfix / 职业系统 / 战斗
+- 条目：因为兼职导致一个角色有多种生命骰
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/stores/characterStore.ts`
+  - `src/types/Character.ts`
+- 说明：已支持兼职角色的多生命骰结构。
+
+### [未标注版本] - 2026-03-29
+- 类型：Bugfix / 法术书
+- 条目：无法术状态下调整法术位
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/stores/sheet/useSpellLogic.ts`
+  - `src/stores/activeSheet.ts`
+- 说明：通过重构法术书更新逻辑，修复了无完整法术状态时的法术位调整问题。
+
+### [未标注版本] - 2026-03-26
+- 类型：Bugfix / 输入交互
+- 条目：文本框点击bug
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/components/common/EditableText.vue`
+  - `src/components/common/EditableTextarea.vue`
+- 说明：已修复文本输入相关交互问题。
+
+### [未标注版本] - 2026-03-29
+- 类型：Bugfix / 法术书 / 职业系统
+- 条目：兼职导致混合的施法属性
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/stores/sheet/useSpellLogic.ts`
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/data/rules/classes.ts`
+- 说明：通过重构法术书相关逻辑，修复兼职角色施法属性混合计算问题。
+
+### [未标注版本] - 2026-03-30
+- 类型：UI
+- 条目：新法术书界面调整
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/components/sheet/spellbook/*.vue`
+- 说明：已完成法术书界面样式 / 布局调整。
+
+### [未标注版本] - 2026-03-30
+- 类型：UI
+- 条目：新职业的ui样式调整
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/components/sheet/bio/ClassSelector.vue`
+  - `src/components/sheet/bio/*.vue`
+- 说明：已完成职业相关 UI 样式调整。
+
+### [未标注版本] - 2026-04-03
+- 类型：UX / 新手引导
+- 条目：没有设置初始职业的时候，用户找不到初始的职业创建接口
+- 负责人：雪荔枝
+- 关联文件（推测）：
+  - `src/components/sheet/bio/ClassSelector.vue`
+  - `src/stores/sheet/useBioLogic.ts`
+- 说明：已增强初始职业创建入口的可发现性。
+
+---
+
+## 维护约定
+
+1. 完成一个待办后，在这里补一条正式记录
+2. 如果能确认版本号，请不要再写“未标注版本”
+3. 若改动涉及存档结构，请在说明中明确写出“兼容策略”
+4. 若改动涉及多个模块，优先写最关键的关联文件
+5. 可在版本发布前，将同版本记录汇总到正式 `CHANGELOG` 中
