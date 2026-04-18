@@ -5,7 +5,7 @@
 > - `TODOLIST.md` 关注：**还要做什么**
 > - `UPDATE_LOG.md` 关注：**已经做了什么**
 
-当前基线版本：`0.10.2`
+当前基线版本：`0.11.3`
 默认记录人：**雪荔枝**
 
 ---
@@ -30,9 +30,28 @@
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
 
-### [0.10.2] - Phase 3 进行中（日期待补）
+### [0.11.2] - 版本规则建立（日期待补）
+- 类型：Refactor / Process
+- 条目：建立重构专项 `0.11.x` 版本推进规则
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已将重构专项版本基线从 `0.10.2` 提升到 `0.11.2`
+  - 已正式约定本轮代码健康治理采用 `0.11.x` 版本轨道，并以 Phase 完成为递增单位
+  - 当前口径为：Phase 1 对应 `0.11.1`、Phase 2 对应 `0.11.2`、Phase 3 完成后推进到 `0.11.3`
+  - 后续每完成一个 Phase，需同步更新 `package.json`、`CODE_HEALTH_PLAN.md` 与 `UPDATE_LOG.md`
+- 验证结果：
+  - 版本规则已写入计划文档
+  - 项目版本号已更新到 `0.11.2`
+- 关联待办：`CODE_HEALTH_PLAN.md` / 版本推进规则
+
+
+### [0.11.3] - Phase 3 完成（日期待补）
 - 类型：Refactor / Type Safety / Frontend / Store
-- 条目：推进代码健康计划 Phase 3（类型安全、前端入口统一与核心 store 收紧）
+- 条目：完成代码健康计划 Phase 3（类型安全、前端入口统一与核心 store 收紧）
 - 负责人：雪荔枝
 - 关联文件：
   - `src/components/sheet/bio/StatsAndSkills.vue`
@@ -64,10 +83,15 @@
 - 验证结果：
   - `npm run typecheck` 通过
   - `npm run lint` 通过
+- 验收补充：
+  - 组件层 `@ts-ignore / @ts-expect-error` 目标已完成清理
+  - `src/main.js` 已移除，前端入口已统一到 `src/main.ts`
+  - 背包拖拽 payload、Forge 数据结构、sheet 核心 store 类型边界已完成收紧
+  - `npm run typecheck` 与 `npm run lint` 再次通过，可支持 Phase 3 结项
 - 关联待办：`CODE_HEALTH_PLAN.md` / Phase 3
 
 
-### [0.10.2] - Phase 2 完成（日期待补）
+### [0.11.2] - Phase 2 完成（日期待补）
 - 类型：Refactor / Data / Type Safety
 - 条目：完成代码健康计划 Phase 2（收敛数据模型）
 - 负责人：雪荔枝
@@ -100,7 +124,7 @@
   - `npm run lint` 通过
 - 关联待办：`CODE_HEALTH_PLAN.md` / Phase 2
 
-### [0.10.2] - Phase 1 完成（日期待补）
+### [0.11.1] - Phase 1 完成（日期待补）
 - 类型：Refactor / Tooling / CI
 - 条目：完成代码健康计划 Phase 1（建立工程护栏）
 - 负责人：雪荔枝
