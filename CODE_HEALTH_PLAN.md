@@ -463,8 +463,9 @@ npm run build
 #### 任务 3.2 替换核心模块中的高频 `any`
 优先目标：
 - [x] `src/stores/sheet/useCombatLogic.ts`
-- [ ] `src/stores/sheet/useInventoryLogic.ts`
-- [ ] `src/stores/sheet/useBioLogic.ts`
+- [x] `src/stores/sheet/useInventoryLogic.ts`
+- [x] `src/stores/sheet/useBioLogic.ts`
+- [x] `src/stores/sheet/useSpellLogic.ts`
 - [x] `src/composables/useForge.ts`
 
 具体目标：
@@ -479,9 +480,13 @@ npm run build
 
 完成说明（当前进展）：
 - `useCombatLogic.ts` 已导出 `AttackEntry`，组件层可直接复用正式攻击项类型
+- `useInventoryLogic.ts` 已为钱包、容器物品、重量计算与背包操作补充显式类型，并收紧内部 helper 语义
+- `useSpellLogic.ts` 已为法术来源、配置项、法术解析 helper 与法术位更新逻辑建立明确类型边界
+- `useBioLogic.ts` 已为技能摘要、熟练项分类、职业等级分配与字段更新接口建立正式类型
 - `useForge.ts` 已为草稿数据、拖拽 payload、价格结构建立显式类型，并移除 `ForgeModal.vue` 中一批 `(draftData as any)`
 - `inventoryDropUtils.ts` 已统一定义拖拽元素、拖拽 payload、解析入口与类型守卫
 - `InventoryPanel.vue`、`InventoryItemRow.vue`、`ForgeDropZone.vue`、`LibraryItemsPanel.vue` 已接入正式拖拽类型链路
+- `activeSheet.ts` 已补充 Facade UI 状态类型，并统一 `characterStore` 依赖注入与基础动作边界
 
 #### 任务 3.3 统一入口语言栈
 - [x] 将 `src/main.js` 迁移为 `src/main.ts`
@@ -651,7 +656,7 @@ npm run build
 4. [x] 去掉组件层 `@ts-ignore`
 
 ### 第二轮：再做类型与持久化
-5. 逐步替换核心模块 `any`
+5. [x] 逐步替换核心模块 `any`
 6. [x] `src/main.js -> src/main.ts`
 7. 存档目录迁移到 `app.getPath('userData')`
 8. 统一 IPC 类型

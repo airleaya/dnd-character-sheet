@@ -31,8 +31,8 @@
 ## 历史完成记录（由 `问题收集.txt` 整理）
 
 ### [0.10.2] - Phase 3 进行中（日期待补）
-- 类型：Refactor / Type Safety / Frontend
-- 条目：推进代码健康计划 Phase 3（类型安全与前端入口统一）
+- 类型：Refactor / Type Safety / Frontend / Store
+- 条目：推进代码健康计划 Phase 3（类型安全、前端入口统一与核心 store 收紧）
 - 负责人：雪荔枝
 - 关联文件：
   - `src/components/sheet/bio/StatsAndSkills.vue`
@@ -46,6 +46,10 @@
   - `src/composables/useForge.ts`
   - `src/utils/inventoryDropUtils.ts`
   - `src/stores/sheet/useCombatLogic.ts`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `src/stores/sheet/useSpellLogic.ts`
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/stores/activeSheet.ts`
   - `src/main.ts`
   - `index.html`
   - `CODE_HEALTH_PLAN.md`
@@ -54,6 +58,8 @@
   - 已为 `useCombatLogic.ts` 导出 `AttackEntry`，并在战斗面板中直接复用正式攻击项类型
   - 已为 Forge 草稿数据、价格结构与拖拽 payload 建立显式类型，清理 `ForgeModal.vue` 中一批 `(draftData as any)`
   - 已为背包拖拽链路建立正式拖拽元素类型、payload 解析入口与类型守卫，并同步接入 Inventory / Library / Forge 调用侧
+  - 已继续收紧 `useInventoryLogic.ts`、`useSpellLogic.ts`、`useBioLogic.ts` 的核心计算与动作接口类型，减少隐式字符串与宽泛推断
+  - 已为 `activeSheet.ts` 补充 Facade UI 状态类型，并统一 `characterStore` 依赖注入与基础动作边界
   - 已将前端入口从 `src/main.js` 迁移到 `src/main.ts`，并将 `index.html` 的入口引用统一到 TypeScript
 - 验证结果：
   - `npm run typecheck` 通过

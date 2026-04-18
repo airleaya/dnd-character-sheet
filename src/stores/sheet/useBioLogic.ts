@@ -1,253 +1,261 @@
 import { computed } from 'vue';
 import type { Ref } from 'vue';
-import type { Character, CharacterClassRecord, CharacterProfile } from '../../types/Character';
+import type {
+  AbilityScores,
+  Character,
+  CharacterBio,
+  CharacterClassRecord,
+  CharacterProfile,
+} from '../../types/Character';
 import { SKILL_DEFINITIONS, XP_TABLE } from '../../data/rules/dndRules';
 import { ALIGNMENT_MIGRATION_MAP } from '../../data/rules/alignment';
-export function useBioLogic(character: Ref<Character | null>, save: () => void) {
-  // ==========================================
-  // 🧠 Getters (计算属性)
-  // ==========================================
 
-  // --- 熟练加值 (PB) ---
-  const proficiencyBonus = computed(() => {
+type SkillDefinitionKey = keyof typeof SKILL_DEFINITIONS;
+type SkillSummary = {
+  key: SkillDefinitionKey;
+  label: string;
+  attr: Uppercase<keyof AbilityScores>;
+  mod: string;
+  rawMod: number;
+  profLevel: boolean;
+};
+type FixedProficiencyCategory = 'armor' | 'weapons';
+type DynamicProficiencyCategory = 'tools' | 'languages';
+
+const formatModifier = (value: number): string => {
+  return value >= 0 ? `+${value}` : `${value}`;
+};
+
+const getAllocatedClassLevels = (classes: CharacterClassRecord[]): number => {
+  return classes.reduce((sum, classRecord) => sum + (classRecord.level ?? 1), 0);
+};
+
+export function useBioLogic(character: Ref<Character | null>, save: () => void) {
+  const proficiencyBonus = computed<number>(() => {
     if (!character.value) return 2;
-    // 公式: ceil(level / 4) + 1
     return Math.ceil(character.value.profile.level / 4) + 1;
   });
 
-  // --- 技能列表计算引擎 ---
-  const skills = computed(() => {
+  const skills = computed<SkillSummary[]>(() => {
     if (!character.value) return [];
-    const char = character.value;
+
+    const currentCharacter = character.value;
     const pb = proficiencyBonus.value;
 
-    return Object.entries(SKILL_DEFINITIONS).map(([key, def]) => {
-      // 1. 找对应属性的调整值
-      const attrVal = char.stats[def.attr as keyof typeof char.stats];
-      const attrMod = Math.floor((attrVal - 10) / 2);
-      
-      // 2. 找熟练等级
-      const isProficient = !!char.skillProficiencies[key];
-      
-      // 3. 计算最终值：熟练则加 PB，否则不加
+    return (Object.entries(SKILL_DEFINITIONS) as [
+      SkillDefinitionKey,
+      (typeof SKILL_DEFINITIONS)[SkillDefinitionKey],
+    ][]).map(([key, definition]) => {
+      const attrKey = definition.attr as keyof AbilityScores;
+      const attrValue = currentCharacter.stats[attrKey];
+      const attrMod = Math.floor((attrValue - 10) / 2);
+      const isProficient = Boolean(currentCharacter.skillProficiencies[key]);
       const total = attrMod + (isProficient ? pb : 0);
-      
+
       return {
-        key: key,
-        label: def.label,
-        attr: def.attr.toUpperCase(),
-        mod: total >= 0 ? `+${total}` : `${total}`,
+        key,
+        label: definition.label,
+        attr: definition.attr.toUpperCase() as Uppercase<keyof AbilityScores>,
+        mod: formatModifier(total),
         rawMod: total,
-        profLevel: isProficient
+        profLevel: isProficient,
       };
     });
   });
 
-  // --- 被动觉察 (Passive Perception) ---
-  const passivePerception = computed(() => {
-    const perception = skills.value.find((s) => s.key === 'perception');
-    return 10 + (perception ? perception.rawMod : 0);
+  const passivePerception = computed<number>(() => {
+    const perception = skills.value.find((skill) => skill.key === 'perception');
+    return 10 + (perception?.rawMod ?? 0);
   });
 
-  // --- 升级所需经验值 ---
-  const nextLevelXp = computed(() => {
+  const nextLevelXp = computed<number | null>(() => {
     if (!character.value) return null;
+
     const currentLevel = character.value.profile.level;
     if (currentLevel >= 20) return null;
 
-    const nextStage = XP_TABLE.find(x => x.level === currentLevel + 1);
-    return nextStage ? nextStage.xp : null;
+    const nextStage = XP_TABLE.find((entry) => entry.level === currentLevel + 1);
+    return nextStage?.xp ?? null;
   });
 
-  // 新增：计算当前等级的起始经验值要求，作为进度条计算的基准底数
-  const currentLevelBaseXp = computed(() => {
+  const currentLevelBaseXp = computed<number>(() => {
     if (!character.value) return 0;
+
     const currentLevel = character.value.profile.level;
-    const currentStage = XP_TABLE.find(x => x.level === currentLevel);
-    return currentStage ? currentStage.xp : 0;
+    const currentStage = XP_TABLE.find((entry) => entry.level === currentLevel);
+    return currentStage?.xp ?? 0;
   });
 
-  // ==========================================
-  // 🛠️ Actions (操作方法)
-  // ==========================================
-
-  // 更新 Bio 数据的通用方法
-  const updateBio = (field: keyof import('../../types/Character').CharacterBio, value: string) => {
+  const updateBio = <K extends keyof CharacterBio>(field: K, value: CharacterBio[K]): void => {
     if (!character.value) return;
+
     character.value.bio[field] = value;
     save();
   };
 
-  // 更新角色基础信息 (Profile) 的通用方法
-    const updateProfile = <K extends keyof Character['profile']>(field: K, value: Character['profile'][K]) => {
+  const updateProfile = <K extends keyof Character['profile']>(
+    field: K,
+    value: Character['profile'][K]
+  ): void => {
     if (!character.value) return;
+
     character.value.profile[field] = value;
     save();
   };
 
-  //职业与兼职管理逻辑
-  // 数据清洗与旧存档兼容
-    const ensureClassesFormat = () => {
+  const ensureClassesFormat = (): void => {
     if (!character.value) return;
-    const profile: CharacterProfile = character.value.profile;
 
-    // 阵营历史数据清洗
-    // 如果发现阵营是字符串，尝试使用字典将其转换为数字编码
-    if (typeof profile.alignment === 'string') {
-      const cleanStr = profile.alignment.trim().toLowerCase();
-      const migratedAlignment = ALIGNMENT_MIGRATION_MAP[cleanStr];
-      if (migratedAlignment !== undefined) {
-        profile.alignment = migratedAlignment;
-        save();
-      }
-    }
+    const profile: CharacterProfile = character.value.profile;
+    if (typeof profile.alignment !== 'string') return;
+
+    const cleanAlignment = profile.alignment.trim().toLowerCase();
+    const migratedAlignment = ALIGNMENT_MIGRATION_MAP[cleanAlignment];
+    if (migratedAlignment === undefined) return;
+
+    profile.alignment = migratedAlignment;
+    save();
   };
 
-
-  // 新增兼职
-  const addClassRecord = () => {
+  const addClassRecord = (): void => {
     if (!character.value) return;
+
     ensureClassesFormat();
-    // 新增兼职前的等级容量校验与自动扣减逻辑
     const profile = character.value.profile;
-        const totalAllocated = profile.classes.reduce((sum: number, c: CharacterClassRecord) => sum + (c.level || 1), 0);
+    const totalAllocated = getAllocatedClassLevels(profile.classes);
 
     if (totalAllocated >= profile.level) {
-      // 尝试从主职业扣除 1 级给新兼职
       const mainClass = profile.classes[0];
-      const mainClassLevel = mainClass.level || 1;
+      const mainClassLevel = mainClass.level ?? 1;
 
-      if (mainClassLevel > 1) {
-        mainClass.level = mainClassLevel - 1;
-
-      } else {
+      if (mainClassLevel <= 1) {
         console.warn('角色总等级不足，无法分配新兼职');
-        return; // 阻止添加
+        return;
       }
+
+      mainClass.level = mainClassLevel - 1;
     }
+
     profile.classes.push({ classId: '', subclassId: null, level: 1 });
     save();
   };
 
-  // 移除兼职
-    const removeClassRecord = (index: number) => {
+  const removeClassRecord = (index: number): void => {
     if (!character.value) return;
-    // 强制保留至少一行作为主职
-    if (character.value.profile.classes.length > 1) {
-      character.value.profile.classes.splice(index, 1);
+    if (character.value.profile.classes.length <= 1) return;
 
-      save();
-    }
+    character.value.profile.classes.splice(index, 1);
+    save();
   };
 
-  // 更新具体的职业或子职
-    const updateClassRecord = (index: number, field: 'classId' | 'subclassId', value: string | null) => {
+  const updateClassRecord = (
+    index: number,
+    field: 'classId' | 'subclassId',
+    value: string | null
+  ): void => {
     if (!character.value) return;
-    const record = character.value.profile.classes[index];
 
+    const record = character.value.profile.classes[index];
     if (!record) return;
 
     if (field === 'classId') {
       record.classId = value ?? '';
-      // 核心逻辑：切换职业时，原有子职必须清空，防止出现“法师拥有狂战道途”的数据错乱
       record.subclassId = null;
-    } else if (field === 'subclassId') {
+    } else {
       record.subclassId = value;
     }
+
     save();
   };
 
-  // 更新职业等级
-    const updateClassLevel = (index: number, delta: number) => {
+  const updateClassLevel = (index: number, delta: 1 | -1): void => {
     if (!character.value) return;
-    const profile = character.value.profile;
 
+    const profile = character.value.profile;
     const record = profile.classes[index];
     if (!record) return;
 
-    const totalAllocated = profile.classes.reduce((sum: number, c: CharacterClassRecord) => sum + (c.level || 1), 0);
-    const currentLevel = record.level || 1;
+    const totalAllocated = getAllocatedClassLevels(profile.classes);
+    const currentLevel = record.level ?? 1;
 
     if (delta === 1) {
-      // 向上调节：检查是否有未分配等级 (总和必须小于角色总等级)
       if (totalAllocated < profile.level) {
         record.level = currentLevel + 1;
       }
-    } else if (delta === -1) {
-      // 向下调节：最低不能低于 1 级
-      if (currentLevel > 1) {
-        record.level = currentLevel - 1;
-      }
+    } else if (currentLevel > 1) {
+      record.level = currentLevel - 1;
     }
+
     save();
   };
 
-  // 更新属性 (例如把 strength 改成 18)
-  const updateStat = (statName: keyof Character['stats'], value: number) => {
+  const updateStat = (statName: keyof Character['stats'], value: number): void => {
     if (!character.value) return;
+
     character.value.stats[statName] = value;
     save();
   };
 
-  // 切换技能熟练度
-    const toggleSkill = (skillKey: string) => {
+  const toggleSkill = (skillKey: SkillDefinitionKey): void => {
     if (!character.value) return;
-    const current = !!character.value.skillProficiencies[skillKey];
 
+    const current = Boolean(character.value.skillProficiencies[skillKey]);
     character.value.skillProficiencies[skillKey] = !current;
     save();
   };
 
-  // 切换豁免熟练度
-    const toggleSavingThrow = (attrKey: string) => {
+  const toggleSavingThrow = (attrKey: keyof AbilityScores): void => {
     if (!character.value) return;
-    const key = attrKey as keyof typeof character.value.stats;
 
-    const current = !!character.value.savingThrows[key];
-    character.value.savingThrows[key] = !current;
+    const current = Boolean(character.value.savingThrows[attrKey]);
+    character.value.savingThrows[attrKey] = !current;
     save();
   };
 
-  // 切换固定熟练项 (护甲/武器)
-  const toggleProficiency = (category: 'armor' | 'weapons', key: string) => {
+  const toggleProficiency = (category: FixedProficiencyCategory, key: string): void => {
     if (!character.value) return;
+
     const list = character.value.proficiencies[category];
-    const idx = list.indexOf(key);
-    if (idx > -1) {
-      list.splice(idx, 1);
+    const index = list.indexOf(key);
+    if (index > -1) {
+      list.splice(index, 1);
     } else {
       list.push(key);
     }
+
     save();
   };
 
-  // 添加动态熟练项 (工具/语言)
-    const addProficiencyList = (category: 'tools' | 'languages', val: string) => {
-    if (!character.value || !val.trim()) return;
-    const list = character.value.proficiencies[category];
+  const addProficiencyList = (category: DynamicProficiencyCategory, value: string): void => {
+    if (!character.value) return;
 
-    if (!list.includes(val)) {
-      list.push(val);
+    const trimmedValue = value.trim();
+    if (!trimmedValue) return;
+
+    const list = character.value.proficiencies[category];
+    if (!list.includes(trimmedValue)) {
+      list.push(trimmedValue);
       save();
     }
   };
 
-  // 移除动态熟练项
-  const removeProficiencyList = (category: 'tools' | 'languages', index: number) => {
+  const removeProficiencyList = (category: DynamicProficiencyCategory, index: number): void => {
     if (!character.value) return;
+
     character.value.proficiencies[category].splice(index, 1);
     save();
   };
 
-  // 增加 XP (包含自动升级逻辑)
-  const addExperience = (amount: number) => {
+  const addExperience = (amount: number): void => {
     if (!character.value) return;
 
     character.value.profile.xp += amount;
-    if (character.value.profile.xp < 0) character.value.profile.xp = 0;
+    if (character.value.profile.xp < 0) {
+      character.value.profile.xp = 0;
+    }
 
     let newLevel = 1;
-    for (let i = XP_TABLE.length - 1; i >= 0; i--) {
+    for (let i = XP_TABLE.length - 1; i >= 0; i -= 1) {
       if (character.value.profile.xp >= XP_TABLE[i].xp) {
         newLevel = XP_TABLE[i].level;
         break;
@@ -257,12 +265,13 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     if (character.value.profile.level !== newLevel) {
       character.value.profile.level = newLevel;
     }
+
     save();
   };
 
-  // 重置 XP
-  const resetExperience = () => {
+  const resetExperience = (): void => {
     if (!character.value) return;
+
     character.value.profile.xp = 0;
     character.value.profile.level = 1;
     save();
@@ -288,6 +297,6 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     addProficiencyList,
     removeProficiencyList,
     addExperience,
-    resetExperience
+    resetExperience,
   };
 }

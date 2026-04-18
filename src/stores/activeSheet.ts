@@ -5,6 +5,11 @@ import { useCharacterStore } from './characterStore';
 import type { Character } from '../types/Character';
 import type { InventoryItem } from '../types/Item';
 
+interface ActiveSheetUiState {
+  isSpellbookOpen: boolean;
+}
+
+
 // 引入拆分后的领域逻辑模块
 import { useBioLogic } from './sheet/useBioLogic';
 import { useCombatLogic } from './sheet/useCombatLogic';
@@ -16,35 +21,35 @@ export const useActiveSheetStore = defineStore('activeSheet', () => {
   // ==========================================
   // 1. 核心状态 (Core State)
   // ==========================================
-  const character = ref<Character | null>(null);
+    const character = ref<Character | null>(null);
   const trash = ref<InventoryItem[]>([]);
-  const ui = reactive({
+  const ui = reactive<ActiveSheetUiState>({
     isSpellbookOpen: false,
   });
+  const charStore = useCharacterStore();
+
 
   // ==========================================
   // 2. 基础控制方法 (Base Actions)
   // ==========================================
-  const save = () => {
-    if (character.value) {
-      character.value.lastModified = Date.now();
-      const charStore = useCharacterStore();
-      charStore.saveCharacterData(character.value);
-    }
+    const save = (): void => {
+    if (!character.value) return;
+
+    character.value.lastModified = Date.now();
+    charStore.saveCharacterData(character.value);
   };
 
-  const toggleSpellbook = (isOpen: boolean) => {
+  const toggleSpellbook = (isOpen: boolean): void => {
     ui.isSpellbookOpen = isOpen;
   };
 
-  const loadCharacter = (id: string) => {
-    const charStore = useCharacterStore();
+  const loadCharacter = (id: string): void => {
     const data = charStore.getCharacterData(id);
-    
-        if (data) {
-      character.value = normalizeCharacterData(data);
-    }
+    if (!data) return;
+
+    character.value = normalizeCharacterData(data);
   };
+
 
   // ==========================================
   // 3. 依赖注入与模块挂载 (Composables Integration)

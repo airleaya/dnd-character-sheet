@@ -1,27 +1,42 @@
 import { computed } from 'vue';
 import type { Ref } from 'vue';
-import type { Character } from '../../types/Character';
-import type { InventoryItem } from '../../types/Item';
+import type { Character, Wallet } from '../../types/Character';
+import type { ContainerData, InventoryItem } from '../../types/Item';
+import type { CurrencyUnit } from '../../types/Library';
 import { createItemFromLibrary } from '../../utils/itemFactory';
 import { CURRENCY_RATES } from '../../data/rules/currency';
 import { PACK_LIBRARY } from '../../data/libraries/packs';
 
-const ignoresContentWeight = (item: InventoryItem) => 'ignoreContentWeight' in item.data && item.data.ignoreContentWeight === true;
+const STACKABLE_ITEM_IDS = new Set(['arrows', 'bolts', 'dart']);
+const AMMO_BUNDLE_QUANTITY = 20;
 
-// 纯函数：递归计算重量
+type ContainerInventoryItem = InventoryItem & { data: ContainerData };
+
+const isContainerItem = (item: InventoryItem): item is ContainerInventoryItem => {
+  return item.type === 'container';
+};
+
+const ignoresContentWeight = (item: InventoryItem): boolean => {
+  return isContainerItem(item) && item.data.ignoreContentWeight === true;
+};
+
 function computeItemWeightRecursive(item: InventoryItem, allItems: InventoryItem[]): number {
-  const itemWeight = item.weight ?? 0;
-  const itemQuantity = item.quantity ?? 1;
-  const weight = itemWeight * itemQuantity;
-  if (item.type === 'container') {
-    if (ignoresContentWeight(item)) return weight;
-    const children = allItems.filter(child => child.parentId === item.instanceId);
-    const childrenWeight = children.reduce((acc, child) => {
-      return acc + computeItemWeightRecursive(child, allItems);
-    }, 0);
-    return weight + childrenWeight;
+  const weight = (item.weight ?? 0) * (item.quantity ?? 1);
+
+  if (!isContainerItem(item)) {
+    return weight;
   }
-  return weight;
+
+  if (ignoresContentWeight(item)) {
+    return weight;
+  }
+
+  const children = allItems.filter((child) => child.parentId === item.instanceId);
+  const childrenWeight = children.reduce((acc, child) => {
+    return acc + computeItemWeightRecursive(child, allItems);
+  }, 0);
+
+  return weight + childrenWeight;
 }
 
 export function useInventoryLogic(
@@ -29,63 +44,60 @@ export function useInventoryLogic(
   trash: Ref<InventoryItem[]>,
   save: () => void
 ) {
-  // ==========================================
-  // 🧠 Getters (计算属性)
-  // ==========================================
-
-  const totalInventoryWeight = computed(() => {
+  const totalInventoryWeight = computed<number>(() => {
     if (!character.value) return 0;
+
     const inventory = character.value.inventory;
-    const roots = inventory.filter(i => !i.parentId);
+    const roots = inventory.filter((item) => !item.parentId);
     const total = roots.reduce((sum, item) => {
       return sum + computeItemWeightRecursive(item, inventory);
     }, 0);
+
     return parseFloat(total.toFixed(2));
   });
 
-  const totalWeight = computed(() => totalInventoryWeight.value);
+  const totalWeight = computed<number>(() => totalInventoryWeight.value);
 
-    const getItemWeight = computed(() => (item: InventoryItem): number => {
-    if (!character.value) return 0;
-    const val = computeItemWeightRecursive(item, character.value.inventory);
-    return parseFloat(val.toFixed(2));
+  const getItemWeight = computed<(item: InventoryItem) => number>(() => {
+    return (item: InventoryItem): number => {
+      if (!character.value) return 0;
+
+      const value = computeItemWeightRecursive(item, character.value.inventory);
+      return parseFloat(value.toFixed(2));
+    };
   });
 
-  const carryingCapacity = computed(() => {
+  const carryingCapacity = computed<number>(() => {
     if (!character.value) return 0;
     return character.value.stats.str * 15;
   });
 
-  const rootInventory = computed(() => {
+  const rootInventory = computed<InventoryItem[]>(() => {
     if (!character.value) return [];
-    return character.value.inventory.filter(i => !i.parentId);
+    return character.value.inventory.filter((item) => !item.parentId);
   });
 
-  const getContainerContents = computed(() => (containerId: string) => {
-    if (!character.value) return [];
-    return character.value.inventory.filter(i => i.parentId === containerId);
+  const getContainerContents = computed<(containerId: string) => InventoryItem[]>(() => {
+    return (containerId: string): InventoryItem[] => {
+      if (!character.value) return [];
+      return character.value.inventory.filter((item) => item.parentId === containerId);
+    };
   });
 
-  // ==========================================
-  // 🛠️ Actions - 经济系统 (Wallet)
-  // ==========================================
-
-    const initWalletIfMissing = () => {
+  const initWalletIfMissing = (): void => {
     // 钱包字段已由 migration 统一补齐，此处保留空实现以兼容现有调用。
   };
 
-
-  const modifyCurrency = (type: keyof typeof CURRENCY_RATES, amount: number): boolean => {
+  const modifyCurrency = (type: CurrencyUnit, amount: number): boolean => {
     if (!character.value) return false;
-        const wallet = character.value.wallet;
 
-
-    let highPoolPP = wallet.pp; 
-    let lowPoolCP = 
-      (wallet.gp * CURRENCY_RATES.gp) +
-      (wallet.ep * CURRENCY_RATES.ep) +
-      (wallet.sp * CURRENCY_RATES.sp) +
-      (wallet.cp * CURRENCY_RATES.cp);
+    const wallet = character.value.wallet;
+    let highPoolPP = wallet.pp;
+    let lowPoolCP =
+      wallet.gp * CURRENCY_RATES.gp +
+      wallet.ep * CURRENCY_RATES.ep +
+      wallet.sp * CURRENCY_RATES.sp +
+      wallet.cp * CURRENCY_RATES.cp;
 
     if (type === 'pp') {
       highPoolPP += amount;
@@ -94,59 +106,54 @@ export function useInventoryLogic(
     }
 
     while (lowPoolCP < 0) {
-      if (highPoolPP > 0) {
-        highPoolPP -= 1;
-        lowPoolCP += CURRENCY_RATES.pp;
-      } else {
-        break;
-      }
+      if (highPoolPP <= 0) break;
+      highPoolPP -= 1;
+      lowPoolCP += CURRENCY_RATES.pp;
     }
 
     while (highPoolPP < 0) {
-      const cost = CURRENCY_RATES.pp;
-      if (lowPoolCP >= cost) {
-        lowPoolCP -= cost;
-        highPoolPP += 1;
-      } else {
-        break;
-      }
+      if (lowPoolCP < CURRENCY_RATES.pp) break;
+      lowPoolCP -= CURRENCY_RATES.pp;
+      highPoolPP += 1;
     }
 
-    if (lowPoolCP < 0 || highPoolPP < 0) return false;
+    if (lowPoolCP < 0 || highPoolPP < 0) {
+      return false;
+    }
 
-    wallet.pp = highPoolPP;
+    const nextWallet: Wallet = {
+      pp: highPoolPP,
+      gp: 0,
+      ep: 0,
+      sp: 0,
+      cp: 0,
+    };
+
     let remaining = lowPoolCP;
-
-    wallet.gp = Math.floor(remaining / CURRENCY_RATES.gp);
+    nextWallet.gp = Math.floor(remaining / CURRENCY_RATES.gp);
     remaining %= CURRENCY_RATES.gp;
-    wallet.ep = 0; 
-    wallet.sp = Math.floor(remaining / CURRENCY_RATES.sp);
+    nextWallet.sp = Math.floor(remaining / CURRENCY_RATES.sp);
     remaining %= CURRENCY_RATES.sp;
-    wallet.cp = remaining;
+    nextWallet.cp = remaining;
 
+    character.value.wallet = nextWallet;
     save();
     return true;
   };
 
-    const updateWallet = (type: 'cp' | 'sp' | 'ep' | 'gp' | 'pp', value: number) => {
+  const updateWallet = (type: CurrencyUnit, value: number): void => {
     if (!character.value) return;
-    character.value.wallet[type] = value;
 
+    character.value.wallet[type] = value;
     save();
   };
 
-  // ==========================================
-  // 📦 Actions - 物品系统 (Inventory)
-  // ==========================================
-
-  const _createNewItem = (libraryId: string, quantity: number, parentId?: string, index?: number) => {
+  const createNewItem = (libraryId: string, quantity: number, parentId?: string, index?: number): void => {
     const newItem = createItemFromLibrary(libraryId);
-    if (!newItem) return;
+    if (!newItem || !character.value) return;
 
     newItem.quantity = quantity;
     newItem.parentId = parentId;
-
-        if (!character.value) return;
 
     if (typeof index === 'number') {
       character.value.inventory.splice(index, 0, newItem);
@@ -157,70 +164,69 @@ export function useInventoryLogic(
     save();
   };
 
-  const _addOrMerge = (libraryId: string, quantity: number, targetParentId?: string) => {
+  const addOrMerge = (libraryId: string, quantity: number, targetParentId?: string): void => {
     if (!character.value) return;
 
-    const STACKABLE_IDS = ['arrows', 'bolts', 'dart'];
-    const canStack = STACKABLE_IDS.includes(libraryId);
-
+    const canStack = STACKABLE_ITEM_IDS.has(libraryId);
     if (!canStack) {
-      _createNewItem(libraryId, quantity, targetParentId);
+      createNewItem(libraryId, quantity, targetParentId);
       return;
     }
 
     const existingItem = character.value.inventory.find(
-      i => i.templateId === libraryId && i.parentId === targetParentId
+      (item) => item.templateId === libraryId && item.parentId === targetParentId
     );
 
-    if (existingItem) {
-      existingItem.quantity += quantity;
-      save();
-    } else {
-      _createNewItem(libraryId, quantity, targetParentId);
+    if (!existingItem) {
+      createNewItem(libraryId, quantity, targetParentId);
+      return;
     }
+
+    existingItem.quantity += quantity;
+    save();
   };
 
-  const _addPack = (packId: string, index?: number, parentId?: string) => {
-    const packDef = PACK_LIBRARY.find(p => p.id === packId);
-    if (!packDef) return;
+  const addPack = (packId: string, index?: number, parentId?: string): void => {
+    const packDefinition = PACK_LIBRARY.find((pack) => pack.id === packId);
+    if (!packDefinition || !character.value) return;
 
     let targetContainerId = parentId;
 
-    if (packDef.containerId) {
-      const containerItem = createItemFromLibrary(packDef.containerId);
+    if (packDefinition.containerId) {
+      const containerItem = createItemFromLibrary(packDefinition.containerId);
       if (containerItem) {
         containerItem.parentId = parentId;
-                if (!character.value) return;
+
         if (typeof index === 'number') {
           character.value.inventory.splice(index, 0, containerItem);
         } else {
           character.value.inventory.push(containerItem);
         }
 
-        targetContainerId = containerItem.instanceId; 
+        targetContainerId = containerItem.instanceId;
       }
     }
 
-    packDef.contents.forEach(content => {
-      _addOrMerge(content.id, content.quantity, targetContainerId);
+    packDefinition.contents.forEach((content) => {
+      addOrMerge(content.id, content.quantity, targetContainerId);
     });
+
     save();
   };
 
-  const addItem = (libraryId: string, index?: number, parentId?: string) => {
+  const addItem = (libraryId: string, index?: number, parentId?: string): void => {
     if (!character.value) return;
 
-    if (PACK_LIBRARY.some(p => p.id === libraryId)) {
-      _addPack(libraryId, index, parentId);
+    if (PACK_LIBRARY.some((pack) => pack.id === libraryId)) {
+      addPack(libraryId, index, parentId);
       return;
     }
 
     if (libraryId === 'arrows' || libraryId === 'bolts') {
-      const AMMO_BUNDLE_QTY = 20;
       let targetContainerId = parentId;
-      
+
       if (!targetContainerId) {
-        const existingQuiver = character.value.inventory.find(i => i.templateId === 'quiver');
+        const existingQuiver = character.value.inventory.find((item) => item.templateId === 'quiver');
         if (existingQuiver) {
           targetContainerId = existingQuiver.instanceId;
         } else {
@@ -231,106 +237,114 @@ export function useInventoryLogic(
           }
         }
       }
-      _addOrMerge(libraryId, AMMO_BUNDLE_QTY, targetContainerId);
+
+      addOrMerge(libraryId, AMMO_BUNDLE_QUANTITY, targetContainerId);
       return;
     }
 
-    if (libraryId === 'dart') {
-      if (typeof index === 'undefined') {
-         _addOrMerge(libraryId, 1, parentId);
-         return;
-      }
+    if (libraryId === 'dart' && typeof index === 'undefined') {
+      addOrMerge(libraryId, 1, parentId);
+      return;
     }
 
-    _addOrMerge(libraryId, 1, parentId);
+    addOrMerge(libraryId, 1, parentId);
   };
 
-  const removeItem = (instanceId: string) => {
+  const removeItem = (instanceId: string): void => {
     if (!character.value) return;
-    character.value.inventory = character.value.inventory.filter(i => i.instanceId !== instanceId);
-    character.value.equippedIds = character.value.equippedIds.filter(id => id !== instanceId);
+
+    character.value.inventory = character.value.inventory.filter((item) => item.instanceId !== instanceId);
+    character.value.equippedIds = character.value.equippedIds.filter((id) => id !== instanceId);
     save();
   };
 
-  const moveItemToTrash = (instanceId: string) => {
+  const moveItemToTrash = (instanceId: string): void => {
     if (!character.value) return;
-    const item = character.value.inventory.find(i => i.instanceId === instanceId);
-    if (item) {
-      trash.value.push(item);
-      removeItem(instanceId);
-    }
+
+    const item = character.value.inventory.find((entry) => entry.instanceId === instanceId);
+    if (!item) return;
+
+    trash.value.push(item);
+    removeItem(instanceId);
   };
 
-  const emptyTrash = () => {
+  const emptyTrash = (): void => {
     trash.value = [];
   };
 
-  const updateInventoryItem = (newItem: InventoryItem) => {
+  const updateInventoryItem = (newItem: InventoryItem): void => {
     if (!character.value) return;
-    const index = character.value.inventory.findIndex(i => i.instanceId === newItem.instanceId);
-    if (index > -1) {
-      character.value.inventory[index] = newItem;
-      save();
-    }
+
+    const index = character.value.inventory.findIndex((item) => item.instanceId === newItem.instanceId);
+    if (index < 0) return;
+
+    character.value.inventory[index] = newItem;
+    save();
   };
 
-  const updateEquippedList = (newIds: string[]) => {
+  const updateEquippedList = (newIds: string[]): void => {
     if (!character.value) return;
+
     character.value.equippedIds = [...new Set(newIds)];
     save();
   };
 
-  const updateItemQuantity = (instanceId: string, delta: number) => {
+  const updateItemQuantity = (instanceId: string, delta: number): void => {
     if (!character.value) return;
-    const item = character.value.inventory.find(i => i.instanceId === instanceId);
-    if (item) {
-      const newQty = item.quantity + delta;
-      if (newQty < 1) return;
-      item.quantity = newQty;
-      save();
-    }
+
+    const item = character.value.inventory.find((entry) => entry.instanceId === instanceId);
+    if (!item) return;
+
+    const newQuantity = item.quantity + delta;
+    if (newQuantity < 1) return;
+
+    item.quantity = newQuantity;
+    save();
   };
 
-  // --- 移动与排序 ---
-    const _reinsertItem = (item: InventoryItem, index?: number) => {
+  const reinsertItem = (item: InventoryItem, index?: number): void => {
     if (!character.value) return;
+
     const oldIndex = character.value.inventory.indexOf(item);
     if (oldIndex > -1) {
       character.value.inventory.splice(oldIndex, 1);
     }
+
     const targetIndex = typeof index === 'number' ? index : character.value.inventory.length;
     const finalIndex = oldIndex > -1 && oldIndex < targetIndex ? targetIndex - 1 : targetIndex;
     character.value.inventory.splice(finalIndex, 0, item);
   };
 
-  const moveItemToContainer = (itemId: string, containerId: string, targetIndex?: number) => {
-    if (!character.value) return;
-    if (itemId === containerId) return;
-    const item = character.value.inventory.find(i => i.instanceId === itemId);
-    if (item) {
-      item.parentId = containerId;
-      _reinsertItem(item, targetIndex);
-      save();
-    }
+  const moveItemToContainer = (itemId: string, containerId: string, targetIndex?: number): void => {
+    if (!character.value || itemId === containerId) return;
+
+    const item = character.value.inventory.find((entry) => entry.instanceId === itemId);
+    if (!item) return;
+
+    item.parentId = containerId;
+    reinsertItem(item, targetIndex);
+    save();
   };
 
-  const moveItemToRoot = (itemId: string, targetIndex?: number) => {
+  const moveItemToRoot = (itemId: string, targetIndex?: number): void => {
     if (!character.value) return;
-    const item = character.value.inventory.find(i => i.instanceId === itemId);
-    if (item) {
-      item.parentId = undefined;
-      _reinsertItem(item, targetIndex);
-      save();
-    }
+
+    const item = character.value.inventory.find((entry) => entry.instanceId === itemId);
+    if (!item) return;
+
+    item.parentId = undefined;
+    reinsertItem(item, targetIndex);
+    save();
   };
 
-  const reorderItem = (itemId: string, targetIndex: number) => {
+  const reorderItem = (itemId: string, targetIndex: number): void => {
     if (!character.value) return;
-    const item = character.value.inventory.find(i => i.instanceId === itemId);
-    if (item) {
-      _reinsertItem(item, targetIndex);
-      save();
-    }
+
+    const item = character.value.inventory.find((entry) => entry.instanceId === itemId);
+    if (!item) return;
+
+    reinsertItem(item, targetIndex);
+    save();
   };
 
   return {
@@ -352,6 +366,6 @@ export function useInventoryLogic(
     updateItemQuantity,
     moveItemToContainer,
     moveItemToRoot,
-    reorderItem
+    reorderItem,
   };
 }

@@ -6,6 +6,9 @@ import type { AbilityKey } from '../../types/Library';
 import type { SpellDefinition } from '../../types/Spell';
 
 type SpellSlots = Character['spells']['slots'];
+type SpellSource = 'primary' | 'secondary';
+type SpellConfigPath = 'ability';
+
 
 // 定义法术分组的接口
 export interface SpellGroup {
@@ -18,29 +21,44 @@ export interface SpellGroup {
   } | null;
 }
 
+const isDefinedSpell = (spell: SpellDefinition | undefined): spell is SpellDefinition => {
+  return !!spell;
+};
+
+const getSpellsByIds = (spellIds: string[]): SpellDefinition[] => {
+  return spellIds
+    .map((id) => SPELL_LIBRARY.find((spell) => spell.id === id))
+    .filter(isDefinedSpell);
+};
+
 // 纯函数：分组逻辑
 function groupSpellsByLevel(spells: SpellDefinition[], slots: SpellSlots): SpellGroup[] {
   const groups: SpellGroup[] = [];
-  // 0环
-  const cantrips = spells.filter(s => s.level === 0);
+  const cantrips = spells.filter((spell) => spell.level === 0);
+
   if (cantrips.length > 0) {
     groups.push({ level: 0, label: '🔮 戏法', spells: cantrips, slots: null });
   }
-  // 1-9环
-  for (let i = 1; i <= 9; i++) {
-    const levelSpells = spells.filter(s => s.level === i);
-    const maxSlots = slots.max[i] || 0;
-    if (levelSpells.length > 0 || maxSlots > 0) {
-      groups.push({
-        level: i,
-        label: `${i} 环法术`,
-        spells: levelSpells,
-        slots: { current: slots.current[i] || 0, max: maxSlots }
-      });
-    }
+
+  for (let level = 1; level <= 9; level += 1) {
+    const levelSpells = spells.filter((spell) => spell.level === level);
+    const maxSlots = slots.max[level] ?? 0;
+    if (levelSpells.length === 0 && maxSlots === 0) continue;
+
+    groups.push({
+      level,
+      label: `${level} 环法术`,
+      spells: levelSpells,
+      slots: {
+        current: slots.current[level] ?? 0,
+        max: maxSlots,
+      },
+    });
   }
+
   return groups;
 }
+
 
 export function useSpellLogic(
   character: Ref<Character | null>,
@@ -52,12 +70,11 @@ export function useSpellLogic(
   // ==========================================
 
   // 获取所有已学会的法术 (映射对象)
-  const allKnownSpells = computed<SpellDefinition[]>(() => {
+    const allKnownSpells = computed<SpellDefinition[]>(() => {
     if (!character.value) return [];
-    return character.value.spells.known
-      .map(id => SPELL_LIBRARY.find(s => s.id === id))
-      .filter(s => !!s) as SpellDefinition[];
+    return getSpellsByIds(character.value.spells.known);
   });
+
 
   const spellbookGroups = computed<SpellGroup[]>(() => {
     if (!character.value) return [];
@@ -65,18 +82,18 @@ export function useSpellLogic(
   });
 
   // 获取战斗视图法术 (仅已准备 + 戏法)
-  const battleSpells = computed<SpellDefinition[]>(() => {
+    const battleSpells = computed<SpellDefinition[]>(() => {
     if (!character.value) return [];
-    const { known, prepared } = character.value.spells;
-    const knownObjs = known
-      .map(id => SPELL_LIBRARY.find(s => s.id === id))
-      .filter(s => !!s) as SpellDefinition[];
 
-    return knownObjs.filter(s => {
-      if (s.level === 0) return true; // 戏法总是可见
-      return prepared.includes(s.id); // 其他必须已准备
+    const { known, prepared } = character.value.spells;
+    const knownSpells = getSpellsByIds(known);
+
+    return knownSpells.filter((spell) => {
+      if (spell.level === 0) return true;
+      return prepared.includes(spell.id);
     });
   });
+
 
   const battleGroups = computed<SpellGroup[]>(() => {
     if (!character.value) return [];
@@ -118,14 +135,14 @@ export function useSpellLogic(
   });
 
   // 获取“已准备/已知”的法术列表合集
-  const mySpells = computed<SpellDefinition[]>(() => {
+    const mySpells = computed<SpellDefinition[]>(() => {
     if (!character.value) return [];
+
     const { known, prepared } = character.value.spells;
     const allIds = Array.from(new Set([...known, ...prepared]));
-    return allIds
-      .map(id => SPELL_LIBRARY.find(s => s.id === id))
-      .filter(s => !!s) as SpellDefinition[];
+    return getSpellsByIds(allIds);
   });
+
 
   // 分组显示的法术书 (核心 Getter)
   const groupedSpells = computed<SpellGroup[]>(() => {
@@ -137,19 +154,19 @@ export function useSpellLogic(
   // 🛠️ Actions (操作方法)
   // ==========================================
 
-  const learnSpell = (spellId: string, source: 'primary' | 'secondary' = 'primary'): boolean => {
+    const learnSpell = (spellId: string, source: SpellSource = 'primary'): boolean => {
     if (!character.value) return false;
-        if (!character.value.spells.known.includes(spellId)) {
-      character.value.spells.known.push(spellId);
-      character.value.spells.spellSources[spellId] = source;
+    if (character.value.spells.known.includes(spellId)) return false;
 
-      save();
-      return true;
-    }
-    return false;
+    character.value.spells.known.push(spellId);
+    character.value.spells.spellSources[spellId] = source;
+    save();
+    return true;
   };
 
-  const togglePreparedSpell = (spellId: string) => {
+
+    const togglePreparedSpell = (spellId: string): void => {
+
     if (!character.value) return;
     const list = character.value.spells.prepared;
     const idx = list.indexOf(spellId);
@@ -161,56 +178,59 @@ export function useSpellLogic(
     save();
   };
 
-  const forgetSpell = (spellId: string) => {
+    const forgetSpell = (spellId: string): void => {
     if (!character.value) return;
-    character.value.spells.known = character.value.spells.known.filter(id => id !== spellId);
+
+    character.value.spells.known = character.value.spells.known.filter((id) => id !== spellId);
+    character.value.spells.prepared = character.value.spells.prepared.filter((id) => id !== spellId);
+    delete character.value.spells.spellSources[spellId];
+    save();
+  };
+
+
+    const unprepareSpell = (spellId: string): void => {
+
+    if (!character.value) return;
     character.value.spells.prepared = character.value.spells.prepared.filter(id => id !== spellId);
     save();
   };
 
-  const unprepareSpell = (spellId: string) => {
+    const updateSpellSlot = (level: number, newValue: number): void => {
     if (!character.value) return;
-    character.value.spells.prepared = character.value.spells.prepared.filter(id => id !== spellId);
+
+    const maxValue = character.value.spells.slots.max[level] ?? 0;
+    const safeValue = Math.max(0, Math.min(newValue, maxValue));
+    character.value.spells.slots.current[level] = safeValue;
     save();
   };
 
-  const updateSpellSlot = (level: number, newVal: number) => {
-    if (!character.value) return;
-    if (newVal < 0) newVal = 0;
-    if (newVal > character.value.spells.slots.max[level]) {
-      newVal = character.value.spells.slots.max[level];
-    }
-    character.value.spells.slots.current[level] = newVal;
-    save();
-  };
 
-  const updateSpellSlotMax = (level: number, newMax: number) => {
+    const updateSpellSlotMax = (level: number, newMax: number): void => {
     if (!character.value) return;
-    if (newMax < 0) newMax = 0;
-    if (newMax > 99) newMax = 99;
-    character.value.spells.slots.max[level] = newMax;
-    if (character.value.spells.slots.current[level] > newMax) {
-      character.value.spells.slots.current[level] = newMax;
+
+    const safeMax = Math.max(0, Math.min(newMax, 99));
+    character.value.spells.slots.max[level] = safeMax;
+    if (character.value.spells.slots.current[level] > safeMax) {
+      character.value.spells.slots.current[level] = safeMax;
     }
     save();
   };
 
-    const updatePactSlot = (newVal: number) => {
-    if (!character.value) return;
-    const pact = character.value.spells.pactSlots;
 
-    if (newVal < 0) newVal = 0;
-    if (newVal > pact.max) newVal = pact.max;
-    pact.current = newVal;
+      const updatePactSlot = (newValue: number): void => {
+    if (!character.value) return;
+
+    const pact = character.value.spells.pactSlots;
+    pact.current = Math.max(0, Math.min(newValue, pact.max));
     save();
   };
 
-    const updatePactSlotMax = (newMax: number, newLevel?: number) => {
-    if (!character.value) return;
-    const pact = character.value.spells.pactSlots;
 
-    if (newMax < 0) newMax = 0;
-    pact.max = newMax;
+      const updatePactSlotMax = (newMax: number, newLevel?: number): void => {
+    if (!character.value) return;
+
+    const pact = character.value.spells.pactSlots;
+    pact.max = Math.max(0, newMax);
     if (newLevel !== undefined) {
       pact.level = newLevel;
     }
@@ -220,7 +240,9 @@ export function useSpellLogic(
     save();
   };
 
-  const recoverAllSlots = () => {
+
+    const recoverAllSlots = (): void => {
+
     if (!character.value) return;
     const slots = character.value.spells.slots;
     for (let i = 1; i < slots.max.length; i++) {
@@ -229,13 +251,15 @@ export function useSpellLogic(
     save();
   };
 
-    const updateSpellConfig = (path: string, value: string) => {
+      const updateSpellConfig = (path: SpellConfigPath, value: AbilityKey): void => {
     if (!character.value) return;
+
     if (path === 'ability') {
-      character.value.spells.spellcastingAbility = value as AbilityKey;
+      character.value.spells.spellcastingAbility = value;
       save();
     }
   };
+
 
   return {
     allKnownSpells,
@@ -259,6 +283,6 @@ export function useSpellLogic(
     updatePactSlot,
     updatePactSlotMax,
     recoverAllSlots,
-    updateSpellConfig
+        updateSpellConfig,
   };
 }
