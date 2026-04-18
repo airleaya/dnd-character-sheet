@@ -5,7 +5,7 @@
 > - `TODOLIST.md` 关注：**还要做什么**
 > - `UPDATE_LOG.md` 关注：**已经做了什么**
 
-当前基线版本：`0.11.6-phase.2`
+当前基线版本：`0.11.6`
 默认记录人：**雪荔枝**
 
 ---
@@ -29,6 +29,34 @@
 ---
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
+
+### [0.11.6] - 2026-04-18
+- 类型：Refactor / Test / Verification
+- 条目：完成代码健康计划 Phase 6，建立最小测试与存档回归保护
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `vite.config.js`
+  - `tsconfig.json`
+  - `tests/characterMigration.test.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/useInventoryLogic.test.ts`
+  - `tests/useSpellLogic.test.ts`
+  - `tests/characterStore.test.ts`
+- 说明：
+  - 已将 Phase 6 的测试基座、纯逻辑回归测试与关键存档流程测试正式收口，稳定版版本号回收为 `0.11.6`
+  - 已确认迁移、战斗、背包、法术、存档五类高风险逻辑全部纳入本次正式迭代的回归保护范围
+  - 已同步更新计划文档与更新日志，使当前稳定基线、阶段状态与下一阶段起点保持一致
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+  - 当前测试基线为 5 个测试文件、16 个测试全部通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 6
 
 ### [0.11.6-phase.2] - 2026-04-18
 - 类型：Refactor / Test / Persistence
