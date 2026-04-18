@@ -302,9 +302,9 @@ npm run build
 - 项目已完成 Phase 3，并已正式进入 **Phase 4**
 - 项目已完成 **Phase 4**，并已正式进入 **Phase 5**
 - 项目已完成 **Phase 5**，稳定结项版本为 **`0.11.5`**
-- 项目已完成 **Phase 6**，当前稳定基线版本为 **`0.11.6`**
-- 下一阶段如继续推进新一轮治理，应从 **`0.11.7-phase.0`** 开始
-- 当前阶段成果已覆盖最小测试基座、纯逻辑回归保护与关键存档流程验证
+- 项目已完成 **Phase 6**，稳定结项版本为 **`0.11.6`**
+- 项目已完成 **Phase 7**，稳定结项版本为 **`0.11.7`**
+- 当前阶段先让测试真正进入持续集成，再补 Electron / IPC 与更贴近真实链路的集成验证
 - 后续需同步更新：
   - `package.json`
   - `package-lock.json`
@@ -874,6 +874,68 @@ npm run build
 - 当前交付状态以 `npm run test`、`npm run typecheck`、`npm run lint`、`npm run build` 作为 Phase 6 正式验收链路
 
 ---
+
+### Phase 7：集成验证与测试工程化
+
+目标：**把已有测试真正接进工程链路，并继续压实 Electron 边界契约**
+
+阶段版本：**`0.11.7.y`**
+当前状态：**已完成（结项版本：`0.11.7`）**
+
+当前执行策略：**先接 CI，再补边界，最后看是否需要更高层集成验证**
+
+#### 任务 7.1 将测试接入 CI
+- [x] 让 GitHub Actions 正式执行 `npm run test`
+- [x] 保持 `test / typecheck / lint / build` 成为同一条持续验收链
+
+关联文件：
+- `.github/workflows/ci.yml`
+- `package.json`
+
+验收标准：
+- 现有测试不会只停留在本地命令层
+- push / PR 时可以自动阻断明显回归
+
+完成说明（当前进展）：
+- 已在 GitHub Actions 中补入 `npm run test`
+- 当前持续验收链路已收敛为 `npm ci -> npm run typecheck -> npm run lint -> npm run test -> npm run build`
+
+#### 任务 7.2 补 Electron / IPC 边界验证
+- [x] 为 `storageService` 失败分支与 Electron API 返回结构补测试
+- [x] 验证主进程 / preload / renderer 之间的契约边界
+
+建议涉及文件：
+- `src/services/storageService.ts`
+- `src/types/electron.ts`
+- `electron/preload.ts`
+- `electron/main.ts`
+
+验收标准：
+- 失败分支与边界契约不再只靠人工回归
+- IPC 返回结构变化能被测试及时发现
+
+完成说明（当前进展）：
+- 已补上 `storageService` 的成功/失败分支测试，覆盖缺失 `electronAPI`、`load/save/delete` 失败返回等关键异常路径
+- 已补上 `preload` 暴露契约测试，验证 `contextBridge.exposeInMainWorld` 暴露对象与 `ipcRenderer.invoke / on`、`webFrame.setZoomFactor` 的转发行为保持一致
+
+#### 任务 7.3 补最小集成级回归
+- [x] 创建角色 -> 保存 -> 重载 -> 删除 的端到端式 store 链路验证
+- [x] 评估并补一个更接近桌面端的最小 smoke / UI 验证
+
+验收标准：
+- 关键主链路具备比单模块测试更贴近真实使用方式的保护
+- 后续决定是否需要 UI / E2E 时有清晰基线
+
+完成说明（当前进展）：
+- 已补上 `characterStore + activeSheet` 的最小集成级回归测试，覆盖创建角色、加载编辑、保存、重载、删除的完整 store 链路
+- 已补上 `GlobalFeedback` 的最小 UI smoke 测试，覆盖确认框渲染、主按钮确认、`Escape` 取消与 toast 自动消失
+- 已补上 `App` 根壳级只读 smoke 测试，覆盖初始化触发、空态 / 已加载态壳子切换与法术书根层挂载边界
+- 当前这轮验证仍刻意保持轻量，只借助 `@vue/test-utils + jsdom` 建立 UI 层基线，不引入更重的整页自动化或 E2E 成本
+
+**Phase 7 明确成果**：
+- 已将测试正式接入持续集成，并把 `test / typecheck / lint / build` 收敛为同一条工程验收链路
+- 已为 Electron / IPC 边界、store 集成链路、全局反馈层与 `App` 根壳补上更高层的回归保护，当前共形成 10 组测试文件与 30 条测试用例
+- 当前交付状态以 `npm run test`、`npm run typecheck`、`npm run lint`、`npm run build` 作为 Phase 7 正式验收链路
 
 ## 7. 推荐优先级排序
 

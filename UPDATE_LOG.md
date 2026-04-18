@@ -5,7 +5,7 @@
 > - `TODOLIST.md` 关注：**还要做什么**
 > - `UPDATE_LOG.md` 关注：**已经做了什么**
 
-当前基线版本：`0.11.6`
+当前基线版本：`0.11.7`
 默认记录人：**雪荔枝**
 
 ---
@@ -29,6 +29,132 @@
 ---
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
+
+### [0.11.7] - 2026-04-18
+- 类型：Refactor / Release / Verification
+- 条目：完成 Phase 7，正式收口集成验证与测试工程化迭代
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `.github/workflows/ci.yml`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `tests/preload.test.ts`
+  - `tests/storageService.test.ts`
+  - `tests/activeSheet.integration.test.ts`
+  - `tests/globalFeedback.ui.test.ts`
+  - `tests/appRoot.smoke.test.ts`
+- 说明：
+  - 已将 Phase 7 的 CI 接入、Electron / IPC 边界验证、store 集成级回归、最小 UI smoke 与 App 根壳 smoke 一并正式收口到稳定版本 `0.11.7`
+  - 当前测试体系已从纯逻辑与持久化保护，扩展到更接近桌面应用主链路的 renderer / UI 装配层验证，同时继续保持轻量，不引入更重的 E2E 自动化成本
+  - 已同步回收阶段版本号、计划文档与更新日志，使当前稳定基线、阶段状态与验收口径重新保持一致
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+  - 当前测试基线为 10 个测试文件、30 个测试全部通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 7
+
+### [0.11.7-phase.4] - 2026-04-18
+- 类型：Refactor / Test / Smoke
+- 条目：推进 Phase 7.3，补齐 App 根壳级只读 smoke
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `tests/appRoot.smoke.test.ts`
+- 说明：
+  - 已围绕 `App` 根节点建立只读 smoke，验证根壳能安全挂载、启动时触发 `characterStore.init()`，并注册桌面关闭前回调
+  - 已覆盖空态壳子、已加载角色时的主面板壳子，以及法术书在首次打开后仍保持根层挂载的边界行为
+  - 本轮继续保持轻量策略，真实复用 Pinia store，只对重型子组件做 stub，让根层 smoke 尽量贴近实际装配方式
+- 验证结果：
+  - `npm run test -- tests/appRoot.smoke.test.ts` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 7.3
+
+### [0.11.7-phase.3] - 2026-04-18
+- 类型：Refactor / Test / UI
+- 条目：推进 Phase 7.3，补齐最小 smoke / UI 层验证
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `tests/globalFeedback.ui.test.ts`
+- 说明：
+  - 已围绕 `GlobalFeedback + uiFeedback` 建立最小 UI smoke 测试，验证确认框渲染、主按钮确认、`Escape` 取消与 toast 自动消失
+  - 本轮保持轻量策略，只引入 `@vue/test-utils` 与 `jsdom` 来补 UI 层回归基线，不把范围扩展到更重的整页挂载或 E2E
+  - 同步将 `pinia` 补齐为显式运行时依赖，避免应用入口与测试入口对状态管理依赖的声明继续漂移
+- 验证结果：
+  - `npm run test -- tests/globalFeedback.ui.test.ts` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 7.3
+
+### [0.11.7-phase.2] - 2026-04-18
+- 类型：Refactor / Test / Integration
+- 条目：推进 Phase 7.3，补齐最小集成级 store 链路回归
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `tests/activeSheet.integration.test.ts`
+- 说明：
+  - 已为 `characterStore + activeSheet` 建立最小集成级回归测试，验证创建角色、加载编辑、保存、重载、删除的完整 store 主链路
+  - 本轮测试把前面 Phase 6 的纯逻辑保护与 Phase 7.2 的 Electron 边界验证向前串起来，更接近真实使用路径
+  - 当前仍保持在 store 与持久化边界层，不额外引入更重的 UI / E2E 自动化成本
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 7.3
+
+### [0.11.7-phase.1] - 2026-04-18
+- 类型：Refactor / Test / IPC
+- 条目：推进 Phase 7.2，补齐 Electron / IPC 边界契约测试
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `tests/storageService.test.ts`
+  - `tests/preload.test.ts`
+- 说明：
+  - 已为 `storageService` 补上成功/失败分支测试，验证缺失 `electronAPI` 以及 IPC 失败返回时的错误传播行为
+  - 已为 `preload` 补上暴露契约测试，确认 renderer 端拿到的 `electronAPI` 对象与 `ipcRenderer`、`webFrame` 的转发关系保持稳定
+  - 当前 Phase 7.2 的第一轮工作已把 renderer 侧 Electron 边界从“类型定义”推进到“可执行回归验证”
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 7.2
+
+### [0.11.7-phase.0] - 2026-04-18
+- 类型：Refactor / Process / CI
+- 条目：进入 Phase 7，并将测试正式接入持续集成
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `.github/workflows/ci.yml`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已将项目从 Phase 6 稳定版 `0.11.6` 切换到 Phase 7 起步版本 `0.11.7-phase.0`
+  - 已在 GitHub Actions 中补入 `npm run test`，让 Phase 6 建立的测试基线正式进入持续集成
+  - 已为 Phase 7 建立新的阶段计划，明确下一步聚焦 Electron / IPC 边界验证与更贴近真实链路的集成回归
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 7
 
 ### [0.11.6] - 2026-04-18
 - 类型：Refactor / Test / Verification
