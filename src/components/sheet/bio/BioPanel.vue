@@ -12,7 +12,8 @@ const emit = defineEmits<{
 }>();
 
 const store = useActiveSheetStore();
-const bio = computed(() => store.character?.bio);
+const bio = computed<CharacterBio | null>(() => store.character?.bio ?? null);
+
 
 // 辅助更新函数
 const update = <K extends keyof CharacterBio>(field: K, val: CharacterBio[K]) => {

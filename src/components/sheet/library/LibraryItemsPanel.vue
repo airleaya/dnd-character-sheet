@@ -4,6 +4,8 @@ import draggable from 'vuedraggable';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
 import type { LibraryItem } from '../../../types/Library';
+import type { LibraryCloneDragElement } from '../../../utils/inventoryDropUtils';
+
 
 // 导入所有数据源
 import { WEAPON_LIBRARY } from '../../../data/libraries/weapons';
@@ -14,7 +16,8 @@ import { TOOL_LIBRARY } from '../../../data/libraries/tools';
 import { CONSUMABLE_LIBRARY } from '../../../data/libraries/consumables';
 import { TREASURE_LIBRARY } from '../../../data/libraries/treasures';
 import { PACK_LIBRARY } from '../../../data/libraries/packs';
-import { setupDragData,clearGlobalDragPayload } from '../../../utils/inventoryDropUtils';
+import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
+
 
 const props = defineProps<{
   searchQuery: string;
@@ -93,7 +96,8 @@ const isVisible = (key: string) => !!expandedState.value[key] || props.searchQue
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
 
 // 拖拽辅助
-const cloneItem = (item: LibraryItem) => ({ libraryId: item.id });
+const cloneItem = (item: LibraryItem): LibraryCloneDragElement => ({ libraryId: item.id });
+
 
 // const handleDragStart = () => emit('leave-item');
 

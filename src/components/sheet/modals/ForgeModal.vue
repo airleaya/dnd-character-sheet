@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue';
 import { useForge } from '../../../composables/useForge';
+
 import EditableText from '../../common/EditableText.vue';
 import EditableTextarea from '../../common/EditableTextarea.vue';
 
 // 获取状态和方法
 const { draftItem, draftData, forgeMode, save, close } = useForge();
+const weaponProperties = computed(() => draftData.value.properties ?? []);
+
 
 // 记录鼠标按下时是否在遮罩层上
 const isMouseDownOnBackdrop = ref(false);
@@ -89,11 +92,13 @@ const onBackdropMouseup = () => {
                     <div class="cost-input-group">
                       <input 
                         type="number" 
-                        v-model.number="(draftData as any).cost.value" 
+                                                v-model.number="draftData.cost.value" 
+ 
                         placeholder="0" 
                         class="input-std"
                       >
-                      <select v-model="(draftData as any).cost.unit" class="unit-select">
+                                            <select v-model="draftData.cost.unit" class="unit-select">
+
                         <option value="gp">gp</option>
                         <option value="sp">sp</option>
                         <option value="cp">cp</option>
@@ -122,18 +127,21 @@ const onBackdropMouseup = () => {
               <div class="row-2">
                 <div class="field">
                   <label>伤害骰 (Damage)</label>
-                  <input type="text" v-model="(draftData as any).damage" placeholder="1d8" class="input-std">
+                                    <input type="text" v-model="draftData.damage" placeholder="1d8" class="input-std">
+
                 </div>
                 <div class="field">
                   <label>伤害类型</label>
-                  <input type="text" v-model="(draftData as any).damageType" placeholder="slashing" class="input-std">
+                                    <input type="text" v-model="draftData.damageType" placeholder="slashing" class="input-std">
+
                 </div>
               </div>
               <div class="field mt-2">
                 <label>属性 (Properties)</label>
                 <div class="tags-container">
-                   <span v-for="p in (draftData as any).properties" :key="p" class="tag">{{ p }}</span>
-                   <span class="hint" v-if="!(draftData as any).properties?.length">暂无特殊属性</span>
+                                      <span v-for="p in weaponProperties" :key="p" class="tag">{{ p }}</span>
+                   <span class="hint" v-if="weaponProperties.length === 0">暂无特殊属性</span>
+
                 </div>
               </div>
             </div>
@@ -145,11 +153,13 @@ const onBackdropMouseup = () => {
               <div class="row-2">
                 <div class="field">
                   <label>AC (防御等级)</label>
-                  <input type="number" v-model.number="(draftData as any).ac" class="input-std">
+                                    <input type="number" v-model.number="draftData.ac" class="input-std">
+
                 </div>
                 <div class="field">
                   <label>护甲类型</label>
-                  <select v-model="(draftData as any).armorType" class="input-std">
+                                    <select v-model="draftData.armorType" class="input-std">
+
                     <option value="light">轻甲</option>
                     <option value="medium">中甲</option>
                     <option value="heavy">重甲</option>

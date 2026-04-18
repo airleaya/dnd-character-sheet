@@ -4,8 +4,14 @@ import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
-import { calcRealIndex, setupDragData } from '../../../utils/inventoryDropUtils';
+import {
+  calcRealIndex,
+  isInventoryInstanceDragElement,
+  isLibraryCloneDragElement,
+  setupDragData,
+} from '../../../utils/inventoryDropUtils';
 import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
+
 import { formatCost } from '../../../utils/currencyUtils';
 import type { ItemCost } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
@@ -69,21 +75,21 @@ const rootItems = computed({
 const handleRootDrop = (evt: InventoryDragChangeEvent) => {
   const insertIndex = calcRealIndex(store.rootInventory, evt, store.character!.inventory);
 
-    if (evt.added && evt.added.element && typeof evt.added.element === 'object') {
-      const newItem = evt.added.element as { instanceId?: string; libraryId?: string };
-      if (!newItem.instanceId && newItem.libraryId) {
-        store.addItem(newItem.libraryId, insertIndex);
-      } else if (newItem.instanceId) {
-        store.moveItemToRoot(newItem.instanceId, insertIndex);
-      }
+  if (evt.added) {
+    const newItem = evt.added.element;
+    if (isLibraryCloneDragElement(newItem)) {
+      store.addItem(newItem.libraryId, insertIndex);
+    } else if (isInventoryInstanceDragElement(newItem)) {
+      store.moveItemToRoot(newItem.instanceId, insertIndex);
     }
-    else if (evt.moved && evt.moved.element && typeof evt.moved.element === 'object') {
-      const movedItem = evt.moved.element as { instanceId?: string };
-      if (movedItem.instanceId) {
-        store.reorderItem(movedItem.instanceId, insertIndex);
-      }
+  } else if (evt.moved) {
+    const movedItem = evt.moved.element;
+    if (isInventoryInstanceDragElement(movedItem)) {
+      store.reorderItem(movedItem.instanceId, insertIndex);
     }
+  }
 };
+
 
 // =========================================
 // 🖱️ 悬浮窗逻辑 (Tooltip)

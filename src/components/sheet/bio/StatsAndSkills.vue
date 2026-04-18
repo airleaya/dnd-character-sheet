@@ -5,6 +5,8 @@ import EditableText from '../../common/EditableText.vue';
 import type { AbilityScores, Character } from '../../../types/Character';
 
 const store = useActiveSheetStore();
+const character = computed(() => store.character);
+
 
 const attributes: { key: keyof Character['stats']; label: string }[] = [
   { key: 'str', label: '力量' },
@@ -21,33 +23,21 @@ const getMod = (val: number) => {
 };
 
 // 【新增】计算豁免检定加值
-const getSaveMod = (attrKey: string) => {
-  // 0. 安全检查：如果 character还没加载，直接返回 0
-  if (!store.character) return '+0';
+const getSaveMod = (key: keyof AbilityScores) => {
+  if (!character.value) return '+0';
 
-  // 1. 【修复核心报错】
-  // 不再使用 typeof store.character... 
-  // 而是直接告诉 TS："这个 key 是 AbilityScores 接口的键之一"
-  const key = attrKey as keyof AbilityScores;
-
-  // 2. 获取属性调整值 (baseMod)
-  // 假设你有一个 getMod 函数处理属性值到调整值的转换
-  const val = store.character.stats[key]; 
-  const baseMod = Math.floor((val - 10) / 2); // 或者调用你的 getMod(val)
-
-  // 3. 获取熟练度 (布尔值)
-  // ?. 防止 undefined, || false 确保得到布尔值
-  const isProf = store.character.savingThrows?.[key] || false;
-
-  // 4. 计算总值 (三元运算符处理布尔值)
+  const val = character.value.stats[key];
+  const baseMod = Math.floor((val - 10) / 2);
+  const isProf = character.value.savingThrows[key];
   const total = baseMod + (isProf ? store.proficiencyBonus : 0);
 
   return total >= 0 ? `+${total}` : `${total}`;
 };
 
 const adjustStat = (key: keyof Character['stats'], delta: number) => {
-  if (!store.character) return;
-  const currentVal = store.character.stats[key];
+  if (!character.value) return;
+  const currentVal = character.value.stats[key];
+
   const newVal = Math.max(1, currentVal + delta);
   store.updateStat(key, newVal);
 };
@@ -61,15 +51,16 @@ type SkillView = {
   profLevel: boolean;
 };
 
-const groupedSkills = computed(() => {
-  const groups: Partial<Record<keyof AbilityScores, SkillView[]>> = {};
+type GroupedSkills = Partial<Record<keyof AbilityScores, SkillView[]>>;
+
+const groupedSkills = computed<GroupedSkills>(() => {
+  const groups: GroupedSkills = {};
 
   store.skills.forEach((skill) => {
     const attrKey = skill.attr.toLowerCase() as keyof AbilityScores;
-    if (!groups[attrKey]) {
-      groups[attrKey] = [];
-    }
-    groups[attrKey]!.push(skill as SkillView);
+    const targetGroup = groups[attrKey] ?? [];
+    targetGroup.push(skill);
+    groups[attrKey] = targetGroup;
   });
 
   return groups;
@@ -77,7 +68,8 @@ const groupedSkills = computed(() => {
 </script>
 
 <template>
-  <div class="stats-grid-container" v-if="store.character">
+    <div class="stats-grid-container" v-if="character">
+
     
     <div 
       v-for="attr in attributes" 
@@ -85,14 +77,16 @@ const groupedSkills = computed(() => {
       class="attr-card"
     >
       <div class="card-header">
-        <div class="attr-mod">{{ getMod(store.character.stats[attr.key]) }}</div>
+                <div class="attr-mod">{{ getMod(character.stats[attr.key]) }}</div>
+
         <div class="header-controls">
           <span class="attr-label">{{ attr.label }}</span>
           <div class="val-stepper">
             <button class="btn-step" @click="adjustStat(attr.key, -1)">-</button>
             <span class="attr-val-box">
               <EditableText 
-                 :model-value="store.character.stats[attr.key]"
+                                  :model-value="character.stats[attr.key]"
+
                  @update:model-value="v => store.updateStat(attr.key, Number(v))"
               />
             </span>
@@ -105,11 +99,13 @@ const groupedSkills = computed(() => {
         
         <div 
           class="saving-throw-row"
-          :class="{ 'proficient': store.character.savingThrows?.[attr.key] }"
+                    :class="{ 'proficient': character.savingThrows[attr.key] }"
+
           @click="store.toggleSavingThrow(attr.key)"
         >
           <div class="st-left">
-            <div class="prof-diamond" :class="{ filled: store.character.savingThrows?.[attr.key] }"></div>
+                        <div class="prof-diamond" :class="{ filled: character.savingThrows[attr.key] }"></div>
+
             <span class="st-name">豁免</span>
           </div>
           <div class="st-mod">

@@ -6,7 +6,8 @@ import type { AbilityKey } from '../../types/Library';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { ATTR_MAP } from '../../data/rules/dndRules';
 
-interface AttackEntry {
+export interface AttackEntry {
+
   id: string;
   baseId: string;
   name: string;

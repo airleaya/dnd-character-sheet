@@ -4,25 +4,55 @@ export type DragPayload =
   | { type: 'inventory-item'; instanceId: string }
   | { type: 'library-item'; id: string };
 
+export type LibraryItemDragPayload = Extract<DragPayload, { type: 'library-item' }>;
+export type InventoryItemDragPayload = Extract<DragPayload, { type: 'inventory-item' }>;
+
+
 export type DraggableInventoryLike = {
   instanceId: string;
 };
 
+export type LibraryCloneDragElement = {
+  libraryId: string;
+  instanceId?: never;
+};
+
+export type InventoryInstanceDragElement = {
+  instanceId: string;
+  libraryId?: never;
+};
+
+export type InventoryDragElement = LibraryCloneDragElement | InventoryInstanceDragElement;
+
 export type InventoryDragChangeEvent = {
   added?: {
     newIndex: number;
-    element?: unknown;
+    element?: InventoryDragElement;
   };
   moved?: {
     newIndex: number;
     oldIndex: number;
-    element?: unknown;
+    element?: InventoryInstanceDragElement;
   };
 };
+
 
 type DragEventWithFlag = DragEvent & {
   __dragHandled?: boolean;
 };
+
+export const isLibraryCloneDragElement = (
+  element: InventoryDragElement | undefined
+): element is LibraryCloneDragElement => {
+  return typeof element?.libraryId === 'string';
+};
+
+export const isInventoryInstanceDragElement = (
+  element: InventoryDragElement | undefined
+): element is InventoryInstanceDragElement => {
+  return typeof element?.instanceId === 'string';
+};
+
 
 // 传递数据的全局变量
 let _globalDragPayload: string | null = null;
@@ -33,6 +63,34 @@ export const getGlobalDragPayload = () => {
 export const clearGlobalDragPayload = () => {
   _globalDragPayload = null;
 };
+
+const isDragPayload = (payload: unknown): payload is DragPayload => {
+  if (!payload || typeof payload !== 'object') return false;
+
+  const candidate = payload as Partial<DragPayload>;
+  if (candidate.type === 'library-item') {
+    return typeof candidate.id === 'string';
+  }
+  if (candidate.type === 'inventory-item') {
+    return typeof candidate.instanceId === 'string';
+  }
+  return false;
+};
+
+export const parseDragPayload = (raw: string): DragPayload | null => {
+  try {
+    let payload: unknown = JSON.parse(raw);
+
+    if (typeof payload === 'string') {
+      payload = JSON.parse(payload);
+    }
+
+    return isDragPayload(payload) ? payload : null;
+  } catch {
+    return null;
+  }
+};
+
 
 /**
  * 计算物品在全局 Inventory 数组中应该插入的真实索引

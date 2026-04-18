@@ -7,9 +7,11 @@ import { useTooltipStore } from '../../../stores/tooltip';
 import { getSchoolLabel } from '../../../data/rules/dndRules';
 import type { AbilityKey } from '../../../types/Library';
 import type { SpellComponents, SpellDefinition } from '../../../types/Spell';
-
+import type { AttackEntry } from '../../../stores/sheet/useCombatLogic';
 
 const store = useActiveSheetStore();
+const character = computed(() => store.character);
+
 const tooltipStore = useTooltipStore();
 
 // 定义我们要显示的额外属性开关 (排除 Str/Dex)
@@ -22,7 +24,7 @@ const extraAttributes: { key: AbilityKey; label: string; short: string }[] = [
 
 // 检查某个属性是否已激活
 const isModeActive = (key: AbilityKey) => {
-  return store.character?.activeAttackModes?.includes(key) || false;
+  return character.value?.activeAttackModes.includes(key) ?? false;
 };
 
 // 切换开关
@@ -91,8 +93,9 @@ const getLabel = (key: string) => {
 };
 
 // 分流逻辑
-const visibleAttacks = computed(() => store.attacks.filter(a => !a.isHidden));
-const hiddenAttacks = computed(() => store.attacks.filter(a => a.isHidden));
+const visibleAttacks = computed<AttackEntry[]>(() => store.attacks.filter((attack) => !attack.isHidden));
+const hiddenAttacks = computed<AttackEntry[]>(() => store.attacks.filter((attack) => attack.isHidden));
+
 const showHiddenSection = ref(false);
 const toggleVisibility = (id: string) => store.toggleAttackVisibility(id);
 
@@ -135,7 +138,8 @@ const handleSlotClick = (level: number, index: number, current: number) => {
 
 // 长休逻辑
 const handleLongRest = () => {
-  if(confirm('💤 确定要进行长休吗？\n将恢复所有生命值和法术位。')) {
+    if (confirm('💤 确定要进行长休吗？\n将恢复所有生命值和法术位。')) {
+
     store.fullHeal();
     store.recoverAllSlots();
   }
@@ -143,7 +147,8 @@ const handleLongRest = () => {
 </script>
 
 <template>
-  <div class="actions-panel" v-if="store.character">
+    <div class="actions-panel" v-if="character">
+
     
     <div class="panel-column attacks-col">
       <div class="sec-header">
@@ -178,7 +183,8 @@ const handleLongRest = () => {
               <span class="divider">|</span>
               <span class="atk-range">{{ atk.range }}</span>
             </div>
-            <div class="tags" v-if="atk.properties?.length">
+                        <div class="tags" v-if="atk.properties.length">
+
               <!-- 属性提示 -->
               <span 
               v-for="p in atk.properties" 
@@ -312,7 +318,8 @@ const handleLongRest = () => {
                     <span v-if="spell.damage" class="combat-badge dmg">
                       <strong>
                         <span v-if="spell.cantripScaling">
-                          {{ calculateCantripDamage(spell.damage, store.character.profile.level) }}
+                                                    {{ calculateCantripDamage(spell.damage, character.profile.level) }}
+
                         </span>
                         <span v-else>{{ spell.damage }}</span>
                       </strong>

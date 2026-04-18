@@ -30,6 +30,37 @@
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
 
+### [0.10.2] - Phase 3 进行中（日期待补）
+- 类型：Refactor / Type Safety / Frontend
+- 条目：推进代码健康计划 Phase 3（类型安全与前端入口统一）
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/components/sheet/bio/StatsAndSkills.vue`
+  - `src/components/sheet/bio/BioPanel.vue`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/sidebar/ForgeDropZone.vue`
+  - `src/composables/useForge.ts`
+  - `src/utils/inventoryDropUtils.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/main.ts`
+  - `index.html`
+  - `CODE_HEALTH_PLAN.md`
+- 说明：
+  - 已完成 `StatsAndSkills.vue`、`BioPanel.vue`、`ActionsPanel.vue` 的组件层类型收紧，去除对组件侧忽略与脆弱推断的依赖
+  - 已为 `useCombatLogic.ts` 导出 `AttackEntry`，并在战斗面板中直接复用正式攻击项类型
+  - 已为 Forge 草稿数据、价格结构与拖拽 payload 建立显式类型，清理 `ForgeModal.vue` 中一批 `(draftData as any)`
+  - 已为背包拖拽链路建立正式拖拽元素类型、payload 解析入口与类型守卫，并同步接入 Inventory / Library / Forge 调用侧
+  - 已将前端入口从 `src/main.js` 迁移到 `src/main.ts`，并将 `index.html` 的入口引用统一到 TypeScript
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 3
+
+
 ### [0.10.2] - Phase 2 完成（日期待补）
 - 类型：Refactor / Data / Type Safety
 - 条目：完成代码健康计划 Phase 2（收敛数据模型）

@@ -447,34 +447,45 @@ npm run build
 
 #### 任务 3.1 消除组件层 `@ts-ignore`
 优先目标：
-- [ ] `src/components/sheet/bio/StatsAndSkills.vue`
-- [ ] `src/components/sheet/bio/BioPanel.vue`
-- [ ] `src/components/sheet/combat/ActionsPanel.vue`
+- [x] `src/components/sheet/bio/StatsAndSkills.vue`
+- [x] `src/components/sheet/bio/BioPanel.vue`
+- [x] `src/components/sheet/combat/ActionsPanel.vue`
 
 验收标准：
-- 上述文件不再依赖 `@ts-ignore`
-- 组件调用 store 的接口具备明确类型
+- [x] 上述文件不再依赖 `@ts-ignore`
+- [x] 组件调用 store 的接口具备明确类型
+
+完成说明：
+- 已为 `StatsAndSkills.vue` 收紧 `AbilityScores`、豁免计算与技能分组类型
+- 已为 `BioPanel.vue` 明确 `bio` 的 `computed<CharacterBio | null>` 边界
+- 已为 `ActionsPanel.vue` 复用 `AttackEntry` 正式类型，并收紧攻击列表与角色引用访问
 
 #### 任务 3.2 替换核心模块中的高频 `any`
 优先目标：
-- [ ] `src/stores/sheet/useCombatLogic.ts`
+- [x] `src/stores/sheet/useCombatLogic.ts`
 - [ ] `src/stores/sheet/useInventoryLogic.ts`
 - [ ] `src/stores/sheet/useBioLogic.ts`
-- [ ] `src/composables/useForge.ts`
+- [x] `src/composables/useForge.ts`
 
 具体目标：
-- [ ] 为攻击项建立正式类型
-- [ ] 为 hitDice 建立正式类型
-- [ ] 为 Forge payload 建立联合类型
-- [ ] 为拖拽 payload 建立类型
+- [x] 为攻击项建立正式类型
+- [x] 为 hitDice 建立正式类型
+- [x] 为 Forge payload 建立联合类型
+- [x] 为拖拽 payload 建立类型
 
 验收标准：
-- 关键逻辑模块中的 `any` 数量明显下降
-- IDE 可提供更可靠的类型提示
+- [x] 关键逻辑模块中的 `any` 数量明显下降
+- [x] IDE 可提供更可靠的类型提示
+
+完成说明（当前进展）：
+- `useCombatLogic.ts` 已导出 `AttackEntry`，组件层可直接复用正式攻击项类型
+- `useForge.ts` 已为草稿数据、拖拽 payload、价格结构建立显式类型，并移除 `ForgeModal.vue` 中一批 `(draftData as any)`
+- `inventoryDropUtils.ts` 已统一定义拖拽元素、拖拽 payload、解析入口与类型守卫
+- `InventoryPanel.vue`、`InventoryItemRow.vue`、`ForgeDropZone.vue`、`LibraryItemsPanel.vue` 已接入正式拖拽类型链路
 
 #### 任务 3.3 统一入口语言栈
-- [ ] 将 `src/main.js` 迁移为 `src/main.ts`
-- [ ] 保证项目入口与整体 TS 方案一致
+- [x] 将 `src/main.js` 迁移为 `src/main.ts`
+- [x] 保证项目入口与整体 TS 方案一致
 
 关联文件：
 - `src/main.js`
@@ -482,8 +493,13 @@ npm run build
 - `tsconfig.json`
 
 验收标准：
-- 前端入口为 TypeScript
-- 全局类型与 Electron API 类型调用更一致
+- [x] 前端入口为 TypeScript
+- [x] 全局类型与 Electron API 类型调用更一致
+
+完成说明：
+- 已新增 `src/main.ts` 作为前端唯一入口
+- `index.html` 已改为加载 `/src/main.ts`
+- 已补充入口样式导入与全局指令注册，保持运行时行为与原入口一致
 
 ---
 
@@ -632,11 +648,11 @@ npm run build
 1. [x] 建立 `typecheck / lint`
 2. [x] 建立统一 migration 层
 3. [x] 收敛生命骰模型
-4. [ ] 去掉组件层 `@ts-ignore`
+4. [x] 去掉组件层 `@ts-ignore`
 
 ### 第二轮：再做类型与持久化
 5. 逐步替换核心模块 `any`
-6. `src/main.js -> src/main.ts`
+6. [x] `src/main.js -> src/main.ts`
 7. 存档目录迁移到 `app.getPath('userData')`
 8. 统一 IPC 类型
 
@@ -656,7 +672,7 @@ npm run build
 - [x] 建立 `lint` 脚本
 - [x] 建立统一 `characterMigration` 模块
 - [x] 完整梳理并收敛 `hitDice` 数据模型
-- [ ] 去掉 `StatsAndSkills.vue` / `BioPanel.vue` / `ActionsPanel.vue` 中的 `@ts-ignore`
+- [x] 去掉 `StatsAndSkills.vue` / `BioPanel.vue` / `ActionsPanel.vue` 中的 `@ts-ignore`
 - [x] 给 `useCombatLogic.ts` 的攻击项建立正式类型
 - [ ] 将 Electron 存档目录迁移到 `app.getPath('userData')`
 - [ ] 为 AC / 生命骰 / 负重 / 法术位补最小单元测试

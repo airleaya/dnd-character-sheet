@@ -2,8 +2,14 @@
 import { ref, computed, inject } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import draggable from 'vuedraggable';
-import { calcRealIndex, setupDragData } from '../../../utils/inventoryDropUtils';
+import {
+  calcRealIndex,
+  isInventoryInstanceDragElement,
+  isLibraryCloneDragElement,
+  setupDragData,
+} from '../../../utils/inventoryDropUtils';
 import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
+
 import type { InventoryItem } from '../../../types/Item';
 
 type InventoryTooltipApi = {
@@ -104,20 +110,21 @@ const onDropIntoContainer = (evt: InventoryDragChangeEvent) => {
   const currentChildren = store.getContainerContents(props.item.instanceId);
   const insertIndex = calcRealIndex(currentChildren, evt, store.character!.inventory);
 
-    if (evt.added && evt.added.element && typeof evt.added.element === 'object') {
-      const newItem = evt.added.element as { instanceId?: string; libraryId?: string };
-      if (!newItem.instanceId && newItem.libraryId) {
-        store.addItem(newItem.libraryId, insertIndex, props.item.instanceId);
-      } else if (newItem.instanceId) {
-        store.moveItemToContainer(newItem.instanceId, props.item.instanceId, insertIndex);
-      }
-    } else if (evt.moved && evt.moved.element && typeof evt.moved.element === 'object') {
-      const movedItem = evt.moved.element as { instanceId?: string };
-      if (movedItem.instanceId) {
-        store.reorderItem(movedItem.instanceId, insertIndex);
-      }
+  if (evt.added) {
+    const newItem = evt.added.element;
+    if (isLibraryCloneDragElement(newItem)) {
+      store.addItem(newItem.libraryId, insertIndex, props.item.instanceId);
+    } else if (isInventoryInstanceDragElement(newItem)) {
+      store.moveItemToContainer(newItem.instanceId, props.item.instanceId, insertIndex);
     }
+  } else if (evt.moved) {
+    const movedItem = evt.moved.element;
+    if (isInventoryInstanceDragElement(movedItem)) {
+      store.reorderItem(movedItem.instanceId, insertIndex);
+    }
+  }
 };
+
 
 const onDragStart = (e: DragEvent, item: InventoryItem) => {
   setupDragData(e, 'inventory-item', item.instanceId);
