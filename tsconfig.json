@@ -22,6 +22,7 @@
     "src/**/*.d.ts",  // 👈 关键：告诉 TS 一定要读取 .d.ts 声明文件
     "src/**/*.tsx",
     "src/**/*.vue",
+    "tests/**/*.ts",
     "electron/**/*.ts",
     "vite-env.d.ts"   // 👈 关键：显式包含我们刚才建的那个文件
   ]

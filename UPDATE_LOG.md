@@ -5,7 +5,7 @@
 > - `TODOLIST.md` 关注：**还要做什么**
 > - `UPDATE_LOG.md` 关注：**已经做了什么**
 
-当前基线版本：`0.11.5`
+当前基线版本：`0.11.6-phase.2`
 默认记录人：**雪荔枝**
 
 ---
@@ -29,6 +29,77 @@
 ---
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
+
+### [0.11.6-phase.2] - 2026-04-18
+- 类型：Refactor / Test / Persistence
+- 条目：推进 Phase 6.2，补齐关键存档流程测试
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `tests/characterStore.test.ts`
+- 说明：
+  - 已围绕 `characterStore` 建立关键存档流程回归测试，用 mock 存储层隔离 Electron，聚焦 store 到持久化边界的契约
+  - 已覆盖旧角色导入、编辑后保存、重启后重新读取、删除角色、导出角色五条高风险链路
+  - 已补充对分组引用清理、按角色 ID 持久化文件名、导出文件名净化等存档细节的验证
+  - 当前 Phase 6 已同时具备纯逻辑测试和最小存档流程测试，后续可继续向更细的 Electron 集成验证推进
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 6.2
+
+### [0.11.6-phase.1] - 2026-04-18
+- 类型：Refactor / Test / Regression
+- 条目：推进 Phase 6.1，补齐法术逻辑与攻击面板生成测试
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/useSpellLogic.test.ts`
+- 说明：
+  - 已继续沿着纯逻辑回归保护推进，为攻击面板生成补上精巧武器条目生成测试
+  - 已为 `useSpellLogic` 补上法术分组、战斗法术过滤、学习来源记录、法术位恢复与契约法术位收敛测试
+  - 当前 Phase 6.1 的首轮高风险逻辑点已从“迁移 / 战斗 / 背包”扩展到“迁移 / 战斗 / 背包 / 法术”
+  - 本轮仍保持只测纯逻辑，不把 UI 呈现和 Electron 行为混进同一批测试
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 6.1
+
+### [0.11.6-phase.0] - 2026-04-18
+- 类型：Refactor / Test / Process
+- 条目：进入 Phase 6，并建立最小逻辑测试基座
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `tsconfig.json`
+  - `vite.config.js`
+  - `tests/characterMigration.test.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/useInventoryLogic.test.ts`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已将项目从 Phase 5 稳定版 `0.11.5` 切换到 Phase 6 起步版本 `0.11.6-phase.0`
+  - 已重新引入 `Vitest`，补回 `test / test:watch` 脚本，并建立 `node` 环境的最小测试配置
+  - 已优先为 `characterMigration`、`useCombatLogic`、`useInventoryLogic` 建立首批纯逻辑测试，覆盖生命骰迁移、AC、负重、货币换算与箭矢入包等关键回归点
+  - 当前阶段仍刻意保持范围克制，先构建“可运行、可扩展、可回归”的测试基座，再逐步补 Spellbook 与存档链路
+- 验证结果：
+  - `npm run test` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 6
 
 ### [0.11.5] - 2026-04-18
 - 类型：Refactor / Release / Verification
