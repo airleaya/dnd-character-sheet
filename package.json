@@ -2,10 +2,9 @@
   "name": "dnd-character-sheet",
   "private": true,
   "main": "dist-electron/main.js",
-  "version": "0.11.3",
+  "version": "0.11.5",
   "author": "雪荔枝 snowlitch & Gemini 3.0 Pro & Codex",
   "description": "DnD 5e Character Manager",
-  
   "scripts": {
     "dev": "vite",
     "build": "vite build && electron-builder",
@@ -13,6 +12,7 @@
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "verify:phase4-storage": "node scripts/verify-phase4-storage.cjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

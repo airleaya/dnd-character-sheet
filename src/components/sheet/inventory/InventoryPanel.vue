@@ -2,6 +2,7 @@
 import { ref, reactive, computed, provide } from 'vue';
 import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
 import {
@@ -17,6 +18,7 @@ import type { ItemCost } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
 
 const store = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 
 // =========================================
 // 💰 钱包逻辑
@@ -34,7 +36,7 @@ const adjustMoney = (type: 'pp' | 'gp' | 'sp' | 'cp', isAdd: boolean) => {
   const amount = isAdd ? val : -val;
   const success = store.modifyCurrency(type, amount);
   if (!success) {
-    alert('余额不足！');
+    feedback.showToast('余额不足', 'warning');
   } else {
     inputs[type] = ''; 
   }
@@ -289,6 +291,8 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
   .panel-header {
     display: flex;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
     padding: 0.5rem 1rem;
     background: #ecf0f1;
     border-bottom: 1px solid #ddd;
@@ -308,12 +312,12 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
 }
 
   .wallet-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 8px;
     padding: 10px;
     background: #fdfdfd;
     border-bottom: 1px solid #eee;
-    overflow-x: auto;
     flex-shrink: 0;
   }
 

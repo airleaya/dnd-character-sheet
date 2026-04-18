@@ -5,7 +5,7 @@
 > - `TODOLIST.md` 关注：**还要做什么**
 > - `UPDATE_LOG.md` 关注：**已经做了什么**
 
-当前基线版本：`0.11.3`
+当前基线版本：`0.11.5`
 默认记录人：**雪荔枝**
 
 ---
@@ -30,24 +30,271 @@
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
 
-### [0.11.2] - 版本规则建立（日期待补）
-- 类型：Refactor / Process
-- 条目：建立重构专项 `0.11.x` 版本推进规则
+### [0.11.5] - 2026-04-18
+- 类型：Refactor / Release / Verification
+- 条目：完成代码健康计划 Phase 5，建立正式稳定迭代版本
 - 负责人：雪荔枝
 - 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+  - `vite.config.js`
+  - `src/App.vue`
+  - `src/components/layout/SidebarRight.vue`
+  - `src/stores/uiFeedback.ts`
+  - `src/components/ui/GlobalFeedback.vue`
+  - `src/composables/useForge.ts`
+  - `src/stores/characterStore.ts`
+  - `electron/main.ts`
+- 说明：
+  - 已将 Phase 5 的三个子任务正式收口，稳定版版本号回收为 `0.11.5`
+  - 已确认首包拆分、调试日志收敛与全局反馈统一全部纳入本次正式迭代
+  - 已将未完成的 Phase 6 `vitest / tests` 脚手架从本次版本中剥离，避免规划中工作混入稳定版
+  - 已同步更新计划文档与更新日志，使当前稳定基线、阶段状态与下一阶段起点保持一致
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+  - 本次正式版不包含未完成的 Phase 6 测试脚手架
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 5
+
+### [0.11.5-phase.3] - 2026-04-18
+- 类型：Refactor / UX / UI
+- 条目：推进 Phase 5.3，统一确认弹窗与全局提示反馈
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/stores/uiFeedback.ts`
+  - `src/components/ui/GlobalFeedback.vue`
+  - `src/App.vue`
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/components/sheet/bio/XpProgressBar.vue`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/components/sheet/combat/CombatPanel.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/components/sheet/spellbook/SpellbookRightPanel.vue`
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已新增全局 `Modal / Toast` 反馈层，统一接管确认操作与轻量提示
+  - 已将删除、重置、长休、遗忘法术、放弃未保存更改等高频确认链路迁移到统一确认框
+  - 已将保存成功、余额不足、导出失败、批量导出完成等反馈迁移到非阻塞式 toast
+  - 当前桌面端体验已从浏览器原生弹窗收敛为项目内统一交互风格
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+  - 运行时代码中的高频 `alert / confirm` 调用已完成替换
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 5.3
+
+### [0.11.5-phase.2] - 2026-04-18
+- 类型：Refactor / Maintainability / Logging
+- 条目：推进 Phase 5.2，完成第一轮调试日志清理
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/App.vue`
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/composables/useForge.ts`
+  - `src/stores/characterStore.ts`
+  - `src/utils/inventoryDropUtils.ts`
+  - `electron/main.ts`
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已删除退出保存、角色初始化、旧文件清理、拖拽分支命中、批量导入完成等成功路径与开发调试日志
+  - 已为保留的异常日志补充统一模块前缀，降低后续排查时的上下文成本
+  - 已保留仍具定位价值的错误与兼容性告警，避免为了“安静”而丢失排障信息
+  - 当前控制台已从“调试信息 + 异常混杂”收敛为“以异常和兼容提醒为主”
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - 剩余控制台输出已主要收敛为 `warn / error`
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 5.2
+
+### [0.11.5-phase.1] - 2026-04-18
+- 类型：Refactor / Performance / Build
+- 条目：推进 Phase 5.1，完成首轮包体切分与懒加载优化
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/App.vue`
+  - `src/components/layout/SidebarRight.vue`
+  - `vite.config.js`
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已将 `SpellbookPanel` 改为首次打开后再异步加载，避免法术书 UI 在应用初始渲染时进入主入口 chunk
+  - 已将右侧 `LibraryItemsPanel` / `LibrarySpellsPanel` 改为异步组件，并让法术库只在用户首次切换到法术标签时再加载
+  - 已在 `vite.config.js` 中补充最小 `manualChunks` 策略，将 Vue 运行时、拖拽库、法术数据、物品数据、法术书 UI、图书馆 UI 拆分为独立 chunk
+  - 当前策略优先解决构建时已经明确暴露的首包与 chunk 组织问题，不做过度切包
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+  - 构建结果由单一主入口 `index-*.js 904.12 kB` 收敛为多 chunk 结构，主入口 `index-*.js` 降至 `81.33 kB`
+  - `vite build` 已不再出现 `Some chunks are larger than 500 kB after minification` 警告
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 5.1
+
+### [0.11.5-phase.0] - 2026-04-18
+- 类型：Refactor / Process / Planning
+- 条目：进入 Phase 5 并建立性能与可维护性工作计划
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已将项目从 Phase 4 稳定版 `0.11.4` 切换到 Phase 5 规划版 `0.11.5-phase.0`
+  - 已为 Phase 5 明确执行顺序：先包体优化，再日志治理，最后替换原生弹窗
+  - 已补充每个子任务的实施计划、推荐策略与验收口径，后续可以按子任务逐步推进
+  - 已同步修正优先级列表中此前仍未勾选的 Phase 4 项，保证计划文档状态一致
+- 验证结果：
+  - 版本规则与阶段状态已同步到文档
+  - Phase 5 已具备可执行工作计划
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 5
+
+### [0.11.4] - 2026-04-18
+- 类型：Refactor / Electron / Persistence / Verification
+- 条目：完成代码健康计划 Phase 4（稳定 Electron 与持久化层）
+- 负责人：雪荔枝
+- 关联文件：
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/types/electron.ts`
+  - `src/services/storageService.ts`
+  - `src/stores/characterStore.ts`
+  - `src/vite-env.d.ts`
+  - `scripts/verify-phase4-storage.cjs`
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已完成存档路径迁移到 `app.getPath('userData')`，并保留旧路径兼容读取与复制迁移策略
+  - 已统一 Electron IPC 类型边界，主进程、preload 与渲染进程共享同一套返回结构与 API 接口
+  - 已抽离最小 `storageService`，让角色持久化链路从“store 直连 IPC”收敛为“store -> service -> Electron API”
+  - 已完成脚本回归验证与手工验收，当前 Phase 4 的核心目标已达到结项条件
+  - 兼容策略为：读取优先新路径，新路径为空时回退旧路径，写入统一走新路径，首轮迁移不删除旧数据
+- 验证结果：
+  - `npm run verify:phase4-storage` 通过
+  - 开发环境、旧存档环境、重启恢复场景的手工验收通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 4
+
+### [0.11.4-phase.5] - Phase 4 进度 5（日期待补）
+- 类型：Refactor / Electron / Persistence / Verification
+- 条目：为 Phase 4 存档迁移补最小回归验证脚本
+- 负责人：雪荔枝
+- 关联文件：
+  - `scripts/verify-phase4-storage.cjs`
+  - `scripts/README.md`
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已新增 `verify:phase4-storage` 脚本，覆盖旧存档迁移、兼容读取以及不覆盖已有新路径数据这三类关键场景
+  - 这轮验证聚焦文件系统契约，先把最容易回归的持久化规则固化下来
+  - 手工验收仍保留给开发环境启动、重启恢复和界面交互链路，不和纯文件系统验证混在一起
+  - 当前 Phase 4 的验收方式已从“完全依赖手工”推进到“脚本验证 + 手工补充”
+- 验证结果：
+  - `npm run verify:phase4-storage` 通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 4.1 手工验收
+
+### [0.11.4-phase.4] - 版本规则修正（日期待补）
+- 类型：Refactor / Process
+- 条目：将重构专项版本规则修正为 SemVer 兼容的 `0.11.x-phase.y`
+- 负责人：雪荔枝
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已将先前不兼容打包工具的四段数字版本写法，修正为 SemVer 兼容的 `0.11.x-phase.y`
+  - 新规则为：进入某个 Phase 后先切到 `0.11.x-phase.0`，Phase 内推进递增 `y`，Phase 完成后回收为稳定版本 `0.11.x`
+  - 本次修正的直接原因是 `electron-builder` 拒绝 `0.11.4.3`，导致打包失败
+  - 当前项目已正式进入 Phase 4，并在完成前三次推进后补上版本规则修正，因此当前基线版本更新为 `0.11.4-phase.4`
+  - 后续每次阶段推进都需同步更新 `package.json`、`package-lock.json`、`CODE_HEALTH_PLAN.md` 与 `UPDATE_LOG.md`
+- 验证结果：
+  - `npm run build` 通过
+  - 版本规则已写入计划文档
+  - 项目版本号已更新到 `0.11.4-phase.4`
+- 关联待办：`CODE_HEALTH_PLAN.md` / 版本推进规则
+
+### [0.11.4-phase.3] - Phase 4 进度 3（日期待补）
+- 类型：Refactor / Electron / Persistence / Architecture
+- 条目：推进 Phase 4.3，抽离最小 `storageService`
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/services/storageService.ts`
+  - `src/stores/characterStore.ts`
   - `package.json`
   - `CODE_HEALTH_PLAN.md`
   - `UPDATE_LOG.md`
 - 说明：
-  - 已将重构专项版本基线从 `0.10.2` 提升到 `0.11.2`
-  - 已正式约定本轮代码健康治理采用 `0.11.x` 版本轨道，并以 Phase 完成为递增单位
-  - 当前口径为：Phase 1 对应 `0.11.1`、Phase 2 对应 `0.11.2`、Phase 3 完成后推进到 `0.11.3`
-  - 后续每完成一个 Phase，需同步更新 `package.json`、`CODE_HEALTH_PLAN.md` 与 `UPDATE_LOG.md`
+  - 已新增 `storageService`，统一封装角色读取、保存、删除三条核心持久化路径
+  - `characterStore.ts` 已优先通过 service 调用底层 Electron IO，不再直接依赖 `window.electronAPI`
+  - 第一轮抽象保持最小化，暂不迁移窗口配置等非核心路径，以降低回归风险
+  - 当前持久化分层已从“store 直连 IPC”演进为“store -> service -> Electron API”
 - 验证结果：
-  - 版本规则已写入计划文档
-  - 项目版本号已更新到 `0.11.2`
-- 关联待办：`CODE_HEALTH_PLAN.md` / 版本推进规则
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 4.3
 
+### [0.11.4-phase.2] - Phase 4 进度 2（日期待补）
+- 类型：Refactor / Electron / Type Safety / IPC
+- 条目：推进 Phase 4.2，统一 Electron IPC 类型边界
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/types/electron.ts`
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/vite-env.d.ts`
+  - `src/stores/characterStore.ts`
+  - `package.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已新增共享 IPC 类型文件 `src/types/electron.ts`，集中定义 `IpcResult<T>`、`IpcVoidResult` 与 `ElectronApi`
+  - 已在主进程中统一 `saveCharacter / loadAllCharacters / deleteCharacter / exportCharacter` 的返回结构，失败分支收敛为字符串错误信息
+  - 已在 `electron/preload.ts` 中以正式接口承载 `window.electronAPI` 暴露对象，并在 `src/vite-env.d.ts` 中复用同一接口
+  - 已在 `characterStore.ts` 中按统一返回结构消费结果，减少宽泛成功判断与隐式错误分支
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 4.2
+
+### [0.11.4-phase.1] - Phase 4 进度 1（日期待补）
+- 类型：Refactor / Electron / Persistence
+- 条目：开始 Phase 4.1 并完成 userData 路径迁移第一轮落地
+- 负责人：雪荔枝
+- 关联文件：
+  - `electron/main.ts`
+  - `package.json`
+  - `CODE_HEALTH_PLAN.md`
+  - `UPDATE_LOG.md`
+- 说明：
+  - 已将 Electron 角色存档默认路径从 `process.cwd()/saves` 迁移到 `app.getPath('userData')/saves`
+  - 已将窗口配置默认路径从 `process.cwd()/window-config.json` 迁移到 `app.getPath('userData')/window-config.json`
+  - 已建立新旧路径 helper，并补充目录创建、旧数据复制迁移与兼容读取逻辑
+  - 当前策略为：读取优先新路径、新路径为空时回退旧路径、写入统一走新路径、第一轮不删除旧数据
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 4.1
 
 ### [0.11.3] - Phase 3 完成（日期待补）
 - 类型：Refactor / Type Safety / Frontend / Store

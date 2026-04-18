@@ -7,7 +7,6 @@ import type { AbilityScores, Character } from '../../../types/Character';
 const store = useActiveSheetStore();
 const character = computed(() => store.character);
 
-
 const attributes: { key: keyof Character['stats']; label: string }[] = [
   { key: 'str', label: '力量' },
   { key: 'dex', label: '敏捷' },

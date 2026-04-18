@@ -98,12 +98,7 @@ const toggleExpand = (key: string) => { expandedState.value[key] = !expandedStat
 // 拖拽辅助
 const cloneItem = (item: LibraryItem): LibraryCloneDragElement => ({ libraryId: item.id });
 
-
-// const handleDragStart = () => emit('leave-item');
-
 const onNativeDragStart = (e: DragEvent, item: LibraryItem) => {
-  // alert(`[1] 拖拽开始: ${item.name} (ID: ${item.id})`); // 取消注释这行来测试
-
   emit('leave-item'); // 保留原来的功能：拖拽开始时关闭 tooltip
   setupDragData(e, 'library-item', item.id, false); // 新增功能：写入数据
 };

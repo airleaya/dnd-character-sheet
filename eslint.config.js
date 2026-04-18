@@ -21,7 +21,7 @@ module.exports = [
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   {
-    files: ['**/*.{ts,tsx,js,jsx,vue}'],
+    files: ['**/*.{ts,tsx,js,jsx,cjs,mjs,vue}'],
     languageOptions: {
       parser: vueParser,
       parserOptions: {

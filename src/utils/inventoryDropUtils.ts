@@ -164,15 +164,15 @@ export const setupDragData = (
 ) => {
   void _allowExtraArg;
   if (!e.dataTransfer) {
-    console.error('❌ [DRAG START] No dataTransfer object found!');
-    return;}
+    console.error('[drag] Missing dataTransfer during drag start');
+    return;
+  }
 
   // 🛑 智能防冲突逻辑
   // 检查事件是否已经被“更深层级”的子组件处理过
-    const dragEvent = e as DragEventWithFlag;
+  const dragEvent = e as DragEventWithFlag;
 
   if (dragEvent.__dragHandled) {
-    console.log('⚠️ [DRAG START] Prevented by child element');
     // 如果已经处理过，我们什么都不做，直接返回。
     // 这意味着当前层级（父容器）不会覆盖数据，也不会被视为拖拽源。
     return;

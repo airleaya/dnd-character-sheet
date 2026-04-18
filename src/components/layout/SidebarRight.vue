@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue';
+import { computed, defineAsyncComponent, nextTick, ref } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 import type { LibraryItem } from '../../types/Library';
 import type { SpellDefinition } from '../../types/Spell';
 
 // 引入拆分后的组件
-import LibraryItemsPanel from '../sheet/library/LibraryItemsPanel.vue';
-import LibrarySpellsPanel from '../sheet/library/LibrarySpellsPanel.vue';
 import LibraryTooltip from '../sidebar/LibraryTooltip.vue';
 import ForgeDropZone from '../sidebar/ForgeDropZone.vue';
+
+const LibraryItemsPanel = defineAsyncComponent(() => import('../sheet/library/LibraryItemsPanel.vue'));
+const LibrarySpellsPanel = defineAsyncComponent(() => import('../sheet/library/LibrarySpellsPanel.vue'));
 
 // 状态管理
 type RootTab = 'items' | 'spells' | 'features';
@@ -18,6 +19,10 @@ type HoveredLibraryItem = LibraryItem | SpellDefinition;
 
 const activeTab = ref<RootTab>('items');
 const searchQuery = ref('');
+const hasVisitedSpellsTab = ref(false);
+
+const shouldRenderItemsPanel = computed(() => activeTab.value === 'items');
+const shouldRenderSpellsPanel = computed(() => activeTab.value === 'spells' || hasVisitedSpellsTab.value);
 
 // --- Tooltip 坐标与状态逻辑 ---
 const hoveredItem = ref<HoveredLibraryItem | null>(null);
@@ -120,15 +125,23 @@ const scheduleClose = () => {
   // 同样给一点缓冲，防止手抖滑出边界
   onLeaveItem();
 };
+
+const setActiveTab = (tab: RootTab) => {
+  activeTab.value = tab;
+
+  if (tab === 'spells') {
+    hasVisitedSpellsTab.value = true;
+  }
+};
 </script>
 
 <template>
   <div ref="sidebarRef" class="sidebar-right">
     
     <div class="root-tabs">
-      <button class="root-tab-btn" :class="{ active: activeTab === 'items' }" @click="activeTab = 'items'">📦 物品</button>
-      <button class="root-tab-btn" :class="{ active: activeTab === 'spells' }" @click="activeTab = 'spells'">✨ 法术</button>
-      <button class="root-tab-btn" :class="{ active: activeTab === 'features' }" @click="activeTab = 'features'">🏷️ 词条</button>
+      <button class="root-tab-btn" :class="{ active: activeTab === 'items' }" @click="setActiveTab('items')">📦 物品</button>
+      <button class="root-tab-btn" :class="{ active: activeTab === 'spells' }" @click="setActiveTab('spells')">✨ 法术</button>
+      <button class="root-tab-btn" :class="{ active: activeTab === 'features' }" @click="setActiveTab('features')">🏷️ 词条</button>
     </div>
 
     <div class="search-header">
@@ -141,15 +154,16 @@ const scheduleClose = () => {
 
     <div class="scroll-container">
       
-      <LibraryItemsPanel 
-        v-if="activeTab === 'items'"
+      <LibraryItemsPanel
+        v-if="shouldRenderItemsPanel"
         :search-query="searchQuery"
         @hover-item="(item, e) => onHoverItem(item, e, 'item')"
         @leave-item="onLeaveItem"
       />
 
-      <LibrarySpellsPanel 
-        v-if="activeTab === 'spells'"
+      <LibrarySpellsPanel
+        v-if="shouldRenderSpellsPanel"
+        v-show="activeTab === 'spells'"
         :search-query="searchQuery"
         @hover-item="(item, e) => onHoverItem(item, e, 'spell')"
         @leave-item="onLeaveItem"

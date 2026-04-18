@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { generateUUID } from '../utils/idGenerator';
 import type { Character, CharacterClassRecord } from '../types/Character';
 import { createDefaultCharacter, normalizeCharacterData } from '../utils/characterMigration';
+import { storageService } from '../services/storageService';
+
 
 // 分组元数据接口
 export interface CharacterGroup {
@@ -20,6 +22,8 @@ interface CharacterMeta {
   classes: CharacterClassRecord[];
   avatarUrl?: string;
 }
+
+const STORE_LOG_PREFIX = '[characterStore]';
 
 // 🔧 辅助函数：生成标准化的文件名
 const getFilename = (char: Character): string => {
@@ -63,17 +67,14 @@ export const useCharacterStore = defineStore('characterStore', {
   actions: {
     // --- 1. 初始化 ---
     async init() {
-      if (!window.electronAPI) return;
+      try {
+        const characters = await storageService.loadAllCharacters();
 
-      console.log('📂 正在读取角色...');
-      const result = await window.electronAPI.loadAllCharacters();
-      
-      if (result.success && result.data) {
         this.characterList = [];
         this._characterCache.clear();
         this._filenameMap.clear(); // 清空文件名映射
 
-                result.data.forEach((rawChar: Character) => {
+        characters.forEach((rawChar: Character) => {
           const char = normalizeCharacterData(rawChar);
           this._characterCache.set(char.id, char);
 
@@ -87,18 +88,21 @@ export const useCharacterStore = defineStore('characterStore', {
             race: char.profile.race,
             level: char.profile.level,
             classes: char.profile.classes,
-            avatarUrl: char.profile.avatarUrl
+            avatarUrl: char.profile.avatarUrl,
           });
         });
         this.loadGroups();
+      } catch (error) {
+        console.warn(`${STORE_LOG_PREFIX} Failed to load characters`, error);
       }
     },
+
 
     // --- 2. 创建新角色 (修改：不再自动保存) ---
     async createNewCharacter() {
       const newId = generateUUID();
       
-            const newChar = createDefaultCharacter(newId);
+      const newChar = createDefaultCharacter(newId);
 
       // 1. 只更新内存，不写硬盘！
       this._characterCache.set(newId, newChar);
@@ -111,7 +115,7 @@ export const useCharacterStore = defineStore('characterStore', {
         race: newChar.profile.race,
         level: newChar.profile.level,
         classes: newChar.profile.classes || [],
-        avatarUrl: newChar.profile.avatarUrl
+        avatarUrl: newChar.profile.avatarUrl,
       });
 
       // 初始化时记录一个文件名，防止 save 时报错
@@ -124,7 +128,7 @@ export const useCharacterStore = defineStore('characterStore', {
     },
 
     // --- 3. 保存逻辑 (核心迁移逻辑) ---
-        async saveCharacterData(char: Character) {
+    async saveCharacterData(char: Character) {
       const normalizedChar = normalizeCharacterData(char);
       this._characterCache.set(normalizedChar.id, normalizedChar);
 
@@ -136,46 +140,44 @@ export const useCharacterStore = defineStore('characterStore', {
         race: normalizedChar.profile.race,
         level: normalizedChar.profile.level,
         classes: normalizedChar.profile.classes,
-        avatarUrl: normalizedChar.profile.avatarUrl
+        avatarUrl: normalizedChar.profile.avatarUrl,
       };
 
-      if (metaIndex !== -1) 
-        {this.characterList[metaIndex] = meta;}
+      if (metaIndex !== -1) {
+        this.characterList[metaIndex] = meta;
+      }
       else {
         // 如果是新 ID，必须 push 到列表，UI 才会刷新
         this.characterList.push(meta);
       }
 
-      if (window.electronAPI) {
-        // 1. 计算新的标准文件名 (UUID.json)
-        const newFilename = getFilename(normalizedChar);
-        
-        // 2. 获取内存中记录的“上一次的文件名”
-        // 注意：如果是旧存档第一次运行，_filenameMap 里存的可能是错误的（因为 init 时被强制设为了 UUID.json）
-        // 这会导致旧文件（Name.json）无法被自动删除。
-        // 为了完美解决这个问题，我们需要在 init 时尽量去推断旧文件名，或者接受会有一次“残留文件”。
-        // 鉴于不修改 Electron 端，我们这里接受：
-        // "用户改动数据并保存后，会生成新的 UUID.json，旧的 Name.json 可能残留，但不影响程序运行（因为下次读取会读两份，然后去重或并在列表显示）"。
-        // *优化方案*：用户可以手动在资源管理器删除旧文件，或者我们在 Electron 端做去重。
-        const oldFilename = this._filenameMap.get(normalizedChar.id);
+      // 1. 计算新的标准文件名 (UUID.json)
+      const newFilename = getFilename(normalizedChar);
+      
+      // 2. 获取内存中记录的“上一次的文件名”
+      // 注意：如果是旧存档第一次运行，_filenameMap 里存的可能是错误的（因为 init 时被强制设为了 UUID.json）
+      // 这会导致旧文件（Name.json）无法被自动删除。
+      // 为了完美解决这个问题，我们需要在 init 时尽量去推断旧文件名，或者接受会有一次“残留文件”。
+      // 鉴于不修改 Electron 端，我们这里接受：
+      // "用户改动数据并保存后，会生成新的 UUID.json，旧的 Name.json 可能残留，但不影响程序运行（因为下次读取会读两份，然后去重或并在列表显示）"。
+      // *优化方案*：用户可以手动在资源管理器删除旧文件，或者我们在 Electron 端做去重。
+      const oldFilename = this._filenameMap.get(normalizedChar.id);
 
-        // A. 保存新文件
-        await window.electronAPI.saveCharacter(newFilename, JSON.stringify(normalizedChar, null, 2));
-        
-        // B. 尝试清理旧文件
-        if (oldFilename && oldFilename !== newFilename) {
-            console.log(`文件名策略变更，尝试删除旧文件: ${oldFilename}`);
-            // 这一步可能会失败（如果 oldFilename 其实不存在），但 catch 住不影响流程
-            try {
-              await window.electronAPI.deleteCharacter(oldFilename);
-            } catch (e) {
-              console.warn('删除旧文件失败，可能是文件不存在或权限问题', e);
-            }
+      // A. 保存新文件
+      await storageService.saveCharacter(newFilename, JSON.stringify(normalizedChar, null, 2));
+      
+      // B. 尝试清理旧文件
+      if (oldFilename && oldFilename !== newFilename) {
+        try {
+          await storageService.deleteCharacter(oldFilename);
+        } catch (error) {
+          console.warn(`${STORE_LOG_PREFIX} Failed to delete legacy filename ${oldFilename}`, error);
         }
-
-        // C. 更新映射
-        this._filenameMap.set(normalizedChar.id, newFilename);
       }
+
+      // C. 更新映射
+      this._filenameMap.set(normalizedChar.id, newFilename);
+
     },
 
     // --- 4. 读取 ---
@@ -186,11 +188,11 @@ export const useCharacterStore = defineStore('characterStore', {
     // --- 5. 删除逻辑 ---
     async deleteCharacter(id: string) {
       const char = this.getCharacterData(id);
-      if (window.electronAPI && char) {
-        // 使用记录的文件名，或者重新计算
+      if (char) {
         const filename = this._filenameMap.get(id) || getFilename(char);
-        await window.electronAPI.deleteCharacter(filename);
+        await storageService.deleteCharacter(filename);
       }
+
 
       this._characterCache.delete(id);
       this._filenameMap.delete(id);
@@ -215,8 +217,8 @@ export const useCharacterStore = defineStore('characterStore', {
 
     // --- 7. 导入 ---
     async importCharacter(jsonStr: string) {
-      try {        
-                const parsed = JSON.parse(jsonStr) as Character;
+      try {
+        const parsed = JSON.parse(jsonStr) as Character;
         if (!parsed.profile) throw new Error('无效数据');
 
         const data = normalizeCharacterData({
@@ -228,7 +230,7 @@ export const useCharacterStore = defineStore('characterStore', {
         await this.saveCharacterData(data);
         return data.id;
       } catch (e) {
-        console.error(e);
+        console.error(`${STORE_LOG_PREFIX} Failed to import character`, e);
         return null;
       }
     },
@@ -256,7 +258,7 @@ export const useCharacterStore = defineStore('characterStore', {
           this.ungroupedExpanded = ungroupedState === 'true';
         }
       } catch (e) {
-        console.error('加载分组数据失败', e);
+        console.error(`${STORE_LOG_PREFIX} Failed to load groups`, e);
       }
     },
 

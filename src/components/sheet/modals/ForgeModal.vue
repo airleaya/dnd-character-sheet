@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useForge } from '../../../composables/useForge';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 
 import EditableText from '../../common/EditableText.vue';
 import EditableTextarea from '../../common/EditableTextarea.vue';
 
 // 获取状态和方法
 const { draftItem, draftData, forgeMode, save, close } = useForge();
+const feedback = useUiFeedbackStore();
 const weaponProperties = computed(() => draftData.value.properties ?? []);
 
 
@@ -27,12 +29,18 @@ watch(() => draftItem.value, (newVal) => {
 });
 
 // 安全关闭逻辑
-const safeClose = () => {
+const safeClose = async () => {
   if (draftItem.value) {
     const currentStr = JSON.stringify(draftItem.value);
     // 比对当前状态与初始快照
     if (currentStr !== initialStateStr.value) {
-      if (!window.confirm('检测到未保存的更改，确认要舍弃并退出吗？')) {
+      const confirmed = await feedback.confirm({
+        title: '放弃未保存更改',
+        message: '检测到未保存的更改，确认要舍弃并退出吗？',
+        tone: 'warning',
+        confirmText: '放弃更改',
+      });
+      if (!confirmed) {
         return; // 用户点击了“取消”，终止关闭动作
       }
     }
@@ -44,10 +52,10 @@ const onBackdropMousedown = () => {
   isMouseDownOnBackdrop.value = true;
 };
 
-const onBackdropMouseup = () => {
+const onBackdropMouseup = async () => {
   // 只有当 mousedown 和 mouseup 都在遮罩层上时，才执行关闭操作
   if (isMouseDownOnBackdrop.value) {
-    safeClose(); 
+    await safeClose();
   }
   // 无论如何，松开鼠标后重置状态
   isMouseDownOnBackdrop.value = false;

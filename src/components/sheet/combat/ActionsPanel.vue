@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import { WEAPON_PROPERTIES } from '../../../data/rules/weaponProperties';
 import { calculateCantripDamage } from '../../../utils/spellUtils';
 import { useTooltipStore } from '../../../stores/tooltip';
@@ -10,6 +11,7 @@ import type { SpellComponents, SpellDefinition } from '../../../types/Spell';
 import type { AttackEntry } from '../../../stores/sheet/useCombatLogic';
 
 const store = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 const character = computed(() => store.character);
 
 const tooltipStore = useTooltipStore();
@@ -137,9 +139,14 @@ const handleSlotClick = (level: number, index: number, current: number) => {
 };
 
 // 长休逻辑
-const handleLongRest = () => {
-    if (confirm('💤 确定要进行长休吗？\n将恢复所有生命值和法术位。')) {
-
+const handleLongRest = async () => {
+  const confirmed = await feedback.confirm({
+    title: '进行长休',
+    message: '确定要进行长休吗？\n将恢复所有生命值和法术位。',
+    tone: 'warning',
+    confirmText: '开始长休',
+  });
+  if (confirmed) {
     store.fullHeal();
     store.recoverAllSlots();
   }

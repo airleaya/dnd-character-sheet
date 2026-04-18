@@ -6,7 +6,7 @@
 > - `UPDATE_LOG.md`：记录已经完成的修复与更新
 > - `CODE_HEALTH_PLAN.md`：记录**工程质量、结构治理、技术债清理**的专项计划
 
-评估基线版本：`0.11.3`  
+评估基线版本：`0.11.5`  
 评估分支：`codex-fix`  
 默认负责人：**雪荔枝**
 
@@ -269,27 +269,51 @@ npm run build
 
 ## 5. 版本推进规则（重构专项）
 
-为配合本轮代码健康治理，重构专项版本号统一进入 **`0.11.x`** 轨道，并采用以下规则：
+为配合本轮代码健康治理，重构专项版本号统一进入 **`0.11.x-phase.y`** 轨道，并采用以下规则：
 
-- `0.11.0`：重构专项起始版本
+- `0.11.x`：本轮重构专项主线版本，`x` 表示当前所处 Phase 编号
+- `-phase.y`：当前 Phase 内的进行中迭代号
+- **不带 `-phase.y` 的版本**：表示该 Phase 已完成并形成阶段性稳定点
+
+执行口径：
+- **一旦正式进入某个 Phase，先切换到 `0.11.x-phase.0`**
+- **在该 Phase 内每发生一次可独立记录的推进，`y` 递增**
+- **Phase 完成本身回收为不带预发布标记的 `0.11.x`**
+- **`package.json` 必须保持 SemVer 兼容，避免 Electron 打包器拒绝版本号**
+
+推荐示例：
+- `0.11.1-phase.0`：进入 Phase 1
+- `0.11.1-phase.1`：Phase 1 中的首个可记录推进
 - `0.11.1`：Phase 1 完成
+- `0.11.2-phase.0`：进入 Phase 2
+- `0.11.2-phase.1`：Phase 2 中的推进
 - `0.11.2`：Phase 2 完成
+- `0.11.3-phase.0`：进入 Phase 3
+- `0.11.3-phase.1`：Phase 3 中的推进
 - `0.11.3`：Phase 3 完成
-- `0.11.4`：Phase 4 完成
-- `0.11.5`：Phase 5 完成
-- `0.11.6`：Phase 6 完成
+- `0.11.4-phase.0`：进入 Phase 4
+- `0.11.4-phase.1`：Phase 4 当前首个已记录推进
+- `0.11.4-phase.2`：Phase 4 第二个已记录推进（IPC 类型统一）
+- `0.11.4-phase.3`：Phase 4 第三个已记录推进（最小 `storageService` 抽象）
+- `0.11.4-phase.4`：Phase 4 第四个已记录推进（版本规则改为 SemVer 兼容）
+- `0.11.4-phase.5`：Phase 4 第五个已记录推进（补存档迁移回归脚本）
 
 当前执行口径：
-- 由于 **Phase 1** 与 **Phase 2** 已完成，当前重构基线版本提升为 **`0.11.2`**
-- 后续每完成一个 Phase，`x` 自动加一，并同步更新：
+- 项目已完成 Phase 3，并已正式进入 **Phase 4**
+- 项目已完成 **Phase 4**，并已正式进入 **Phase 5**
+- 项目已完成 **Phase 5**，当前稳定基线版本为 **`0.11.5`**
+- 下一阶段如启动补测试，应从 **`0.11.6-phase.0`** 开始
+- 后续需同步更新：
   - `package.json`
+  - `package-lock.json`
   - `CODE_HEALTH_PLAN.md`
   - `UPDATE_LOG.md`
 
 维护要求：
-- Phase 完成时必须补一条正式更新记录
-- 若某个 Phase 仍处于进行中，不提前推进到下一个 `0.11.x`
-- 若期间有功能性热修复，可单独记录，但不改变本轮 Phase 版本推进规则
+- 进入新 Phase 时必须先更新版本号中的 `x`
+- 同一 Phase 内每次明确推进都要评估是否递增 `y`
+- 文档中的阶段状态与版本号必须保持一致
+- 若涉及存档结构、路径迁移、IPC 协议等高风险改动，必须补充兼容策略说明
 
 ## 5. 治理目标
 
@@ -312,7 +336,7 @@ npm run build
 
 目标：**先让问题更容易被发现**
 
-阶段版本：**`0.11.1`**
+阶段版本：**`0.11.1.y`**
 当前状态：**已完成**
 
 #### 任务 1.1 添加基础脚本
@@ -386,7 +410,7 @@ npm run build
 
 目标：**把运行时补丁变成明确的数据规范**
 
-阶段版本：**`0.11.2`**
+阶段版本：**`0.11.2.y`**
 当前状态：**已完成**
 
 **Phase 2 明确成果**：
@@ -471,7 +495,7 @@ npm run build
 
 目标：**减少 any 和 ts-ignore 对核心逻辑的侵蚀**
 
-阶段版本：**`0.11.3`**
+阶段版本：**`0.11.3.y`**
 当前状态：**已完成**
 
 #### 任务 3.1 消除组件层 `@ts-ignore`
@@ -541,7 +565,8 @@ npm run build
 
 目标：**让桌面应用的数据保存行为更稳健**
 
-阶段版本：**`0.11.4`**
+阶段版本：**`0.11.4-phase.y`**
+当前状态：**已完成（结项版本：`0.11.4`）**
 
 当前执行策略：**先路径、再类型、后分层**
 
@@ -556,9 +581,9 @@ npm run build
 - 最后再把 store 中的 IO 细节逐步抽离，避免一次性大重构
 
 #### 任务 4.1 使用 `app.getPath('userData')`
-- [ ] 将角色存档目录迁移到用户数据目录
-- [ ] 将窗口配置文件迁移到用户数据目录
-- [ ] 设计旧目录迁移 / 兼容策略
+- [x] 将角色存档目录迁移到用户数据目录
+- [x] 将窗口配置文件迁移到用户数据目录
+- [x] 设计旧目录迁移 / 兼容策略
 
 关联文件：
 - `electron/main.ts`
@@ -569,14 +594,22 @@ npm run build
 - 旧用户数据有迁移或兼容方案
 
 实施计划：
-- [ ] 审计 `electron/main.ts` 中所有基于 `process.cwd()` 的路径使用点
-- [ ] 为存档目录与窗口配置路径建立统一 helper（如 `getSavesDir()`、`getWindowConfigPath()`）
-- [ ] 将角色存档默认写入 `app.getPath('userData')/saves`
-- [ ] 将窗口配置默认写入 `app.getPath('userData')/window-config.json`
-- [ ] 加入旧路径兼容读取逻辑
-- [ ] 在“新路径为空 + 旧路径存在”时执行一次性复制迁移
-- [ ] 第一轮迁移中不主动删除旧路径数据，降低用户数据风险
-- [ ] 完成开发环境、旧存档环境、重启恢复场景的手工验收
+- [x] 审计 `electron/main.ts` 中所有基于 `process.cwd()` 的路径使用点
+- [x] 为存档目录与窗口配置路径建立统一 helper（如 `getSavesDir()`、`getWindowConfigPath()`）
+- [x] 将角色存档默认写入 `app.getPath('userData')/saves`
+- [x] 将窗口配置默认写入 `app.getPath('userData')/window-config.json`
+- [x] 加入旧路径兼容读取逻辑
+- [x] 在“新路径为空 + 旧路径存在”时执行一次性复制迁移
+- [x] 第一轮迁移中不主动删除旧路径数据，降低用户数据风险
+- [x] 补充最小文件系统回归脚本，覆盖迁移与兼容读取的关键契约
+- [x] 完成开发环境、旧存档环境、重启恢复场景的手工验收
+
+建议手工验收清单：
+1. 在旧路径 `./saves` 放入一个可识别的历史角色，启动开发环境并确认角色能自动出现。
+2. 修改该角色任意字段并触发保存，确认新文件落到 `app.getPath('userData')/saves`，且旧文件仍保留。
+3. 关闭并重新启动应用，确认角色仍从新路径正常读取，窗口大小与位置也能恢复。
+4. 删除该角色并确认新路径中的目标文件被移除，不影响其他角色。
+5. 执行一次导出，确认导出链路不受新存档路径切换影响。
 
 推荐策略：
 - 读取时优先新路径
@@ -585,9 +618,9 @@ npm run build
 - 复制成功后继续保留旧文件，后续版本再考虑清理
 
 #### 任务 4.2 统一 IPC 类型
-- [ ] 为 IPC 返回结构建立统一类型
-- [ ] preload 暴露的 API 不再大量使用 `any`
-- [ ] 渲染进程调用获得更稳定的类型约束
+- [x] 为 IPC 返回结构建立统一类型
+- [x] preload 暴露的 API 不再大量使用 `any`
+- [x] 渲染进程调用获得更稳定的类型约束
 
 关联文件：
 - `electron/preload.ts`
@@ -599,12 +632,12 @@ npm run build
 - 常用 IPC 的返回值具备统一格式与类型
 
 实施计划：
-- [ ] 为 IPC 建立统一返回结构（如 `IpcResult<T>`）
-- [ ] 为 `loadAllCharacters / saveCharacter / deleteCharacter` 等方法建立正式返回类型
-- [ ] 在 `electron/preload.ts` 中为暴露 API 建正式接口
-- [ ] 在 `src/vite-env.d.ts` 中将 `window.electronAPI` 收紧为统一接口
-- [ ] 清理渲染进程中依赖宽泛返回值的调用写法
-- [ ] 验证主进程实现、preload 暴露与渲染进程消费三侧结构一致
+- [x] 为 IPC 建立统一返回结构（如 `IpcResult<T>`）
+- [x] 为 `loadAllCharacters / saveCharacter / deleteCharacter` 等方法建立正式返回类型
+- [x] 在 `electron/preload.ts` 中为暴露 API 建正式接口
+- [x] 在 `src/vite-env.d.ts` 中将 `window.electronAPI` 收紧为统一接口
+- [x] 清理渲染进程中依赖宽泛返回值的调用写法
+- [x] 验证主进程实现、preload 暴露与渲染进程消费三侧结构一致
 
 推荐策略：
 - 成功统一为 `{ success: true, data }`
@@ -612,8 +645,8 @@ npm run build
 - 共享类型尽量放在前后端都可引用的位置，避免重复定义
 
 #### 任务 4.3 抽象持久化服务层
-- [ ] 将 store 中对 `window.electronAPI` 的直接调用抽离
-- [ ] 建立 `storageService` 或 `characterRepository`
+- [x] 将 store 中对 `window.electronAPI` 的直接调用抽离
+- [x] 建立 `storageService` 或 `characterRepository`
 
 建议新增文件：
 - `src/services/storageService.ts`
@@ -628,11 +661,11 @@ npm run build
 - 后续更易扩展到其他持久化方案
 
 实施计划：
-- [ ] 新建 `src/services/storageService.ts`（或后续演进为 repository）
-- [ ] 先封装角色读取、保存、删除三条核心 IO 路径
-- [ ] 让 `characterStore.ts` 优先改为调用 service，而不是直接调用 `window.electronAPI`
+- [x] 新建 `src/services/storageService.ts`（或后续演进为 repository）
+- [x] 先封装角色读取、保存、删除三条核心 IO 路径
+- [x] 让 `characterStore.ts` 优先改为调用 service，而不是直接调用 `window.electronAPI`
 - [ ] 后续再迁移窗口配置等非核心路径
-- [ ] 保持第一轮抽象最小化，不一次性搬空所有存储逻辑
+- [x] 保持第一轮抽象最小化，不一次性搬空所有存储逻辑
 
 推荐策略：
 - 第一轮先采用 `storageService` 小步抽象
@@ -644,13 +677,27 @@ npm run build
 
 目标：**减少未来扩展成本**
 
-阶段版本：**`0.11.5`**
+阶段版本：**`0.11.5.y`**
+当前状态：**已完成（结项版本：`0.11.5`）**
+
+当前执行策略：**先拆首包，再收日志，最后统一交互反馈**
+
+执行顺序建议：
+1. **5.1 先解决构建已暴露的首包过大 warning**
+2. **5.2 再收敛调试日志，减少运行期噪音**
+3. **5.3 最后替换原生弹窗，统一桌面体验**
+
+阶段原则：
+- 优先处理已经在构建或运行期明确暴露的问题
+- 优先做低风险、高收益、可量化验收的改动
+- 保持每个子任务都能独立验证，不把性能、日志、交互体验混成一次性大改
+- 避免为了“看起来更整洁”而做大范围无验收支撑的重构
 
 #### 任务 5.1 控制首包体积
-- [ ] 评估法术库的动态拆分
-- [ ] 评估物品库的模块化拆分
-- [ ] 评估 Spellbook / Library 面板懒加载
-- [ ] 配置 `manualChunks`
+- [x] 评估法术库的动态拆分
+- [x] 评估物品库的模块化拆分
+- [x] 评估 Spellbook / Library 面板懒加载
+- [x] 配置 `manualChunks`
 
 关联文件：
 - `vite.config.js`
@@ -664,10 +711,31 @@ npm run build
 - 构建警告得到缓解或消除
 - 新增法术 / 物品数据后增长更可控
 
+实施计划：
+- [x] 基线记录当前 `vite build` 的产物体积与 chunk warning
+- [x] 确认首包主要由法术数据、物品数据还是界面面板共同推高
+- [x] 先尝试对 Spellbook / Library 相关面板做懒加载切分
+- [x] 再评估法术库 / 物品库是否适合按模块或使用场景拆分
+- [x] 在 `vite.config.js` 中补充最小 `manualChunks` 策略
+- [x] 对比优化前后的构建结果，补一条正式记录
+
+推荐策略：
+- 先做最容易回收收益的路由外或面板级拆分
+- 先减少“初次必载”的数据量，再考虑更细粒度的数据模块切分
+- `manualChunks` 只做能解释清楚的最小配置，避免过度切包
+- 每次切分后都保留体积前后对比，避免“感觉优化了但实际没有”
+
+完成说明（当前进展）：
+- 已将 `SpellbookPanel` 改为首次打开后才异步加载，避免法术书 UI 直接进入主入口 chunk
+- 已将右侧 `LibraryItemsPanel` / `LibrarySpellsPanel` 改为异步组件，其中法术库仅在切换到法术标签后再加载
+- 已在 `vite.config.js` 中按 `vendor-vue / vendor-dnd / spell-data / library-data / spellbook-ui / library-ui` 建立最小 `manualChunks`
+- 构建结果已从单一主入口 `index-*.js 904.12 kB` 拆分为多个更清晰的 chunk，其中主入口 `index-*.js` 降至 `81.33 kB`
+- 当前 `vite build` 已不再出现 `Some chunks are larger than 500 kB after minification` 的警告
+
 #### 任务 5.2 清理调试日志
-- [ ] 区分开发调试日志和正式错误日志
-- [ ] 清理无意义 `console.log`
-- [ ] 保留必要错误日志并统一风格
+- [x] 区分开发调试日志和正式错误日志
+- [x] 清理无意义 `console.log`
+- [x] 保留必要错误日志并统一风格
 
 关联文件：
 - `src/composables/useForge.ts`
@@ -681,9 +749,28 @@ npm run build
 - 关键错误仍可追踪
 - 无大量开发残留日志污染生产环境
 
+实施计划：
+- [x] 盘点当前主进程、store、组合式逻辑中的 `console.log / warn / error`
+- [x] 区分“开发调试信息”“用户可恢复错误”“真正异常”
+- [x] 删除无意义调试日志
+- [x] 为保留日志统一前缀与输出级别
+- [x] 确认打包后的生产链路不再输出大量开发残留日志
+
+推荐策略：
+- 默认删除一次性调试日志，而不是保留后再慢慢清
+- `console.error` 只保留真正会帮助定位问题的上下文
+- 如果某些日志只在开发环境有价值，显式加开发环境保护
+- 先治理高频触发路径，再处理低频边角日志
+
+完成说明（当前进展）：
+- 已清理 `App` 关闭保存链路、`characterStore` 初始化/旧文件清理链路、`useForge` 拖拽处理链路、`inventoryDropUtils` 拖拽工具链、`electron/main.ts` 成功路径中的开发残留 `console.log`
+- 已将保留的错误日志统一收敛为带模块前缀的写法，如 `[forge]`、`[characterStore]`、`[sidebar-left]`、`[electron/main]`
+- 已移除批量导入完成、批量导入为零、导出兜底等仅用于开发确认的控制台提示，避免生产环境持续输出噪音
+- 当前仍保留少量具备定位价值的 `warn / error`，后续可在第二轮继续评估是否需要改为 UI 反馈或开发环境限定输出
+
 #### 任务 5.3 替换 `alert / confirm`
-- [ ] 用统一 Modal / Toast 机制替换浏览器原生弹窗
-- [ ] 统一用户反馈体验
+- [x] 用统一 Modal / Toast 机制替换浏览器原生弹窗
+- [x] 统一用户反馈体验
 
 关联文件：
 - `src/components/layout/SidebarLeft.vue`
@@ -694,13 +781,37 @@ npm run build
 - 用户确认、错误提示、保存反馈风格统一
 - Electron 桌面体验更一致
 
+实施计划：
+- [x] 盘点当前项目中 `alert / confirm / prompt` 的使用点
+- [x] 确认现有 UI 组件中是否已有可复用的 Modal / Toast 基础能力
+- [x] 先替换删除确认、导入导出提示、保存反馈等高频交互
+- [x] 为后续新增提示约定统一入口，避免继续直接调用原生弹窗
+- [x] 回归验证关键交互链路，确认桌面体验一致且不阻断主要流程
+
+推荐策略：
+- 先解决最影响桌面体验的确认弹窗，再做信息提示美化
+- 优先复用现有组件能力，避免为了替换弹窗额外引入一套重 UI 方案
+- 确认交互文案与错误反馈语义同步收敛，不只换壳不改体验
+
+完成说明（当前进展）：
+- 已新增全局反馈层 `uiFeedback`，统一承载确认对话框与全局提示条
+- 已在 `App` 根节点挂载 `GlobalFeedback`，让桌面端确认框与提示条不再依赖浏览器原生弹窗
+- 已替换分组删除、角色删除、批量删除、XP 重置、长休、回满 HP、遗忘法术、Forge 未保存退出等高频确认交互
+- 已将保存成功、导出失败、余额不足、批量导出完成等反馈改为全局 toast，减少阻塞式中断
+- 当前项目中的运行时代码已不再直接依赖原生 `alert / confirm`，仅保留注释中的旧调试语句
+
+**Phase 5 明确成果**：
+- 已完成首包拆分、日志收敛与全局反馈统一三项既定目标，并形成稳定结项版本 `0.11.5`
+- 当前交付状态以 `npm run typecheck`、`npm run lint`、`npm run build` 作为正式验收链路
+- Phase 6 暂未开始，本次结项不纳入未完成的测试脚手架，避免把规划中的工作混入稳定版本
+
 ---
 
 ### Phase 6：补测试
 
 目标：**防止规则逻辑和存档逻辑反复回归**
 
-阶段版本：**`0.11.6`**
+阶段版本：**`0.11.6.y`**
 
 #### 任务 6.1 补纯逻辑测试
 优先测试点：
@@ -745,8 +856,8 @@ npm run build
 ### 第二轮：再做类型与持久化
 5. [x] 逐步替换核心模块 `any`
 6. [x] `src/main.js -> src/main.ts`
-7. [ ] 存档目录迁移到 `app.getPath('userData')`
-8. [ ] 统一 IPC 类型
+7. [x] 存档目录迁移到 `app.getPath('userData')`
+8. [x] 统一 IPC 类型
 
 ### 第三轮：最后处理长期维护项
 9. 包体拆分
@@ -766,7 +877,7 @@ npm run build
 - [x] 完整梳理并收敛 `hitDice` 数据模型
 - [x] 去掉 `StatsAndSkills.vue` / `BioPanel.vue` / `ActionsPanel.vue` 中的 `@ts-ignore`
 - [x] 给 `useCombatLogic.ts` 的攻击项建立正式类型
-- [ ] 将 Electron 存档目录迁移到 `app.getPath('userData')`
+- [x] 将 Electron 存档目录迁移到 `app.getPath('userData')`
 - [ ] 为 AC / 生命骰 / 负重 / 法术位补最小单元测试
 
 ---

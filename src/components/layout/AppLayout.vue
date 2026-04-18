@@ -6,31 +6,31 @@ import ForgeModal from '../sheet/modals/ForgeModal.vue';
 
 <template>
   <div class="app-layout">
-
     <SidebarLeft />
-    
+
     <main class="main-sheet">
       <slot></slot>
     </main>
 
     <SidebarRight />
 
-    <ForgeModal/>
+    <ForgeModal />
   </div>
 </template>
 
 <style scoped lang="scss">
 .app-layout {
   display: flex;
-  height: 100vh; /* 占满整个屏幕高度 */
-  width: 100vw;
-  overflow: hidden; /* 防止出现双重滚动条 */
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
 
   .main-sheet {
-    flex: 1; /* 占据剩余所有宽度 */
+    flex: 1;
+    min-width: 0;
     background-color: #f5f6fa;
-    overflow-y: auto; /* 只有中间可以滚动 */
-    padding: 2rem;
+    overflow-y: auto;
+    padding: 1.25rem;
   }
 }
 </style>

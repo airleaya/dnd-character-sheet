@@ -2,8 +2,10 @@
 import { ref, inject } from 'vue';
 import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 
 const store = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 
 // 接收父组件提供的 Toast 方法
 const showToast = inject<((msg: string, type?: 'success' | 'warning') => void)>('showToast');
@@ -59,8 +61,16 @@ const isPrepared = (id: string) => store.character?.spells.prepared.includes(id)
 
 const togglePrep = (id: string) => store.togglePreparedSpell(id);
 
-const forget = (id: string) => {
-  if (confirm('确定要遗忘这个法术吗？')) store.forgetSpell(id);
+const forget = async (id: string) => {
+  const confirmed = await feedback.confirm({
+    title: '遗忘法术',
+    message: '确定要遗忘这个法术吗？',
+    tone: 'warning',
+    confirmText: '确认遗忘',
+  });
+  if (confirmed) {
+    store.forgetSpell(id);
+  }
 };
 
 // 获取法术来源文本用于UI展示

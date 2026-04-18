@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import EditableText from '../../common/EditableText.vue';
 import type { Character, CombatStats } from '../../../types/Character';
 
 const store = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 const char = computed(() => store.character);
 const combat = computed(() => store.character?.combat);
 
@@ -79,8 +81,14 @@ const handleTemp = () => {
     hpInput.value = '';
   }
 };
-const handleFullHeal = () => {
-  if (confirm('确定要一键回满 HP 吗？')) {
+const handleFullHeal = async () => {
+  const confirmed = await feedback.confirm({
+    title: '回满生命值',
+    message: '确定要一键回满 HP 吗？',
+    tone: 'warning',
+    confirmText: '立即回满',
+  });
+  if (confirmed) {
     store.fullHeal();
   }
 };
