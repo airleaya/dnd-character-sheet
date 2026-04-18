@@ -87,7 +87,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
 
   //职业与兼职管理逻辑
   // 数据清洗与旧存档兼容
-  const ensureClassesFormat = () => {
+    const ensureClassesFormat = () => {
     if (!character.value) return;
     const profile: CharacterProfile = character.value.profile;
 
@@ -95,34 +95,14 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     // 如果发现阵营是字符串，尝试使用字典将其转换为数字编码
     if (typeof profile.alignment === 'string') {
       const cleanStr = profile.alignment.trim().toLowerCase();
-      profile.alignment = ALIGNMENT_MIGRATION_MAP[cleanStr] || undefined;
-      save(); // 清洗后保存
-    }
-
-    // 如果不存在 classes 数组，说明是旧存档或新创建但未初始化的角色
-    if (!profile.classes || !Array.isArray(profile.classes) || profile.classes.length === 0) {
-      profile.classes = [];
-      // 插入一个空的默认主职记录
-      // 初始化时，将未分配的 level 默认等于角色总等级,同时确保空组时也进行初始化。
-      profile.classes.push({ classId: '', subclassId: null, level: profile.level || 1 });
-      // 抛弃旧的文本字段
-      if ('class' in profile) {
-        delete profile.class;
+      const migratedAlignment = ALIGNMENT_MIGRATION_MAP[cleanStr];
+      if (migratedAlignment !== undefined) {
+        profile.alignment = migratedAlignment;
+        save();
       }
-      save();
-    }
-    // 遍历现有记录，兼容没有 level 字段的旧数据
-    else {
-      let modified = false;
-      profile.classes.forEach((c: CharacterClassRecord, i: number) => {
-        if (c.level === undefined) {
-          c.level = i === 0 ? profile.level : 1; // 默认主职继承全部等级，兼职默认1级
-          modified = true;
-        }
-      });
-      if (modified) save();
     }
   };
+
 
   // 新增兼职
   const addClassRecord = () => {
@@ -130,15 +110,16 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     ensureClassesFormat();
     // 新增兼职前的等级容量校验与自动扣减逻辑
     const profile = character.value.profile;
-    const totalAllocated = profile.classes.reduce((sum: number, c: CharacterClassRecord) => sum + (c.level || 1), 0);
-    
+        const totalAllocated = profile.classes.reduce((sum: number, c: CharacterClassRecord) => sum + (c.level || 1), 0);
+
     if (totalAllocated >= profile.level) {
       // 尝试从主职业扣除 1 级给新兼职
       const mainClass = profile.classes[0];
-      const mainClassLevel = mainClass?.level || 1; // 提取当前主职业等级，带有后备默认值
+      const mainClassLevel = mainClass.level || 1;
 
-      if (mainClassLevel > 1 && mainClass) {
-        mainClass.level = mainClassLevel - 1; // 安全赋值
+      if (mainClassLevel > 1) {
+        mainClass.level = mainClassLevel - 1;
+
       } else {
         console.warn('角色总等级不足，无法分配新兼职');
         return; // 阻止添加
@@ -149,19 +130,21 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   };
 
   // 移除兼职
-  const removeClassRecord = (index: number) => {
-    if (!character.value || !character.value.profile.classes) return;
+    const removeClassRecord = (index: number) => {
+    if (!character.value) return;
     // 强制保留至少一行作为主职
     if (character.value.profile.classes.length > 1) {
       character.value.profile.classes.splice(index, 1);
+
       save();
     }
   };
 
   // 更新具体的职业或子职
-  const updateClassRecord = (index: number, field: 'classId' | 'subclassId', value: string | null) => {
-    if (!character.value || !character.value.profile.classes) return;
+    const updateClassRecord = (index: number, field: 'classId' | 'subclassId', value: string | null) => {
+    if (!character.value) return;
     const record = character.value.profile.classes[index];
+
     if (!record) return;
 
     if (field === 'classId') {
@@ -175,9 +158,10 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   };
 
   // 更新职业等级
-  const updateClassLevel = (index: number, delta: number) => {
-    if (!character.value || !character.value.profile.classes) return;
+    const updateClassLevel = (index: number, delta: number) => {
+    if (!character.value) return;
     const profile = character.value.profile;
+
     const record = profile.classes[index];
     if (!record) return;
 
@@ -206,25 +190,19 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   };
 
   // 切换技能熟练度
-  const toggleSkill = (skillKey: string) => {
+    const toggleSkill = (skillKey: string) => {
     if (!character.value) return;
-    if (!character.value.skillProficiencies) {
-      character.value.skillProficiencies = {};
-    }
     const current = !!character.value.skillProficiencies[skillKey];
+
     character.value.skillProficiencies[skillKey] = !current;
     save();
   };
 
   // 切换豁免熟练度
-  const toggleSavingThrow = (attrKey: string) => {
+    const toggleSavingThrow = (attrKey: string) => {
     if (!character.value) return;
-    if (!character.value.savingThrows) {
-      character.value.savingThrows = {
-        str: false, dex: false, con: false, int: false, wis: false, cha: false
-      };
-    }
     const key = attrKey as keyof typeof character.value.stats;
+
     const current = !!character.value.savingThrows[key];
     character.value.savingThrows[key] = !current;
     save();
@@ -244,15 +222,10 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   };
 
   // 添加动态熟练项 (工具/语言)
-  const addProficiencyList = (category: 'tools' | 'languages', val: string) => {
+    const addProficiencyList = (category: 'tools' | 'languages', val: string) => {
     if (!character.value || !val.trim()) return;
-    if (!character.value.proficiencies) {
-      character.value.proficiencies = { armor: [], weapons: [], tools: [], languages: [] };
-    }
-    if (!character.value.proficiencies[category]) {
-      character.value.proficiencies[category] = [];
-    }
     const list = character.value.proficiencies[category];
+
     if (!list.includes(val)) {
       list.push(val);
       save();

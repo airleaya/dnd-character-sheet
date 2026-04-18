@@ -139,12 +139,10 @@ export function useSpellLogic(
 
   const learnSpell = (spellId: string, source: 'primary' | 'secondary' = 'primary'): boolean => {
     if (!character.value) return false;
-    if (!character.value.spells.known.includes(spellId)) {
+        if (!character.value.spells.known.includes(spellId)) {
       character.value.spells.known.push(spellId);
-      if (!character.value.spells.spellSources) {
-        character.value.spells.spellSources = {};
-      }
       character.value.spells.spellSources[spellId] = source;
+
       save();
       return true;
     }
@@ -197,21 +195,20 @@ export function useSpellLogic(
     save();
   };
 
-  const updatePactSlot = (newVal: number) => {
-    if (!character.value || !character.value.spells.pactSlots) return;
+    const updatePactSlot = (newVal: number) => {
+    if (!character.value) return;
     const pact = character.value.spells.pactSlots;
+
     if (newVal < 0) newVal = 0;
     if (newVal > pact.max) newVal = pact.max;
     pact.current = newVal;
     save();
   };
 
-  const updatePactSlotMax = (newMax: number, newLevel?: number) => {
+    const updatePactSlotMax = (newMax: number, newLevel?: number) => {
     if (!character.value) return;
-    if (!character.value.spells.pactSlots) {
-      character.value.spells.pactSlots = { level: 1, current: 0, max: 0 };
-    }
     const pact = character.value.spells.pactSlots;
+
     if (newMax < 0) newMax = 0;
     pact.max = newMax;
     if (newLevel !== undefined) {

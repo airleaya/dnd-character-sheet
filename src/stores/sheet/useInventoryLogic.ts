@@ -70,16 +70,15 @@ export function useInventoryLogic(
   // 🛠️ Actions - 经济系统 (Wallet)
   // ==========================================
 
-  const initWalletIfMissing = () => {
-    if (character.value && !character.value.wallet) {
-      character.value.wallet = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
-    }
+    const initWalletIfMissing = () => {
+    // 钱包字段已由 migration 统一补齐，此处保留空实现以兼容现有调用。
   };
+
 
   const modifyCurrency = (type: keyof typeof CURRENCY_RATES, amount: number): boolean => {
     if (!character.value) return false;
-    initWalletIfMissing();
-    const wallet = character.value!.wallet;
+        const wallet = character.value.wallet;
+
 
     let highPoolPP = wallet.pp; 
     let lowPoolCP = 
@@ -129,12 +128,10 @@ export function useInventoryLogic(
     return true;
   };
 
-  const updateWallet = (type: 'cp' | 'sp' | 'ep' | 'gp' | 'pp', value: number) => {
+    const updateWallet = (type: 'cp' | 'sp' | 'ep' | 'gp' | 'pp', value: number) => {
     if (!character.value) return;
-    if (!character.value.wallet) {
-      character.value.wallet = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
-    }
     character.value.wallet[type] = value;
+
     save();
   };
 
@@ -149,11 +146,14 @@ export function useInventoryLogic(
     newItem.quantity = quantity;
     newItem.parentId = parentId;
 
+        if (!character.value) return;
+
     if (typeof index === 'number') {
-      character.value!.inventory.splice(index, 0, newItem);
+      character.value.inventory.splice(index, 0, newItem);
     } else {
-      character.value!.inventory.push(newItem);
+      character.value.inventory.push(newItem);
     }
+
     save();
   };
 
@@ -190,11 +190,13 @@ export function useInventoryLogic(
       const containerItem = createItemFromLibrary(packDef.containerId);
       if (containerItem) {
         containerItem.parentId = parentId;
+                if (!character.value) return;
         if (typeof index === 'number') {
-          character.value!.inventory.splice(index, 0, containerItem);
+          character.value.inventory.splice(index, 0, containerItem);
         } else {
-          character.value!.inventory.push(containerItem);
+          character.value.inventory.push(containerItem);
         }
+
         targetContainerId = containerItem.instanceId; 
       }
     }

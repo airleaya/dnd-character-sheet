@@ -2,8 +2,7 @@
 import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import EditableText from '../../common/EditableText.vue';
-import type { Character } from '../../../types/Character';
-import type { CombatStats } from '../../../types/Character';
+import type { Character, CombatStats } from '../../../types/Character';
 
 const store = useActiveSheetStore();
 const char = computed(() => store.character);
@@ -51,45 +50,12 @@ const toggleHitDiceEdit = () => {
 
 // 获取激活的生命骰（只显示 max > 0 的类型）
 const activeHitDice = computed(() => {
-  if (!combat.value || !combat.value.hitDice) return [];
-    return Object.entries(combat.value.hitDice)
+  if (!combat.value) return [];
+  return Object.entries(combat.value.hitDice)
     .filter(([, data]) => data.max > 0)
     .map(([type, data]) => ({ type, ...data }));
 });
 
-const handleHitDiceUpdate = (type: string, delta: number) => {
-  if (!combat.value || !combat.value.hitDice) return;
-  
-  const hd = combat.value.hitDice[type];
-  if (!hd) return;
-
-  let newVal = hd.current + delta;
-  if (newVal < 0) newVal = 0;
-  if (newVal > hd.max) newVal = hd.max;
-  
-  if (newVal !== hd.current) {
-    // 深拷贝修改后赋值，确保触发 Store 响应式
-    const newHitDice = JSON.parse(JSON.stringify(combat.value.hitDice));
-    newHitDice[type].current = newVal;
-    update('hitDice', newHitDice);
-  }
-};
-
-const updateHitDiceMax = (type: string, newMax: number) => {
-  if (!combat.value) return;
-  const newHitDice = JSON.parse(JSON.stringify(combat.value.hitDice || {}));
-  
-  if (!newHitDice[type]) {
-    newHitDice[type] = { current: 0, max: 0 };
-  }
-  newHitDice[type].max = newMax;
-  
-  // 约束：如果最大值变小，导致当前值溢出，则自动修正当前值
-  if (newHitDice[type].current > newMax) {
-    newHitDice[type].current = newMax;
-  }
-  update('hitDice', newHitDice);
-};
 
 // HP 按钮处理
 const handleDamage = () => {
@@ -287,9 +253,10 @@ const hpPercent = computed(() => {
             <div class="hd-controls" v-for="hd in activeHitDice" :key="hd.type">
               <span class="hd-type-badge">{{ hd.type }}</span>
               <div class="hd-btn-group">
-                <button @click="handleHitDiceUpdate(hd.type, -1)" :disabled="hd.current <= 0">-</button>
+                                <button @click="store.changeHitDiceCurrent(hd.type, -1)" :disabled="hd.current <= 0">-</button>
                 <span class="hd-val">{{ hd.current }} / {{ hd.max }}</span>
-                <button @click="handleHitDiceUpdate(hd.type, 1)" :disabled="hd.current >= hd.max">+</button>
+                <button @click="store.changeHitDiceCurrent(hd.type, 1)" :disabled="hd.current >= hd.max">+</button>
+
               </div>
             </div>
           </div>
@@ -300,8 +267,9 @@ const hpPercent = computed(() => {
                 <span class="hd-max-edit">
                   最大: 
                   <EditableText 
-                    :model-value="combat.hitDice?.[d]?.max || 0" 
-                    @update:model-value="v => updateHitDiceMax(d, Number(v))"
+                                        :model-value="combat.hitDice[d]?.max || 0" 
+                    @update:model-value="v => store.setHitDiceMax(d, Number(v))"
+
                   />
                 </span>
              </div>

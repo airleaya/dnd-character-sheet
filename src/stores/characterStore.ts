@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { generateUUID } from '../utils/idGenerator';
 import type { Character, CharacterClassRecord } from '../types/Character';
+import { createDefaultCharacter, normalizeCharacterData } from '../utils/characterMigration';
 
 // 分组元数据接口
 export interface CharacterGroup {
@@ -29,39 +30,7 @@ const getFilename = (char: Character): string => {
   return `${char.id}.json`;
 };
 
-type LegacyCharacterData = Character & {
-  combat?: Character['combat'] & {
-    hitDiceType?: string;
-    hitDiceCurrent?: number;
-    hitDiceMax?: number;
-  };
-};
 
-// 旧数据兼容清洗辅助函数
-const migrateLegacyData = (char: LegacyCharacterData) => {
-  if (!char.combat) return;
-  
-  // 如果发现旧存档的生命骰字段，则进行迁移清洗
-  if (char.combat.hitDiceType || char.combat.hitDiceCurrent !== undefined) {
-    const type = char.combat.hitDiceType || 'd6';
-    const current = char.combat.hitDiceCurrent || 0;
-    const max = char.combat.hitDiceMax || 0;
-
-    char.combat.hitDice = {
-      [type]: { current, max }
-    };
-
-    // 彻底销毁旧字段，保持状态树纯净
-    delete char.combat.hitDiceType;
-    delete char.combat.hitDiceCurrent;
-    delete char.combat.hitDiceMax;
-  }
-  
-  // 兜底：如果完全没有，初始化为空对象
-  if (!char.combat.hitDice) {
-    char.combat.hitDice = {};
-  }
-};
 
 export const useCharacterStore = defineStore('characterStore', {
   state: () => ({
@@ -104,10 +73,10 @@ export const useCharacterStore = defineStore('characterStore', {
         this._characterCache.clear();
         this._filenameMap.clear(); // 清空文件名映射
 
-        result.data.forEach((char: Character) => {
-          migrateLegacyData(char);
+                result.data.forEach((rawChar: Character) => {
+          const char = normalizeCharacterData(rawChar);
           this._characterCache.set(char.id, char);
-          
+
           // 记录初始文件名
           this._filenameMap.set(char.id, getFilename(char));
 
@@ -117,7 +86,7 @@ export const useCharacterStore = defineStore('characterStore', {
             playerName: char.profile.playerName,
             race: char.profile.race,
             level: char.profile.level,
-            classes: char.profile.classes || [],
+            classes: char.profile.classes,
             avatarUrl: char.profile.avatarUrl
           });
         });
@@ -129,18 +98,7 @@ export const useCharacterStore = defineStore('characterStore', {
     async createNewCharacter() {
       const newId = generateUUID();
       
-      const newChar: Character = {
-        id: newId,
-        lastModified: Date.now(),
-        profile: { name: '新角色', playerName: '', race: '人类', background: '', alignment: '', level: 1, xp: 0, classes: [{ classId: '', subclassId: null, level: 1 }] },
-        bio: { age: '', height: '', weight: '', eyes: '', skin: '', hair: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', backstory: '', featureText: '', treasureNotes: '' },
-        stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-        combat: { hpCurrent: 10, hpMax: 10, tempHp: 0, hitDice: { 'd6': { current: 1, max: 1 } }, deathSaves: { success: 0, failure: 0 }, speed: 30, exhaustion: 0, inspiration: [false, false, false], conditions: '' },
-        inventory: [], equippedIds: [], wallet: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 }, skillProficiencies: {}, savingThrows: { str: false, dex: false, con: false, int: false, wis: false, cha: false }, hiddenAttacks: [],
-        proficiencies: { armor: [], weapons: [], tools: [], languages: [] },
-        spells: { spellcastingAbility: 'int', spellSaveDC: 10, spellAttackMod: 2, slots: { current: [0,0,0,0,0,0,0,0,0,0], max: [0,0,0,0,0,0,0,0,0,0] }, pactSlots: { level: 1, current: 0, max: 0 }, known: [], prepared: [] },
-        activeAttackModes: [],
-      };
+            const newChar = createDefaultCharacter(newId);
 
       // 1. 只更新内存，不写硬盘！
       this._characterCache.set(newId, newChar);
@@ -166,11 +124,21 @@ export const useCharacterStore = defineStore('characterStore', {
     },
 
     // --- 3. 保存逻辑 (核心迁移逻辑) ---
-    async saveCharacterData(char: Character) {
-      this._characterCache.set(char.id, char);
-      
-      const metaIndex = this.characterList.findIndex(c => c.id === char.id);
-      const meta = { id: char.id, name: char.profile.name, playerName: char.profile.playerName, race: char.profile.race, level: char.profile.level, classes: char.profile.classes || [], avatarUrl: char.profile.avatarUrl };
+        async saveCharacterData(char: Character) {
+      const normalizedChar = normalizeCharacterData(char);
+      this._characterCache.set(normalizedChar.id, normalizedChar);
+
+      const metaIndex = this.characterList.findIndex(c => c.id === normalizedChar.id);
+      const meta = {
+        id: normalizedChar.id,
+        name: normalizedChar.profile.name,
+        playerName: normalizedChar.profile.playerName,
+        race: normalizedChar.profile.race,
+        level: normalizedChar.profile.level,
+        classes: normalizedChar.profile.classes,
+        avatarUrl: normalizedChar.profile.avatarUrl
+      };
+
       if (metaIndex !== -1) 
         {this.characterList[metaIndex] = meta;}
       else {
@@ -180,7 +148,7 @@ export const useCharacterStore = defineStore('characterStore', {
 
       if (window.electronAPI) {
         // 1. 计算新的标准文件名 (UUID.json)
-        const newFilename = getFilename(char);
+        const newFilename = getFilename(normalizedChar);
         
         // 2. 获取内存中记录的“上一次的文件名”
         // 注意：如果是旧存档第一次运行，_filenameMap 里存的可能是错误的（因为 init 时被强制设为了 UUID.json）
@@ -189,10 +157,10 @@ export const useCharacterStore = defineStore('characterStore', {
         // 鉴于不修改 Electron 端，我们这里接受：
         // "用户改动数据并保存后，会生成新的 UUID.json，旧的 Name.json 可能残留，但不影响程序运行（因为下次读取会读两份，然后去重或并在列表显示）"。
         // *优化方案*：用户可以手动在资源管理器删除旧文件，或者我们在 Electron 端做去重。
-        const oldFilename = this._filenameMap.get(char.id);
+        const oldFilename = this._filenameMap.get(normalizedChar.id);
 
         // A. 保存新文件
-        await window.electronAPI.saveCharacter(newFilename, JSON.stringify(char, null, 2));
+        await window.electronAPI.saveCharacter(newFilename, JSON.stringify(normalizedChar, null, 2));
         
         // B. 尝试清理旧文件
         if (oldFilename && oldFilename !== newFilename) {
@@ -206,7 +174,7 @@ export const useCharacterStore = defineStore('characterStore', {
         }
 
         // C. 更新映射
-        this._filenameMap.set(char.id, newFilename);
+        this._filenameMap.set(normalizedChar.id, newFilename);
       }
     },
 
@@ -248,17 +216,14 @@ export const useCharacterStore = defineStore('characterStore', {
     // --- 7. 导入 ---
     async importCharacter(jsonStr: string) {
       try {        
-        const data = JSON.parse(jsonStr) as Character;
-        if (!data.profile) throw new Error('无效数据');        
-        data.id = generateUUID(); 
-        data.lastModified = Date.now();
-        
-        // 兼容性补全
-        if (!data.bio) data.bio = { age: '', height: '', weight: '', eyes: '', skin: '', hair: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', backstory: '', featureText: '', treasureNotes: '' };
-        if (!data.spells) data.spells = { spellcastingAbility: 'int', spellSaveDC: 10, spellAttackMod: 2, slots: { current: [0,0,0,0,0,0,0,0,0,0], max: [0,0,0,0,0,0,0,0,0,0] }, pactSlots: { level: 1, current: 0, max: 0 }, known: [], prepared: [] };
-        if (!data.proficiencies) data.proficiencies = { armor: [], weapons: [], tools: [], languages: [] };
-        if (!data.savingThrows) data.savingThrows = { str: false, dex: false, con: false, int: false, wis: false, cha: false };
-        migrateLegacyData(data);
+                const parsed = JSON.parse(jsonStr) as Character;
+        if (!parsed.profile) throw new Error('无效数据');
+
+        const data = normalizeCharacterData({
+          ...parsed,
+          id: generateUUID(),
+          lastModified: Date.now(),
+        });
 
         await this.saveCharacterData(data);
         return data.id;

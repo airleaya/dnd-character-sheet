@@ -10,6 +10,7 @@ import { useBioLogic } from './sheet/useBioLogic';
 import { useCombatLogic } from './sheet/useCombatLogic';
 import { useInventoryLogic } from './sheet/useInventoryLogic';
 import { useSpellLogic } from './sheet/useSpellLogic';
+import { normalizeCharacterData } from '../utils/characterMigration';
 
 export const useActiveSheetStore = defineStore('activeSheet', () => {
   // ==========================================
@@ -40,70 +41,8 @@ export const useActiveSheetStore = defineStore('activeSheet', () => {
     const charStore = useCharacterStore();
     const data = charStore.getCharacterData(id);
     
-    if (data) {
-      // ✅ 补全可能缺失的字段 (兼容旧数据)
-      if (!data.equippedIds) data.equippedIds = [];
-      if (!data.hiddenAttacks) data.hiddenAttacks = [];
-
-      // 初始化钱包
-      if (!data.wallet) {
-        data.wallet = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
-      }
-
-      // 初始化熟练项结构
-      if (!data.proficiencies) {
-        data.proficiencies = { armor: [], weapons: [], tools: [], languages: [] };
-      } else {
-        if (!data.proficiencies.armor) data.proficiencies.armor = [];
-        if (!data.proficiencies.weapons) data.proficiencies.weapons = [];
-        if (!data.proficiencies.tools) data.proficiencies.tools = [];
-        if (!data.proficiencies.languages) data.proficiencies.languages = [];
-      }
-
-      // 初始化额外攻击属性开关
-      if (!data.activeAttackModes){
-        data.activeAttackModes = [];
-      }
-
-            // 补全战斗数据：确保生命骰对象存在
-      if (!data.combat.hitDice) {
-        data.combat.hitDice = {};
-      }
-
-
-      // 法术数据初始化
-      if (!data.spells) {
-        data.spells = {
-          spellcastingAbility: 'int',
-          spellSaveDC: 10,
-          spellAttackMod: 2,
-          slots: {
-            current: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            max:     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-          },
-          pactSlots: { level: 1, current: 0, max: 0 },
-          known: [],
-          prepared: []
-        };
-      }
-      if (!data.spells.spellSources) data.spells.spellSources = {};
-      if (!data.spells.pactSlots) data.spells.pactSlots = { level: 1, current: 0, max: 0 };
-
-      // 角色简介初始化
-      if (!data.bio) {
-        data.bio = {
-          age: '', height: '', weight: '', eyes: '', skin: '', hair: '',
-          personalityTraits: '', ideals: '', bonds: '', flaws: '',
-          backstory: '', featureText: '', treasureNotes: ''
-        };
-      }
-
-      // 初始化 Profile 新字段
-      if (!data.profile.playerName) data.profile.playerName = '';
-      if (!data.profile.background) data.profile.background = '';
-      if (!data.profile.alignment) data.profile.alignment = '';
-      
-      character.value = data;
+        if (data) {
+      character.value = normalizeCharacterData(data);
     }
   };
 

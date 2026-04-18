@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 import type { Ref } from 'vue';
-import type { Character } from '../../types/Character';
+import type { Character, HitDiceMap } from '../../types/Character';
 import type { ArmorData, InventoryItem, WeaponData } from '../../types/Item';
 import type { AbilityKey } from '../../types/Library';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
@@ -25,6 +25,12 @@ const isArmorItem = (item: InventoryItem): item is InventoryItem & { data: Armor
 const isWeaponItem = (item: InventoryItem): item is InventoryItem & { data: WeaponData } => item.type === 'weapon';
 const isAmmoConsumable = (item: InventoryItem, requiredType: string) =>
   item.type === 'consumable' && 'ammoType' in item.data && item.data.ammoType === requiredType;
+
+const cloneHitDice = (hitDice: HitDiceMap): HitDiceMap =>
+  Object.fromEntries(
+    Object.entries(hitDice).map(([type, entry]) => [type, { ...entry }])
+  );
+
 
 // 注意：这里我们需要传入 proficiencyBonus 的引用，因为计算攻击命中时需要用到熟练加值
 export function useCombatLogic(
@@ -138,15 +144,17 @@ export function useCombatLogic(
   // --- 攻击面板计算 (核心) ---
   const attacks = computed(() => {
     if (!character.value) return [];
-    const char = character.value;
-    const hiddenIds = char.hiddenAttacks || []; 
+        const char = character.value;
+    const hiddenIds = char.hiddenAttacks;
+ 
     
     const strMod = Math.floor((char.stats.str - 10) / 2);
     const dexMod = Math.floor((char.stats.dex - 10) / 2);
     const pb = proficiencyBonus.value;
 
-    const activeModes = (char.activeAttackModes || [])
+        const activeModes = char.activeAttackModes
       .filter(k => k !== 'str' && k !== 'dex') as AbilityKey[];
+
 
     const attackList: AttackEntry[] = [];
 
@@ -331,33 +339,63 @@ export function useCombatLogic(
     save();
   };
 
-  const setTempHp = (amount: number) => {
+    const setTempHp = (amount: number) => {
     if (!character.value) return;
     character.value.combat.tempHp = amount;
     save();
   };
 
-    const updateCombatStat = <K extends keyof Character['combat']>(field: K, value: Character['combat'][K]) => {
+  const changeHitDiceCurrent = (type: string, delta: number) => {
+    if (!character.value) return;
+
+    const currentHitDice = character.value.combat.hitDice;
+    const entry = currentHitDice[type];
+    if (!entry) return;
+
+    const nextCurrent = Math.min(Math.max(entry.current + delta, 0), entry.max);
+    if (nextCurrent === entry.current) return;
+
+    const nextHitDice = cloneHitDice(currentHitDice);
+    nextHitDice[type].current = nextCurrent;
+    character.value.combat.hitDice = nextHitDice;
+    save();
+  };
+
+  const setHitDiceMax = (type: string, newMax: number) => {
+    if (!character.value) return;
+
+    const sanitizedMax = Math.max(0, newMax);
+    const currentHitDice = character.value.combat.hitDice;
+    const nextHitDice = cloneHitDice(currentHitDice);
+    const existingEntry = nextHitDice[type] ?? { current: 0, max: 0 };
+
+    nextHitDice[type] = {
+      current: Math.min(existingEntry.current, sanitizedMax),
+      max: sanitizedMax,
+    };
+
+    character.value.combat.hitDice = nextHitDice;
+    save();
+  };
+
+  const updateCombatStat = <K extends keyof Character['combat']>(field: K, value: Character['combat'][K]) => {
+
     if (!character.value) return;
     character.value.combat[field] = value;
     save();
   };
 
-  const toggleInspiration = (index: number) => {
+    const toggleInspiration = (index: number) => {
     if (!character.value) return;
-    if (!character.value.combat.inspiration) {
-      character.value.combat.inspiration = [false, false, false];
-    }
     character.value.combat.inspiration[index] = !character.value.combat.inspiration[index];
+
     save();
   };
 
-  const toggleAttackVisibility = (derivedId: string) => {
+    const toggleAttackVisibility = (derivedId: string) => {
     if (!character.value) return;
-    if (!character.value.hiddenAttacks) {
-      character.value.hiddenAttacks = [];
-    }
     const list = character.value.hiddenAttacks;
+
     const index = list.indexOf(derivedId);
     if (index > -1) {
       list.splice(index, 1);
@@ -367,12 +405,10 @@ export function useCombatLogic(
     save();
   };
 
-  const toggleAttackMode = (attr: AbilityKey) => {
+    const toggleAttackMode = (attr: AbilityKey) => {
     if (!character.value) return;
-    if (!character.value.activeAttackModes) {
-      character.value.activeAttackModes = [];
-    }
     const list = character.value.activeAttackModes;
+
     const idx = list.indexOf(attr);
     if (idx > -1) {
       list.splice(idx, 1);
@@ -390,9 +426,12 @@ export function useCombatLogic(
     applyDamage,
     applyHeal,
     fullHeal,
-    setTempHp,
+        setTempHp,
+    changeHitDiceCurrent,
+    setHitDiceMax,
     updateCombatStat,
     resetDeathSaves,
+
     toggleInspiration,
     toggleAttackVisibility,
     toggleAttackMode

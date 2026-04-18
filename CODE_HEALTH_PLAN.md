@@ -361,10 +361,19 @@ npm run build
 
 目标：**把运行时补丁变成明确的数据规范**
 
+当前状态：**已完成**
+
+**Phase 2 明确成果**：
+- 项目已建立统一的 `characterMigration` 入口，角色数据进入 store / activeSheet 前先完成规范化
+- 生命骰模型已统一收敛到 `combat.hitDice`，旧字段兼容逻辑仅保留在 migration 层
+- 生命骰状态更新职责已下沉到 store，组件层不再直接承担数据结构修补
+- `Character` 与 `CharacterSpells` 的关键边界已收紧，一批运行时补丁已被 migration + 类型契约取代
+- 已完成旧存档、切换角色、重启应用、多职业生命骰等关键链路验收
+
 #### 任务 2.1 建立统一 migration 层
-- [ ] 新建 `characterMigration` 模块
-- [ ] 统一旧存档清洗、补全、升级逻辑
-- [ ] 避免在 `activeSheet.ts` 中散落补丁
+- [x] 新建 `characterMigration` 模块
+- [x] 统一旧存档清洗、补全、升级逻辑
+- [x] 避免在 `activeSheet.ts` 中散落补丁
 
 建议新增文件：
 - `src/utils/characterMigration.ts`
@@ -375,15 +384,21 @@ npm run build
 - `src/types/Character.ts`
 
 验收标准：
-- 角色数据进入 store 前先完成规范化
-- 旧数据兼容逻辑集中维护
-- `activeSheet.ts` 中不再承担大量迁移职责
+- [x] 角色数据进入 store 前先完成规范化
+- [x] 旧数据兼容逻辑集中维护
+- [x] `activeSheet.ts` 中不再承担大量迁移职责
+
+完成说明：
+- 已新增 `src/utils/characterMigration.ts`
+- 已建立统一入口：`normalizeCharacterData(raw)` 与 `createDefaultCharacter(id)`
+- `characterStore.ts` 的 `init / createNewCharacter / saveCharacterData / importCharacter` 已统一接入规范化流程
+- `activeSheet.ts` 的 `loadCharacter()` 已不再散落字段补丁，改为统一调用 migration
 
 #### 任务 2.2 清理生命骰模型
-- [ ] 全面审计生命骰结构使用点
-- [ ] 正式废弃旧字段 `hitDiceType / hitDiceCurrent / hitDiceMax`
-- [ ] 全项目统一使用 `combat.hitDice`
-- [ ] 复核保存、加载、UI 编辑、迁移是否一致
+- [x] 全面审计生命骰结构使用点
+- [x] 正式废弃旧字段 `hitDiceType / hitDiceCurrent / hitDiceMax`
+- [x] 全项目统一使用 `combat.hitDice`
+- [x] 复核保存、加载、UI 编辑、迁移是否一致
 
 关联文件：
 - `src/components/sheet/combat/CombatPanel.vue`
@@ -393,14 +408,21 @@ npm run build
 - `src/types/Character.ts`
 
 验收标准：
-- 修改生命骰后切换角色 / 重启应用数据仍正确
-- 兼职角色多生命骰结构稳定
-- 旧存档导入后会自动转换到统一格式
+- [x] 修改生命骰后切换角色 / 重启应用数据仍正确
+- [x] 兼职角色多生命骰结构稳定
+- [x] 旧存档导入后会自动转换到统一格式
+
+完成说明：
+- 旧字段 `hitDiceType / hitDiceCurrent / hitDiceMax` 已在 migration 中统一转换到 `combat.hitDice`
+- 已在 `src/types/Character.ts` 中抽出 `HitDieEntry / HitDiceMap`，明确生命骰正式结构
+- `CombatPanel.vue` 不再通过组件层深拷贝直接写回生命骰对象
+- `useCombatLogic.ts` 已下沉生命骰更新逻辑，新增 `changeHitDiceCurrent()` 与 `setHitDiceMax()`
+- 已完成旧存档导入、切换角色、重启应用、多职业生命骰显示与保存的回归验收
 
 #### 任务 2.3 补强 Character 类型定义
-- [ ] 清理 `CharacterMeta.classes: any[]`
-- [ ] 为 spells 扩展字段补正式类型
-- [ ] 为可选字段建立明确策略
+- [x] 清理 `CharacterMeta.classes: any[]`
+- [x] 为 spells 扩展字段补正式类型
+- [x] 为可选字段建立明确策略
 
 关联文件：
 - `src/types/Character.ts`
@@ -408,8 +430,14 @@ npm run build
 - `src/stores/activeSheet.ts`
 
 验收标准：
-- 核心角色结构不再依赖模糊数组或任意对象
-- 存档结构定义更稳定、可读
+- [x] 核心角色结构不再依赖模糊数组或任意对象
+- [x] 存档结构定义更稳定、可读
+
+完成说明：
+- `CharacterMeta.classes` 已明确为 `CharacterClassRecord[]`
+- `Character.ts` 已补充 `HitDieEntry / HitDiceMap`
+- `CharacterSpells.pactSlots` 与 `CharacterSpells.spellSources` 已提升为必填字段
+- 一批 `wallet / spells / proficiencies / hiddenAttacks / activeAttackModes / savingThrows` 的运行时兜底已移除，改由 migration + 类型契约共同保证
 
 ---
 
@@ -602,8 +630,8 @@ npm run build
 
 ### 第一轮：先修高风险结构问题
 1. [x] 建立 `typecheck / lint`
-2. [ ] 建立统一 migration 层
-3. [ ] 收敛生命骰模型
+2. [x] 建立统一 migration 层
+3. [x] 收敛生命骰模型
 4. [ ] 去掉组件层 `@ts-ignore`
 
 ### 第二轮：再做类型与持久化
@@ -626,8 +654,8 @@ npm run build
 
 - [x] 建立 `typecheck` 脚本
 - [x] 建立 `lint` 脚本
-- [ ] 建立统一 `characterMigration` 模块
-- [ ] 完整梳理并收敛 `hitDice` 数据模型
+- [x] 建立统一 `characterMigration` 模块
+- [x] 完整梳理并收敛 `hitDice` 数据模型
 - [ ] 去掉 `StatsAndSkills.vue` / `BioPanel.vue` / `ActionsPanel.vue` 中的 `@ts-ignore`
 - [x] 给 `useCombatLogic.ts` 的攻击项建立正式类型
 - [ ] 将 Electron 存档目录迁移到 `app.getPath('userData')`
@@ -659,26 +687,18 @@ npm run build
 
 ## 10. 下一步建议
 
-推荐下一步从以下两项开始：
+推荐下一步从以下方向开始：
 
-### 方案 A：先建工程护栏
-- 添加 `typecheck`
-- 添加 `lint`
-- 配置最小 CI
+### 当前建议 A：进入 Phase 3
+- 清理组件层剩余 `@ts-ignore`
+- 继续替换核心模块中的残余 `any`
+- 统一前端入口到 TypeScript
 
-适合场景：
-- 希望先让后续改动更稳
-- 希望先建立自动检查能力
+### 当前建议 B：准备最小测试保护
+- 为 AC、生命骰迁移、负重、法术位补最小单元测试
+- 为旧存档导入与保存链路补最小回归验证
 
-### 方案 B：先解决高风险数据问题
-- 建立 `characterMigration`
-- 收敛 `hitDice` 模型
-
-适合场景：
-- 希望先解决当前最容易影响存档正确性的结构问题
-- 希望优先处理“生命骰调整不保存”等疑似根因问题
-
-> 建议实际执行顺序：**先 A，再 B**。
+> 建议实际执行顺序：**先 Phase 3，再补测试**。
 
 ---
 

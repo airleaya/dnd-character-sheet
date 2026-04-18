@@ -71,8 +71,16 @@ export interface CharacterBio {
   treasureNotes: string;   // 财宝笔记
 }
 
+export interface HitDieEntry {
+  current: number;
+  max: number;
+}
+
+export type HitDiceMap = Record<string, HitDieEntry>;
+
 // 3. 战斗相关数据
 export interface CombatStats {
+
   hpCurrent: number;
   hpMax: number;
   tempHp: number;
@@ -84,9 +92,10 @@ export interface CombatStats {
   // draconic: 13 + 敏捷
   acMode?: 'default' | 'barbarian' | 'monk' | 'draconic';
 
-  // 用基于字典的多类型生命骰
+    // 用基于字典的多类型生命骰
   // Key 为骰子类型 (例如 'd6', 'd8')
-  hitDice: Record<string, { current: number; max: number }>;
+  hitDice: HitDiceMap;
+
   
   // 速度 (手动修改)
   speed: number; 
@@ -127,11 +136,12 @@ export interface CharacterSpells {
   };
 
   // 3. 邪术师契约魔法 (Pact Magic) - 如果需要单独处理
-  pactSlots?: {
+    pactSlots: {
     level: number;
     current: number;
     max: number;
   };
+
 
   // 4. 法术列表 (只存 ID)
   known: string[];    // 已知法术 (法师的法术书，或术士的已知表)
@@ -139,7 +149,8 @@ export interface CharacterSpells {
 
   // 法术来源映射表，Key 为法术 ID，Value 为职业/来源标识 (如 'wizard', 'warlock')
   // 采用可选字典结构，兼顾旧存档兼容性并为兼职系统预留扩展口
-  spellSources?: Record<string, string>;
+    spellSources: Record<string, string>;
+
 }
 
 
@@ -158,7 +169,8 @@ export interface Character {
   
   equippedIds: string[]; // 已装备物品 ID
 
-  wallet:Wallet
+    wallet: Wallet;
+
 
   // 【技能熟练项】
   // 二元选项：Key 存在且为 true 即为熟练，否则为不熟练

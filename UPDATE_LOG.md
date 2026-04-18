@@ -30,6 +30,39 @@
 
 ## 历史完成记录（由 `问题收集.txt` 整理）
 
+### [0.10.2] - Phase 2 完成（日期待补）
+- 类型：Refactor / Data / Type Safety
+- 条目：完成代码健康计划 Phase 2（收敛数据模型）
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/utils/characterMigration.ts`
+  - `src/stores/characterStore.ts`
+  - `src/stores/activeSheet.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/stores/sheet/  useBioLogic.ts`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `src/stores/sheet/useSpellLogic.ts`
+  - `src/components/sheet/combat/CombatPanel.vue`
+  - `src/types/Character.ts`
+  - `CODE_HEALTH_PLAN.md`
+- 说明：
+  - 已新增统一迁移模块 `characterMigration.ts`，集中处理旧存档补全、默认值规范化与历史生命骰字段迁移
+  - `characterStore.ts` 与 `activeSheet.ts` 已统一接入规范化入口，角色数据进入 store / activeSheet 前先完成收敛
+  - 旧生命骰字段 `hitDiceType / hitDiceCurrent / hitDiceMax` 已统一迁移到 `combat.hitDice`
+  - 生命骰修改逻辑已从 `CombatPanel.vue` 下沉到 `useCombatLogic.ts`，组件不再直接深拷贝并写回状态
+  - 已补充 `HitDieEntry / HitDiceMap` 等正式类型，并将 `spells.pactSlots / spells.spellSources` 收紧为必填字段
+  - 已清理一批 `wallet / spells / proficiencies / savingThrows / hiddenAttacks / activeAttackModes` 的运行时兜底，改由 migration + 类型契约统一保证
+  - 已完成旧存档导入、生命骰修改后切换角色、重启应用、多职业生命骰显示与保存等关键链路验收
+  - 项目数据模型已从“运行时分散补丁”推进为“统一迁移 + 统一类型 + 统一状态更新”的可维护结构
+- 验证结果：
+  - 旧存档导入通过
+  - 生命骰切换角色保留通过
+  - 重启应用后生命骰保留通过
+  - 多职业生命骰显示与保存通过
+  - `npm run typecheck` 通过
+  - `npm run lint` 通过
+- 关联待办：`CODE_HEALTH_PLAN.md` / Phase 2
+
 ### [0.10.2] - Phase 1 完成（日期待补）
 - 类型：Refactor / Tooling / CI
 - 条目：完成代码健康计划 Phase 1（建立工程护栏）
