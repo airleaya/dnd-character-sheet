@@ -194,6 +194,8 @@ export const createDefaultCharacter = (id: string): Character => ({
   skillProficiencies: {},
   savingThrows: { ...DEFAULT_SAVING_THROWS },
   hiddenAttacks: [],
+  selectedAttackKeys: [],
+  attackSelectionInitialized: true,
   proficiencies: {
     armor: [],
     weapons: [],
@@ -260,6 +262,11 @@ export const normalizeCharacterData = (raw: LegacyCharacterData): Character => (
     cha: raw.savingThrows?.cha ?? DEFAULT_SAVING_THROWS.cha,
   },
   hiddenAttacks: cloneArray(raw.hiddenAttacks, []),
+  selectedAttackKeys: cloneArray(raw.selectedAttackKeys, []),
+  attackSelectionInitialized:
+    typeof raw.attackSelectionInitialized === 'boolean'
+      ? raw.attackSelectionInitialized
+      : Array.isArray(raw.selectedAttackKeys),
   proficiencies: {
     armor: cloneArray(raw.proficiencies?.armor, DEFAULT_PROFICIENCIES.armor),
     weapons: cloneArray(raw.proficiencies?.weapons, DEFAULT_PROFICIENCIES.weapons),

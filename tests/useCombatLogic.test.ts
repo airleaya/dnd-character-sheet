@@ -1,7 +1,38 @@
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import { useCombatLogic } from '../src/stores/sheet/useCombatLogic';
 import { createDefaultCharacter } from '../src/utils/characterMigration';
+import type { InventoryItem, WeaponData } from '../src/types/Item';
+
+const createWeaponItem = (
+  instanceId: string,
+  {
+    templateId = 'dagger',
+    name = 'Dagger',
+    quantity = 1,
+  }: {
+    templateId?: string;
+    name?: string;
+    quantity?: number;
+  } = {},
+  dataOverrides: Partial<WeaponData> = {}
+): InventoryItem => ({
+  instanceId,
+  templateId,
+  name,
+  description: '',
+  weight: 1,
+  quantity,
+  type: 'weapon',
+  data: {
+    category: 'simple_melee',
+    damage: '1d4',
+    damageType: 'piercing',
+    properties: ['finesse', 'light', 'thrown'],
+    range: '20/60',
+    ...dataOverrides,
+  },
+});
 
 describe('useCombatLogic', () => {
   it('drops monk unarmored defense when a shield is equipped', () => {
@@ -59,37 +90,157 @@ describe('useCombatLogic', () => {
     expect(save).toHaveBeenCalledTimes(2);
   });
 
-  it('builds finesse weapon attacks for strength, dexterity, and offhand usage', () => {
+  it('starts new characters with an empty attack selection while keeping the catalog available', () => {
     const character = ref(createDefaultCharacter('combat-4'));
-    character.value.stats.str = 14;
-    character.value.stats.dex = 18;
-    character.value.proficiencies.weapons = ['martial'];
-    character.value.inventory.push({
-      instanceId: 'rapier-1',
-      templateId: 'rapier',
-      name: 'Rapier',
-      description: '',
-      weight: 2,
-      quantity: 1,
-      type: 'weapon',
-      data: {
-        category: 'martial_melee',
-        damage: '1d8',
-        damageType: 'piercing',
-        properties: ['finesse'],
-      },
-    });
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+
+    expect(character.value.selectedAttackKeys).toEqual([]);
+    expect(logic.selectedAttacks.value).toEqual([]);
+    expect(logic.attackCatalog.value.length).toBeGreaterThan(0);
+  });
+
+  it('migrates legacy hiddenAttacks into selectedAttackKeys', async () => {
+    const character = ref(createDefaultCharacter('combat-5'));
+    character.value.attackSelectionInitialized = false;
+    character.value.hiddenAttacks = ['unarmed'];
+    const save = vi.fn();
+
+    const logic = useCombatLogic(character, save, ref(2));
+    await nextTick();
+
+    expect(character.value.attackSelectionInitialized).toBe(true);
+    expect(character.value.selectedAttackKeys).toEqual([]);
+    expect(logic.selectedAttacks.value).toEqual([]);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('dedupes identical weapon instances into one catalog entry per attack path', () => {
+    const character = ref(createDefaultCharacter('combat-6'));
+    character.value.proficiencies.weapons = ['simple'];
+    character.value.inventory.push(createWeaponItem('dagger-1'));
+    character.value.inventory.push(createWeaponItem('dagger-2'));
 
     const logic = useCombatLogic(character, vi.fn(), ref(2));
-    const rapierEntries = logic.attacks.value.filter((entry) => entry.baseId === 'rapier-1');
+    const daggerBaseEntries = logic.attackCatalog.value.filter(
+      entry =>
+        entry.sourceType === 'weapon' &&
+        entry.attackMode === 'base' &&
+        entry.handMode === 'one_hand'
+    );
 
-    expect(rapierEntries).toHaveLength(3);
-    expect(rapierEntries.map((entry) => entry.id)).toEqual(['rapier-1_str', 'rapier-1_dex', 'rapier-1_off']);
-    expect(rapierEntries.map((entry) => entry.hit)).toEqual(['+4', '+6', '+6']);
-    expect(rapierEntries.map((entry) => entry.damage)).toEqual([
-      '1d8 +2 穿刺 (Piercing)',
-      '1d8 +4 穿刺 (Piercing)',
-      '1d8  穿刺 (Piercing)',
+    expect(daggerBaseEntries).toHaveLength(2);
+    expect(daggerBaseEntries.map(entry => entry.abilityPath)).toEqual(['str', 'dex']);
+    daggerBaseEntries.forEach(entry => {
+      expect(entry.rawKeys).toHaveLength(2);
+    });
+  });
+
+  it('keeps strength and dexterity finesse paths separate even when the visible result matches', () => {
+    const character = ref(createDefaultCharacter('combat-7'));
+    character.value.stats.str = 16;
+    character.value.stats.dex = 16;
+    character.value.proficiencies.weapons = ['martial'];
+    character.value.inventory.push(
+      createWeaponItem(
+        'rapier-1',
+        { templateId: 'rapier', name: 'Rapier' },
+        {
+          category: 'martial_melee',
+          damage: '1d8',
+          damageType: 'piercing',
+          properties: ['finesse'],
+          range: '5',
+        }
+      )
+    );
+
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+    const rapierBaseEntries = logic.attackCatalog.value.filter(
+      entry =>
+        entry.sourceType === 'weapon' &&
+        entry.attackMode === 'base' &&
+        entry.handMode === 'one_hand'
+    );
+
+    expect(rapierBaseEntries).toHaveLength(2);
+    expect(rapierBaseEntries.map(entry => entry.abilityPath)).toEqual(['str', 'dex']);
+    expect(new Set(rapierBaseEntries.map(entry => entry.catalogKey)).size).toBe(2);
+    expect(new Set(rapierBaseEntries.map(entry => entry.hit)).size).toBe(1);
+    expect(new Set(rapierBaseEntries.map(entry => entry.damage)).size).toBe(1);
+  });
+
+  it('preserves user selection order in selectedAttacks', () => {
+    const character = ref(createDefaultCharacter('combat-8'));
+    character.value.proficiencies.weapons = ['martial'];
+    character.value.inventory.push(
+      createWeaponItem(
+        'rapier-1',
+        { templateId: 'rapier', name: 'Rapier' },
+        {
+          category: 'martial_melee',
+          damage: '1d8',
+          damageType: 'piercing',
+          properties: ['finesse'],
+          range: '5',
+        }
+      )
+    );
+    const save = vi.fn();
+    const logic = useCombatLogic(character, save, ref(2));
+
+    const keys = logic.attackCatalog.value.slice(0, 3).map(entry => entry.catalogKey);
+    expect(keys).toHaveLength(3);
+
+    logic.selectAttack(keys[2]);
+    logic.selectAttack(keys[0]);
+    logic.selectAttack(keys[1]);
+
+    expect(character.value.selectedAttackKeys).toEqual([keys[2], keys[0], keys[1]]);
+    expect(logic.selectedAttacks.value.map(entry => entry.catalogKey)).toEqual([
+      keys[2],
+      keys[0],
+      keys[1],
     ]);
+    expect(save).toHaveBeenCalledTimes(3);
+  });
+
+  it('exposes hit and damage bonus breakdowns for attack tooltips', () => {
+    const character = ref(createDefaultCharacter('combat-9'));
+    character.value.stats.str = 16;
+    character.value.proficiencies.weapons = ['simple'];
+    character.value.inventory.push(
+      createWeaponItem('club-1', { templateId: 'club', name: 'Club' }, {
+        category: 'simple_melee',
+        damage: '1d4',
+        damageType: 'bludgeoning',
+        properties: ['light'],
+        range: '5',
+      })
+    );
+
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+    const clubBase = logic.attackCatalog.value.find(
+      entry => entry.sourceType === 'weapon' && entry.attackMode === 'base'
+    );
+    const clubOffhand = logic.attackCatalog.value.find(
+      entry => entry.sourceType === 'weapon' && entry.attackMode === 'offhand'
+    );
+
+    expect(clubBase?.bonusBreakdown).toEqual({
+      abilityModifier: 3,
+      proficiencyBonus: 2,
+      proficiencyApplied: true,
+      hitBonus: 5,
+      damageBonus: 3,
+      offhandDamagePenalty: false,
+    });
+    expect(clubOffhand?.bonusBreakdown).toEqual({
+      abilityModifier: 3,
+      proficiencyBonus: 2,
+      proficiencyApplied: true,
+      hitBonus: 5,
+      damageBonus: 0,
+      offhandDamagePenalty: true,
+    });
   });
 });

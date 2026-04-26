@@ -184,6 +184,12 @@ export interface Character {
   /** 用户手动隐藏的攻击条目 ID 列表 (用于 ActionsPanel) */
   hiddenAttacks: string[];
 
+  /** Positive-selection model for the attack panel. Order matches the visible panel order. */
+  selectedAttackKeys: string[];
+
+  /** Indicates whether legacy attack visibility has been migrated into selectedAttackKeys. */
+  attackSelectionInitialized: boolean;
+
   proficiencies: CharacterProficiencies;
 
   // 法术书状态

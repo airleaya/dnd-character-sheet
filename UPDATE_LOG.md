@@ -1,5 +1,32 @@
 # UPDATE_LOG
 
+## [0.12.0] - 2026-04-19
+- 类型：Feature / Bugfix / UI / Test
+- 条目：攻击面板完成 `0.12.0` 首轮改造并通过专项验证
+- 负责人：雪荔枝
+- 关联文件：
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/stores/tooltip.ts`
+  - `src/components/ui/GlobalTooltip.vue`
+  - `src/types/Character.ts`
+  - `src/utils/characterMigration.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/actionsPanel.ui.test.ts`
+  - `tests/globalTooltip.ui.test.ts`
+- 说明：
+  - 攻击面板从“默认展示全部攻击项”切换为“默认空面板 + 用户手动选择显示项”的正向选择模型，正式引入 `selectedAttackKeys`
+  - 建立 `rawAttacks -> attackCatalog -> selectedAttacks` 的稳定数据链路，并补上旧档从 `hiddenAttacks` 到新模型的兼容迁移
+  - 攻击项选择入口改为队尾虚拟攻击项，点击后以浮窗面板进行选择，且支持直接点击卡片选中/取消选中
+  - 候选攻击项目录已做去重，保留不同攻击路径；即使力量版与敏捷版最终展示一致，也仍作为两条不同路径保留
+  - 攻击项主信息与次要信息完成分层，次要信息通过结构化 tooltip 展示，并补上视口边缘保护
+  - 为攻击选择浮窗补上 `全部 / 已选 / 未选` 轻量筛选，满足当前“不做搜索、只做简单筛选”的设计结论
+- 验证结果：
+  - `npm run typecheck` 通过
+  - `npm run test -- tests/actionsPanel.ui.test.ts tests/globalTooltip.ui.test.ts tests/useCombatLogic.test.ts` 通过
+  - `npm run build` 通过
+- 关联待办：`TODOLIST.md` 中 `0.12.x` 后续功能开发项
+
 > 用途：记录**已经完成**的修复、优化与功能更新，强调“发生了什么变化”。  
 > 与 `TODOLIST.md` 的区别：
 > - `TODOLIST.md` 关注：**还要做什么**
