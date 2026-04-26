@@ -1,5 +1,36 @@
 # UPDATE_LOG
 
+## [0.12.1-进行中] - 2026-04-27
+- 类型：数据 / 重构 / 迁移 / UI
+- 条目：启动物品库正式替换迭代
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/data/libraries/itemIdMigration.ts`
+  - `src/data/libraries/structured/`
+  - `src/data/libraries/intake/`
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/common/ItemDescriptionRenderer.vue`
+  - `src/utils/itemFactory.ts`
+  - `src/utils/characterMigration.ts`
+  - `src/types/Library.ts`
+  - `src/types/Item.ts`
+- 当前已记录变化：
+  - 新增统一运行时物品源 `ITEM_LIBRARY`，由 `STRUCTURED_MUNDANE_ITEM_LIBRARY` 适配生成。
+  - 旧分散物品库不再持有独立数据，改为从统一运行时物品源过滤导出，作为兼容层保留。
+  - 保留附魔/魔法定义接口，当前仅作为静态物品数据；不启用攻击、伤害、AC、同调、充能或诅咒规则联动。
+  - 物品库分组改为使用展示分类与展示子分类，不再依赖旧 UI 的硬编码分组。
+  - 新增共享物品描述渲染，支持结构化段落、列表和表格。
+  - 新增旧 id 迁移支持，并为无法解析模板的库存物品保留迁移审计数据。
+  - 修正 `.gitignore` 策略：当运行时代码依赖 `intake/` 与 `structured/` 时，这些目录不再作为本地临时数据忽略。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - Vitest 在当前沙箱中因 esbuild 子进程 `spawn EPERM` 无法启动；需要在允许测试子进程的环境中补跑。
+- 剩余事项：
+  - 完成可视化与手动 UI 验证。
+  - 完成迁移报告与最终数据审计。
+  - 将服务、贸易品等仍显示为英文 id 的二级目录本地化。
+
 ## [0.12.0] - 2026-04-19
 - 类型：Feature / Bugfix / UI / Test
 - 条目：攻击面板完成 `0.12.0` 首轮改造并通过专项验证
@@ -25,7 +56,7 @@
   - `npm run typecheck` 通过
   - `npm run test -- tests/actionsPanel.ui.test.ts tests/globalTooltip.ui.test.ts tests/useCombatLogic.test.ts` 通过
   - `npm run build` 通过
-- 关联待办：`TODOLIST.md` 中 `0.12.x` 后续功能开发项
+- 关联待办：`TODOLIST.md` 中 `0.12.N` 后续功能开发项
 
 > 用途：记录**已经完成**的修复、优化与功能更新，强调“发生了什么变化”。  
 > 与 `TODOLIST.md` 的区别：

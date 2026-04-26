@@ -2,12 +2,12 @@ import { computed } from 'vue';
 import type { Ref } from 'vue';
 import type { Character, Wallet } from '../../types/Character';
 import type { ContainerData, InventoryItem } from '../../types/Item';
-import type { CurrencyUnit } from '../../types/Library';
+import type { CurrencyUnit, PackDefinition } from '../../types/Library';
 import { createItemFromLibrary } from '../../utils/itemFactory';
 import { CURRENCY_RATES } from '../../data/rules/currency';
-import { PACK_LIBRARY } from '../../data/libraries/packs';
+import { getLibraryItemById } from '../../data/libraries/itemLibrary';
 
-const STACKABLE_ITEM_IDS = new Set(['arrows', 'bolts', 'dart']);
+const STACKABLE_ITEM_IDS = new Set(['arrows', 'crossbow_bolts', 'dart']);
 const AMMO_BUNDLE_QUANTITY = 20;
 
 type ContainerInventoryItem = InventoryItem & { data: ContainerData };
@@ -187,7 +187,7 @@ export function useInventoryLogic(
   };
 
   const addPack = (packId: string, index?: number, parentId?: string): void => {
-    const packDefinition = PACK_LIBRARY.find((pack) => pack.id === packId);
+    const packDefinition = getLibraryItemById(packId) as PackDefinition | undefined;
     if (!packDefinition || !character.value) return;
 
     let targetContainerId = parentId;
@@ -217,12 +217,12 @@ export function useInventoryLogic(
   const addItem = (libraryId: string, index?: number, parentId?: string): void => {
     if (!character.value) return;
 
-    if (PACK_LIBRARY.some((pack) => pack.id === libraryId)) {
+    if (getLibraryItemById(libraryId)?.type === 'pack') {
       addPack(libraryId, index, parentId);
       return;
     }
 
-    if (libraryId === 'arrows' || libraryId === 'bolts') {
+    if (libraryId === 'arrows' || libraryId === 'crossbow_bolts') {
       let targetContainerId = parentId;
 
       if (!targetContainerId) {

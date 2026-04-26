@@ -7,11 +7,22 @@ import type {
   ConsumableDefinition,
   TreasureDefinition,
   ContainerDefinition,
+  ItemDescriptionBlock,
+  ItemMagicDefinition,
   ItemType
 } from './Library';
 
 // 1. 公共排除项 (这些属性直接存在于 InventoryItem 根层级，不在 data 里重复)
-type CommonExclude = 'id' | 'name' | 'weight' | 'description' | 'type' | 'rarity' | 'cost';
+type CommonExclude =
+  | 'id'
+  | 'name'
+  | 'weight'
+  | 'description'
+  | 'descriptionBlocks'
+  | 'type'
+  | 'rarity'
+  | 'cost'
+  | 'magic';
 
 // 2. 利用 Omit 生成 Data 类型
 // 这样 WeaponData 就只包含 damage, range 等战斗属性，而不包含 weight
@@ -41,10 +52,12 @@ export interface InventoryItem {
   // --- 基础信息 (快照) ---
   name: string;       
   description?: string; 
+  descriptionBlocks?: ItemDescriptionBlock[];
   weight: number;     
   quantity: number;   
   
   type: ItemType;     
+  magic?: ItemMagicDefinition;
   
   // --- 状态 ---
   parentId?: string; // 如果放在容器里，指向容器的 instanceId

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { formatCost } from '../../utils/currencyUtils';
-import type { ItemCost } from '../../types/Library';
+import type { ItemCost, ItemDescriptionBlock } from '../../types/Library';
 import { getSchoolLabel } from '../../data/rules/dndRules';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
 import { WEAPON_CAT_MAP, ARMOR_TYPE_MAP } from '../../data/rules/proficiencies'
 import { ITEM_TYPE_MAP } from '../../data/rules/dndRules';
+import ItemDescriptionRenderer from '../common/ItemDescriptionRenderer.vue';
 
 type TooltipItemType = 'item' | 'spell';
 
@@ -20,6 +21,8 @@ type TooltipItem = {
   name: string;
   type?: string;
   category?: string;
+  displayCategory?: string;
+  displaySubcategory?: string;
   armorType?: string;
   ac?: number;
   dexBonusMax?: number | null;
@@ -33,6 +36,7 @@ type TooltipItem = {
   weight?: number;
   cost?: ItemCost;
   description?: string;
+  descriptionBlocks?: ItemDescriptionBlock[];
   level?: number;
   school?: string;
   ritual?: boolean;
@@ -181,7 +185,7 @@ const attackSaveInfo = computed(() => {
         <span class="gold">{{ displayCost }}</span>
       </div>
       
-      <div class="desc">{{ item.description }}</div>
+      <ItemDescriptionRenderer :description="item.description" :blocks="item.descriptionBlocks" />
     </div>
 
     <div class="card-body" v-if="type === 'spell'">

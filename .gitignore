@@ -43,3 +43,6 @@ PROJECT_INDEX.md
 
 # local codex workspace metadata
 .codex/
+
+# local temporary item library scratch space
+src/data/libraries/local/

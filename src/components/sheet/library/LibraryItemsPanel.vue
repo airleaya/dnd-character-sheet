@@ -1,23 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, toRef } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import draggable from 'vuedraggable';
+import { ITEM_LIBRARY } from '../../../data/libraries/itemLibrary';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
+import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
 import type { LibraryItem } from '../../../types/Library';
 import type { LibraryCloneDragElement } from '../../../utils/inventoryDropUtils';
-
-
-// 导入所有数据源
-import { WEAPON_LIBRARY } from '../../../data/libraries/weapons';
-import { ARMOR_LIBRARY } from '../../../data/libraries/armors';
-import { GEAR_LIBRARY } from '../../../data/libraries/gears';
-import { CONTAINER_LIBRARY } from '../../../data/libraries/containers';
-import { TOOL_LIBRARY } from '../../../data/libraries/tools';
-import { CONSUMABLE_LIBRARY } from '../../../data/libraries/consumables';
-import { TREASURE_LIBRARY } from '../../../data/libraries/treasures';
-import { PACK_LIBRARY } from '../../../data/libraries/packs';
-import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
-
 
 const props = defineProps<{
   searchQuery: string;
@@ -29,98 +18,79 @@ const emit = defineEmits<{
   (e: 'leave-item'): void;
 }>();
 
-// 使用 Composable 过滤各个列表
-// 注意：我们需要先传入 query 的 Ref
+interface SubGroup {
+  title: string;
+  items: LibraryItem[];
+}
+
+interface MainGroup {
+  id: string;
+  label: string;
+  subGroups: SubGroup[];
+}
+
 const queryRef = toRef(props, 'searchQuery');
-
-const { filteredList: weapons } = useLibraryFilter(WEAPON_LIBRARY, queryRef);
-const { filteredList: armors } = useLibraryFilter(ARMOR_LIBRARY, queryRef);
-const { filteredList: gears } = useLibraryFilter(GEAR_LIBRARY, queryRef);
-const { filteredList: containers } = useLibraryFilter(CONTAINER_LIBRARY, queryRef);
-const { filteredList: packs } = useLibraryFilter(PACK_LIBRARY, queryRef);
-const { filteredList: tools } = useLibraryFilter(TOOL_LIBRARY, queryRef);
-const { filteredList: consumables } = useLibraryFilter(CONSUMABLE_LIBRARY, queryRef);
-const { filteredList: treasures } = useLibraryFilter(TREASURE_LIBRARY, queryRef);
-
-// 分组逻辑
-interface SubGroup { title: string; items: LibraryItem[]; }
-interface MainGroup { id: string; label: string; subGroups: SubGroup[]; }
+const { filteredList } = useLibraryFilter(ITEM_LIBRARY, queryRef);
 
 const libraryTree = computed<MainGroup[]>(() => {
-  const weaponGroups = [
-    { title: '简易近战', items: weapons.value.filter(i => i.category === 'simple_melee') },
-    { title: '简易远程', items: weapons.value.filter(i => i.category === 'simple_ranged') },
-    { title: '军用近战', items: weapons.value.filter(i => i.category === 'martial_melee') },
-    { title: '军用远程', items: weapons.value.filter(i => i.category === 'martial_ranged') },
-  ].filter(g => g.items.length > 0);
+  const categoryMap = new Map<string, Map<string, LibraryItem[]>>();
 
-  const armorGroups = [
-    { title: '轻甲', items: armors.value.filter(i => i.armorType === 'light') },
-    { title: '中甲', items: armors.value.filter(i => i.armorType === 'medium') },
-    { title: '重甲', items: armors.value.filter(i => i.armorType === 'heavy') },
-    { title: '盾牌', items: armors.value.filter(i => i.armorType === 'shield') },
-  ].filter(g => g.items.length > 0);
+  for (const item of filteredList.value) {
+    const category = item.displayCategory ?? item.type;
+    const subcategory = item.displaySubcategory ?? item.type;
 
-  const gearGroups = [
-    { title: '冒险装备', items: gears.value },
-    { title: '容器 & 背包', items: containers.value },
-    { title: '初始套组', items: packs.value },
-    { title: '工具 & 套件', items: tools.value },
-  ].filter(g => g.items.length > 0);
+    if (!categoryMap.has(category)) {
+      categoryMap.set(category, new Map());
+    }
 
-  const consumableGroups = [
-    { title: '药水 & 炼金', items: consumables.value.filter(i => i.id.startsWith('potion') || i.id.startsWith('vial') || i.id === 'oil') },
-    { title: '弹药', items: consumables.value.filter(i => i.isAmmunition) },
-    { title: '其他物资', items: consumables.value.filter(i => !i.isAmmunition && !i.id.startsWith('potion') && !i.id.startsWith('vial') && i.id !== 'oil') },
-  ].filter(g => g.items.length > 0);
+    const subgroups = categoryMap.get(category)!;
+    if (!subgroups.has(subcategory)) {
+      subgroups.set(subcategory, []);
+    }
 
-  const treasureGroups = [
-    { title: '宝石', items: treasures.value.filter(i => i.id.startsWith('gem')) },
-    { title: '艺术品', items: treasures.value.filter(i => i.id.startsWith('art')) },
-    { title: '贸易货品', items: treasures.value.filter(i => i.id.endsWith('bar')) },
-  ].filter(g => g.items.length > 0);
+    subgroups.get(subcategory)!.push(item);
+  }
 
-  return [
-    { id: 'weapon', label: '⚔️ 武器库', subGroups: weaponGroups },
-    { id: 'armor', label: '🛡️ 防具库', subGroups: armorGroups },
-    { id: 'gear', label: '🎒 杂物箱', subGroups: gearGroups },
-    { id: 'consumable', label: '🧪 消耗品', subGroups: consumableGroups },
-    { id: 'treasure', label: '💎 藏宝库', subGroups: treasureGroups },
-  ].filter(main => main.subGroups.length > 0);
+  return Array.from(categoryMap.entries()).map(([label, subgroups]) => ({
+    id: label,
+    label,
+    subGroups: Array.from(subgroups.entries()).map(([title, items]) => ({ title, items }))
+  }));
 });
 
-// 展开/折叠状态 (现在状态被隔离在组件内部，这很好)
 const expandedState = ref<Record<string, boolean>>({});
 
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
 
-// 拖拽辅助
 const cloneItem = (item: LibraryItem): LibraryCloneDragElement => ({ libraryId: item.id });
 
 const onNativeDragStart = (e: DragEvent, item: LibraryItem) => {
-  emit('leave-item'); // 保留原来的功能：拖拽开始时关闭 tooltip
-  setupDragData(e, 'library-item', item.id, false); // 新增功能：写入数据
+  emit('leave-item');
+  setupDragData(e, 'library-item', item.id, false);
 };
 
 const onDragEnd = () => {
   clearGlobalDragPayload();
 };
 
-// 徽章逻辑
 const getBadges = (item: LibraryItem) => {
   const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'red' }> = [];
-  if ('maxCharges' in item && item.maxCharges) badges.push({ text: `${item.maxCharges}次`, color: 'blue' });
+
+  if (item.source) badges.push({ text: item.source, color: 'blue' });
   if ('capacityVolume' in item && item.capacityVolume) badges.push({ text: '容器', color: 'orange' });
+  if ('contents' in item && item.contents) badges.push({ text: '套组', color: 'orange' });
+  if ('isAmmunition' in item && item.isAmmunition) badges.push({ text: '弹药', color: 'orange' });
   if ('ac' in item && item.ac) badges.push({ text: `AC ${item.ac}`, color: 'cyan' });
   if ('damage' in item && item.damage) badges.push({ text: item.damage, color: 'red' });
+  if (item.descriptionBlocks?.some((block) => block.type === 'table')) badges.push({ text: '表格', color: 'cyan' });
+
   return badges;
 };
 </script>
 
 <template>
   <div class="items-panel">
-
     <div v-for="group in libraryTree" :key="group.id" class="main-group">
       <div class="main-group-header" @click="toggleExpand(group.id)" :class="{ 'is-open': isVisible(group.id) }">
         <div class="header-content"><span class="arrow-icon">▶</span>{{ group.label }}</div>
@@ -132,24 +102,28 @@ const getBadges = (item: LibraryItem) => {
             <span class="count">{{ sub.items.length }}</span>
           </div>
           <div v-show="isVisible(`${group.id}_${sub.title}`)">
-            <draggable 
-              :list="sub.items" 
-              :group="{ name: 'library', pull: 'clone', put: false }" 
-              :clone="cloneItem" 
-              item-key="id" 
+            <draggable
+              :list="sub.items"
+              :group="{ name: 'library', pull: 'clone', put: false }"
+              :clone="cloneItem"
+              item-key="id"
               class="item-list"
             >
               <template #item="{ element }">
-                <div class="library-item" 
-                    @mouseenter="emit('hover-item', element, $event)" 
-                    @mousemove="emit('move-item', $event)" 
-                    @mouseleave="emit('leave-item')"
-                    draggable="true"
-                    @dragstart="onNativeDragStart($event, element)"
-                    @dragend="onDragEnd"
-                    >
+                <div
+                  class="library-item"
+                  draggable="true"
+                  @mouseenter="emit('hover-item', element, $event)"
+                  @mousemove="emit('move-item', $event)"
+                  @mouseleave="emit('leave-item')"
+                  @dragstart="onNativeDragStart($event, element)"
+                  @dragend="onDragEnd"
+                >
                   <div class="item-row">
-                    <span class="item-name">{{ element.name }}</span>
+                    <span class="item-name">
+                      {{ element.name }}
+                      <small v-if="element.englishName">{{ element.englishName }}</small>
+                    </span>
                     <span class="item-cost">{{ formatCost(element.cost) }}</span>
                   </div>
                   <div class="badges-row" v-if="getBadges(element).length > 0">
@@ -167,7 +141,6 @@ const getBadges = (item: LibraryItem) => {
 </template>
 
 <style scoped lang="scss">
-/* 复制并保留原有的列表样式，去除不相关的样式 */
 .main-group-header {
   padding: 14px 12px; margin-top: 1px; background-color: #252525; border-bottom: 1px solid #333; border-left: 4px solid #555;
   font-size: 0.95rem; font-weight: 800; color: #ddd; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none; transition: all 0.2s;
@@ -188,11 +161,12 @@ const getBadges = (item: LibraryItem) => {
 }
 
 .library-item { background-color: #1e1e1e; border-bottom: 1px solid #282828; padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: #2d2d2d; } }
-.item-row { display: flex; justify-content: space-between; }
-.item-name { color: #ccc; font-size: 0.9rem; font-weight: 500; }
-.item-cost { color: #d4ac0d; font-size: 0.8rem; font-family: monospace; }
+.item-row { display: flex; justify-content: space-between; gap: 8px; }
+.item-name { color: #ccc; font-size: 0.9rem; font-weight: 500; min-width: 0; }
+.item-name small { display: block; color: #777; font-size: 0.7rem; margin-top: 2px; }
+.item-cost { color: #d4ac0d; font-size: 0.8rem; font-family: monospace; white-space: nowrap; }
 
-.badges-row { margin-top: 4px; display: flex; gap: 4px; }
+.badges-row { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
 .badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: #333; color: #aaa; }
 .badge.blue { color: #5dade2; background: rgba(93, 173, 226, 0.1); }
 .badge.orange { color: #eb984e; background: rgba(235, 152, 78, 0.1); }

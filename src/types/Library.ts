@@ -27,6 +27,62 @@ export type AmmoTypeKey = 'arrow' | 'bolt' | 'bullet' | 'needle' | 'none';
 // 属性键名类型 (用于工具检定关联)
 export type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
 
+export type ItemRarity =
+  | 'common'
+  | 'uncommon'
+  | 'rare'
+  | 'very_rare'
+  | 'legendary'
+  | 'artifact'
+  | 'varies';
+
+export type EnchantmentEffect =
+  | { kind: 'attack_bonus'; value: number; note?: string }
+  | { kind: 'damage_bonus'; value: number; damageType?: string; note?: string }
+  | { kind: 'ac_bonus'; value: number; note?: string }
+  | { kind: 'extra_damage'; dice: string; damageType: string; note?: string }
+  | { kind: 'ability_override'; ability: AbilityKey | string; value: number; note?: string }
+  | { kind: 'skill_bonus'; skill: string; value: number; note?: string }
+  | { kind: 'resistance'; damageType: string; note?: string }
+  | { kind: 'spell_grant'; spellId?: string; name?: string; note?: string }
+  | { kind: 'custom_text'; text: string };
+
+export interface ItemMagicDefinition {
+  isMagic: boolean;
+  magicBonus?: number;
+  rarity?: ItemRarity;
+  attunement?: {
+    requires: boolean;
+    condition?: string;
+  };
+  enchantmentEffects?: EnchantmentEffect[];
+  charges?: {
+    max: number;
+    resetCondition?: string;
+    resetFormula?: string;
+  };
+  isCursed?: boolean;
+}
+
+export type ItemDescriptionBlock =
+  | { type: 'paragraph'; text: string }
+  | { type: 'list'; items: string[] }
+  | { type: 'table'; caption?: string; columns: string[]; rows: string[][] };
+
+export interface ItemLibraryAudit {
+  sourceIntakeId: string;
+  sourceFile: string;
+  checkedAt: string;
+  sourceMatched: boolean;
+  comparedFields: Array<{
+    field: string;
+    structuredValue: unknown;
+    sourceValue: unknown;
+    matched: boolean;
+  }>;
+  issues: string[];
+}
+
 
 
 export interface ItemCost {
@@ -41,10 +97,21 @@ export interface ItemCost {
 export interface ItemDefinition {
   id: string;            
   name: string;          
+  englishName?: string;
   type: ItemType;        
+  source?: string;
+  category?: string;
+  subcategory?: string;
+  displayCategory?: string;
+  displaySubcategory?: string;
   cost?: ItemCost;       
   weight: number;        
   description: string;   
+  descriptionBlocks?: ItemDescriptionBlock[];
+  magic?: ItemMagicDefinition;
+  audit?: ItemLibraryAudit;
+  tags?: string[];
+  /** @deprecated Keep legacy library data readable; new rarity belongs in magic.rarity. */
   rarity?: string;       
 }
 

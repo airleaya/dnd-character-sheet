@@ -5,6 +5,7 @@ import { useActiveSheetStore } from '../../../stores/activeSheet';
 import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
+import ItemDescriptionRenderer from '../../common/ItemDescriptionRenderer.vue';
 import {
   calcRealIndex,
   isInventoryInstanceDragElement,
@@ -264,7 +265,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
               </span>
             </div>
 
-            <div class="desc">{{ hoveredItem.description }}</div>
+            <ItemDescriptionRenderer :description="hoveredItem.description" :blocks="hoveredItem.descriptionBlocks" />
             
             <div v-if="hoveredItem.type === 'container'" class="extra-info">
                容量: {{ getContainerCapacity(hoveredItem) }}

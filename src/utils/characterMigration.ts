@@ -8,6 +8,8 @@ import type {
   CombatStats,
   Wallet,
 } from '../types/Character';
+import type { InventoryItem } from '../types/Item';
+import { isKnownLibraryItemId, migrateItemTemplateId } from '../data/libraries/itemIdMigration';
 
 export type LegacyCharacterData = Partial<Character> & {
   id?: string;
@@ -108,6 +110,33 @@ const DEFAULT_SPELLS: CharacterSpells = {
 
 const cloneArray = <T>(value: T[] | undefined, fallback: T[]): T[] =>
   Array.isArray(value) ? [...value] : [...fallback];
+
+const normalizeInventory = (inventory?: InventoryItem[]): InventoryItem[] => {
+  if (!Array.isArray(inventory)) {
+    return [];
+  }
+
+  return inventory.map((item) => {
+    const templateId = migrateItemTemplateId(item.templateId);
+    const knownTemplate = isKnownLibraryItemId(templateId);
+    const data = { ...(item.data ?? {}) } as InventoryItem['data'] & Record<string, unknown>;
+
+    if (!knownTemplate) {
+      data.migrationAudit = {
+        status: 'unresolved_template',
+        originalTemplateId: item.templateId,
+        checkedAt: '2026-04-27'
+      };
+    }
+
+    return {
+      ...item,
+      templateId,
+      magic: item.magic ?? { isMagic: false },
+      data
+    };
+  });
+};
 
 const normalizeClasses = (classes?: Partial<CharacterClassRecord>[]): CharacterClassRecord[] => {
   if (!Array.isArray(classes) || classes.length === 0) {
@@ -243,7 +272,7 @@ export const normalizeCharacterData = (raw: LegacyCharacterData): Character => (
       failure: raw.combat?.deathSaves?.failure ?? DEFAULT_COMBAT.deathSaves.failure,
     },
   },
-  inventory: cloneArray(raw.inventory, []),
+  inventory: normalizeInventory(raw.inventory),
   equippedIds: cloneArray(raw.equippedIds, []),
   wallet: {
     cp: raw.wallet?.cp ?? DEFAULT_WALLET.cp,

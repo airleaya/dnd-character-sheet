@@ -6,6 +6,10 @@ import { getSchoolLabel } from '../data/rules/dndRules';
 interface SearchableItem {
   id: string;
   name: string;
+  englishName?: string;
+  source?: string;
+  displayCategory?: string;
+  displaySubcategory?: string;
   school?: string;
 }
 
@@ -19,7 +23,11 @@ export function useLibraryFilter<T extends SearchableItem>(list: T[], searchQuer
       // 1. 基础匹配：名字或 ID
       const matchName = item.name.toLowerCase().includes(q);
       const matchId = item.id.toLowerCase().includes(q);
-      if (matchName || matchId) return true;
+      const matchEnglishName = item.englishName?.toLowerCase().includes(q) ?? false;
+      const matchSource = item.source?.toLowerCase().includes(q) ?? false;
+      const matchCategory = item.displayCategory?.toLowerCase().includes(q) ?? false;
+      const matchSubcategory = item.displaySubcategory?.toLowerCase().includes(q) ?? false;
+      if (matchName || matchId || matchEnglishName || matchSource || matchCategory || matchSubcategory) return true;
 
       // 2. 针对法术的高级匹配：学派
       if (item.school) {
