@@ -8,6 +8,7 @@ import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
 import { WEAPON_CAT_MAP, ARMOR_TYPE_MAP } from '../../data/rules/proficiencies'
 import { ITEM_TYPE_MAP } from '../../data/rules/dndRules';
 import { getTooltipViewportPosition } from '../../stores/tooltip';
+import { formatContainerCapacity } from '../../utils/containerCapacity';
 import ItemDescriptionRenderer from '../common/ItemDescriptionRenderer.vue';
 
 type TooltipItemType = 'item' | 'spell';
@@ -35,6 +36,8 @@ type TooltipItem = {
   properties?: string[];
   versatileDamage?: string;
   weight?: number;
+  capacityWeight?: number;
+  capacityVolume?: string;
   cost?: ItemCost;
   description?: string;
   descriptionBlocks?: ItemDescriptionBlock[];
@@ -168,6 +171,10 @@ const formatComponents = (comps?: SpellComponents) => {
 
 const displayCost = computed(() => formatCost(props.item.cost));
 
+const containerCapacity = computed(() =>
+  props.item.type === 'container' ? formatContainerCapacity(props.item) : ''
+);
+
 const schoolLabel = computed(() => getSchoolLabel(props.item.school ?? ''));
 
 const attackSaveInfo = computed(() => {
@@ -249,6 +256,10 @@ const attackSaveInfo = computed(() => {
       <div class="stat-row">
         <span>重量: {{ item.weight }} lb</span>
         <span class="gold">{{ displayCost }}</span>
+      </div>
+
+      <div v-if="item.type === 'container'" class="stat-row capacity-row">
+        <span>容量: {{ containerCapacity }}</span>
       </div>
       
       <ItemDescriptionRenderer :description="item.description" :blocks="item.descriptionBlocks" />
@@ -458,6 +469,12 @@ const attackSaveInfo = computed(() => {
   
   /* 物品样式 */
   .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+  .capacity-row {
+    justify-content: flex-start;
+    color: #ddd;
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
   .gold { color: #f1c40f; }
 
   /* [新增]：专门针对长文本描述的滚动条样式 */

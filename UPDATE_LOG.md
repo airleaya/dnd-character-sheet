@@ -1,5 +1,141 @@
 # UPDATE_LOG
 
+## [0.12.3] - 2026-04-28
+- 类型：UI / 库存 / 负重反馈 / 测试
+- 条目：动态负重数值上色
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/utils/carryingLoad.ts`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `tests/carryingLoad.test.ts`
+  - `tests/inventoryPanelLoadColor.ui.test.ts`
+- 已完成变化：
+  - 新增统一负重状态判断：低于 1/2 上限为正常，1/2 到 3/4 为黄色，3/4 到 1 为橙色，超过上限为红色。
+  - 行囊标题的负重数值会按当前总负重与负重上限比例自动套用对应颜色。
+  - 等于上限仍属于橙色，只有超过上限才进入红色警示。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\carryingLoad.test.ts tests\inventoryPanelLoadColor.ui.test.ts tests\inventoryItemRow.ui.test.ts tests\useInventoryLogic.test.ts` 通过，4 个测试文件，20 个用例。
+
+## [0.12.3] - 2026-04-28
+- 类型：规则展示 / 法术库 / 攻击面板 / 测试
+- 条目：显示法术仪式标识
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `src/components/sheet/library/LibrarySpellsPanel.vue`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `tests/spellRitualBadges.ui.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.12.2` 自增长到 `0.12.3`。
+  - 法术库列表中的仪式法术不再只显示 `R` 缩写，改为显示中文“仪式”徽章，并提供“可作为仪式施放”悬停提示。
+  - 角色攻击面板的法术卡标题行新增“仪式”徽章，未展开详情时也能直接识别仪式法术。
+  - 攻击面板法术详情中的“仪式”标签配色已与标题行徽章统一。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\spellRitualBadges.ui.test.ts tests\actionsPanel.ui.test.ts tests\useSpellLogic.test.ts` 通过，3 个测试文件，7 个用例。
+
+## [0.12.2] - 2026-04-28
+- 类型：规则 / 角色卡 / UI / 迁移 / 测试
+- 条目：建立专精与万事通系统
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `src/types/Character.ts`
+  - `src/utils/characterMigration.ts`
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/components/sheet/bio/HeaderInfo.vue`
+  - `src/components/sheet/bio/StatsAndSkills.vue`
+  - `src/components/sheet/bio/ClassSelector.vue`
+  - `src/components/sheet/modals/ExpertiseSettingsModal.vue`
+  - `src/components/sheet/modals/ProficiencySettingsModal.vue`
+  - `tests/useBioLogic.test.ts`
+  - `tests/characterMigration.test.ts`
+  - `tests/expertiseSettingsModal.ui.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.12.1` 自增长到 `0.12.2`。
+  - 角色数据新增 `expertise.skills/tools/custom`，旧存档迁移时自动补齐默认空专精结构。
+  - 角色卡头部新增 `✦ 专精` 按钮，位置在熟练按钮与法术按钮之间；点击后打开专精悬浮窗。
+  - 专精悬浮窗会列出已熟练技能与已熟练工具，支持点击切换专精，并允许输入自定义专精。
+  - 专精按钮悬停显示当前专精摘要；无专精时显示“暂无专精”。
+  - 熟练按钮悬停显示角色当前技能、豁免、护甲、武器、工具、语言熟练项，并标注已有专精的技能或工具。
+  - 属性面板中的技能专精获得独特视觉样式，并按双倍熟练加值计算；移除技能或工具熟练时会同步清理关联专精。
+  - 熟练设置浮窗中的工具专精会以专门样式标识。
+  - 新增万事通判定：任意职业记录为吟游诗人且该职业等级大于等于 2 时，所有未熟练技能获得 `floor(PB / 2)` 加值。
+  - 属性面板中的万事通技能只显示“万”字低圆角矩形徽章，不改变技能行颜色。
+  - 属性面板中的专精技能视觉已调整为金紫混合配色，使用琥珀金边框、纯紫色填满背景、金色文字与无描边金色熟练圆点。
+  - 移除原先最多双职业限制；现在可以继续添加兼职，但职业条目数量不能超过角色总等级。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\useBioLogic.test.ts tests\characterMigration.test.ts tests\expertiseSettingsModal.ui.test.ts tests\globalTooltip.ui.test.ts` 通过，4 个测试文件，13 个用例。
+
+## [0.12.1] - 2026-04-28
+- 类型：清单 / 数据一致性 / 物品库
+- 条目：确认物品翻译版本统一已完成
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `TODOLIST.md`
+  - `UPDATE_LOG.md`
+- 已完成变化：
+  - 确认物品侧翻译版本统一已随本轮物品库重构完成，不再作为后续 P1 待办重复排期。
+  - 将原 P1“物品 / 法术翻译版本统一”拆分为“法术翻译版本统一”，仅保留法术侧尚未完成的翻译来源、命名风格与展示口径统一工作。
+- 验证结果：
+  - 本轮仅更新工程清单与日志，未改动运行时代码。
+
+## [0.12.1] - 2026-04-28
+- 类型：UI / 物品库 / 容器容量 / 测试
+- 条目：在物品库展示卡中显示容器容量
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/utils/containerCapacity.ts`
+  - `src/components/sidebar/LibraryTooltip.vue`
+  - `tests/containerCapacity.test.ts`
+  - `tests/libraryTooltip.ui.test.ts`
+- 已完成变化：
+  - 物品库展示卡现在会在容器条目中显示 `容量` 行，与物品栏容器行和库存悬浮框使用同一格式化口径。
+  - `formatContainerCapacity` 已扩展为同时支持库存实例的 `data.capacity*` 字段和运行时库物品根字段 `capacityWeight/capacityVolume`。
+  - 对粗腰桶这类只有体积容量描述的容器，展示卡会完整保留原文中的复合容量描述；对背包这类双容量容器，会同时显示重量容量与体积容量。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\containerCapacity.test.ts tests\libraryTooltip.ui.test.ts tests\inventoryItemRow.ui.test.ts tests\itemLibraryAdapter.test.ts` 通过，4 个测试文件，20 个用例。
+
+## [0.12.1] - 2026-04-28
+- 类型：UI / 库存 / 容器重量 / 测试
+- 条目：容器重量列改为自重与内容重量分解显示
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `tests/inventoryItemRow.ui.test.ts`
+- 已完成变化：
+  - 库存物品栏中的容器重量不再只显示合计值，改为 `自重 + 内容重量` 的分解格式，例如 `5.0 + 22.0 lb`。
+  - 内容重量按运行时负重口径计算，包含普通内容与悬挂栏内容，并支持嵌套容器的递归重量。
+  - 对箭袋等 `ignoreContentWeight` 容器，内容重量显示为 `0.0`，保持“只计自重”的规则含义。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\inventoryItemRow.ui.test.ts tests\useInventoryLogic.test.ts` 通过，2 个测试文件，16 个用例。
+
+## [0.12.1] - 2026-04-28
+- 类型：UI / 库存 / 容器容量 / 测试
+- 条目：在物品栏显示容器容量并保留双容量描述
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/utils/containerCapacity.ts`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `tests/containerCapacity.test.ts`
+  - `tests/inventoryItemRow.ui.test.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+- 已完成变化：
+  - 新增统一的容器容量格式化工具，按 `容量重量；容量体积` 输出，例如 `30 lb；1立方尺`。
+  - 库存物品行现在会直接显示容器容量，且仍保留内容物预览。
+  - 库存悬浮框改用同一容量格式化工具，不再只显示 `capacityVolume`。
+  - 对原文中同时拥有重量容量和体积容量的容器，运行时库与 UI 都保留两项描述。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\containerCapacity.test.ts tests\inventoryItemRow.ui.test.ts tests\useInventoryLogic.test.ts tests\itemLibraryAdapter.test.ts` 通过，4 个测试文件，26 个用例。
+
 ## [0.12.1] - 2026-04-28
 - 类型：版本 / 发布 / 验证
 - 条目：物品库重构阶段收口并迭代到 `0.12.1`

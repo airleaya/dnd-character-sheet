@@ -383,6 +383,7 @@ const handleLongRest = async () => {
                 <div class="card-top">
                   <div class="spell-name">
                     {{ spell.name }}
+                    <span v-if="spell.ritual" class="ritual-badge" title="可作为仪式施放">仪式</span>
                     <span v-if="spell.concentration" class="conc-badge" title="专注">C</span>
                   </div>
 
@@ -1034,6 +1035,18 @@ const handleLongRest = async () => {
       height: 14px;
       line-height: 14px;
     }
+
+    .ritual-badge {
+      background: rgba(22, 160, 133, 0.12);
+      border: 1px solid rgba(22, 160, 133, 0.35);
+      color: #117864;
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 0 4px;
+      border-radius: 2px;
+      height: 15px;
+      line-height: 13px;
+    }
   }
 
   .combat-tag {
@@ -1084,9 +1097,9 @@ const handleLongRest = async () => {
       font-weight: bold;
 
       &.ritual {
-        background: #ecf0f1;
-        color: #7f8c8d;
-        border: 1px solid #bdc3c7;
+        background: rgba(22, 160, 133, 0.12);
+        color: #117864;
+        border: 1px solid rgba(22, 160, 133, 0.35);
       }
 
       &.conc {

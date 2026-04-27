@@ -70,7 +70,11 @@ const handleDragStart = () => emit('leave-item');
 
 // 5. 徽章显示逻辑
 const getSpellBadges = (spell: SpellDefinition) => {
-  const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'gray' }> = [];
+  const badges: Array<{
+    text: string;
+    color: 'blue' | 'orange' | 'ritual' | 'gray';
+    title?: string;
+  }> = [];
   let time = spell.castingTime;
   if (time.includes('动作')) time = '1A';
   if (time.includes('附赠')) time = 'BA';
@@ -78,7 +82,7 @@ const getSpellBadges = (spell: SpellDefinition) => {
   badges.push({ text: time, color: 'blue' });
 
   if (spell.concentration) badges.push({ text: 'C', color: 'orange' });
-  if (spell.ritual) badges.push({ text: 'R', color: 'cyan' });
+  if (spell.ritual) badges.push({ text: '仪式', color: 'ritual', title: '可作为仪式施放' });
   
   const comps: string[] = [];
   if (spell.components.v) comps.push('V');
@@ -125,7 +129,15 @@ const getSpellBadges = (spell: SpellDefinition) => {
                     <span class="item-cost level-tag">{{ element.level === 0 ? '戏法' : `${element.level}环` }}</span>
                   </div>
                   <div class="badges-row">
-                    <span v-for="(b, i) in getSpellBadges(element)" :key="i" class="badge" :class="b.color">{{ b.text }}</span>
+                    <span
+                      v-for="(b, i) in getSpellBadges(element)"
+                      :key="i"
+                      class="badge"
+                      :class="b.color"
+                      :title="b.title"
+                    >
+                      {{ b.text }}
+                    </span>
                   </div>
                 </div>
               </template>
@@ -183,7 +195,7 @@ const getSpellBadges = (spell: SpellDefinition) => {
 .badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: #333; color: #aaa; }
 .badge.blue { color: #5dade2; background: rgba(93, 173, 226, 0.1); }
 .badge.orange { color: #eb984e; background: rgba(235, 152, 78, 0.1); }
-.badge.cyan { color: #48c9b0; background: rgba(72, 201, 176, 0.1); }
+.badge.ritual { color: #16a085; background: rgba(22, 160, 133, 0.14); border: 1px solid rgba(22, 160, 133, 0.32); }
 .badge.gray { color: #999; background: rgba(255, 255, 255, 0.1); }
 
 .empty-state { padding: 40px; text-align: center; color: #555; }

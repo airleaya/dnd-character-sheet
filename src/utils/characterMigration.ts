@@ -3,6 +3,7 @@ import type {
   Character,
   CharacterBio,
   CharacterClassRecord,
+  CharacterExpertise,
   CharacterProficiencies,
   CharacterSpells,
   CombatStats,
@@ -26,6 +27,7 @@ export type LegacyCharacterData = Partial<Character> & {
   skillProficiencies?: Record<string, boolean>;
   savingThrows?: Partial<Character['savingThrows']>;
   proficiencies?: Partial<CharacterProficiencies>;
+  expertise?: Partial<CharacterExpertise>;
   spells?: Partial<CharacterSpells>;
 };
 
@@ -83,6 +85,12 @@ const DEFAULT_PROFICIENCIES: CharacterProficiencies = {
   weapons: [],
   tools: [],
   languages: [],
+};
+
+const DEFAULT_EXPERTISE: CharacterExpertise = {
+  skills: [],
+  tools: [],
+  custom: [],
 };
 
 const DEFAULT_SAVING_THROWS: Character['savingThrows'] = {
@@ -196,6 +204,12 @@ const normalizeSpells = (spells?: LegacyCharacterData['spells']): CharacterSpell
   spellSources: { ...(spells?.spellSources ?? DEFAULT_SPELLS.spellSources ?? {}) },
 });
 
+const normalizeExpertise = (expertise?: LegacyCharacterData['expertise']): CharacterExpertise => ({
+  skills: cloneArray(expertise?.skills, DEFAULT_EXPERTISE.skills),
+  tools: cloneArray(expertise?.tools, DEFAULT_EXPERTISE.tools),
+  custom: cloneArray(expertise?.custom, DEFAULT_EXPERTISE.custom),
+});
+
 export const createDefaultCharacter = (id: string): Character => ({
   id,
   lastModified: Date.now(),
@@ -231,6 +245,7 @@ export const createDefaultCharacter = (id: string): Character => ({
     tools: [],
     languages: [],
   },
+  expertise: normalizeExpertise(),
   spells: normalizeSpells(),
   activeAttackModes: [],
 });
@@ -302,6 +317,7 @@ export const normalizeCharacterData = (raw: LegacyCharacterData): Character => (
     tools: cloneArray(raw.proficiencies?.tools, DEFAULT_PROFICIENCIES.tools),
     languages: cloneArray(raw.proficiencies?.languages, DEFAULT_PROFICIENCIES.languages),
   },
+  expertise: normalizeExpertise(raw.expertise),
   spells: normalizeSpells(raw.spells),
   activeAttackModes: cloneArray(raw.activeAttackModes, []),
 });

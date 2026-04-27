@@ -15,6 +15,7 @@ describe('characterMigration', () => {
     expect(character.combat.hitDice).toEqual({ d6: { current: 1, max: 1 } });
     expect(character.spells.pactSlots).toEqual({ level: 1, current: 0, max: 0 });
     expect(character.spells.spellSources).toEqual({});
+    expect(character.expertise).toEqual({ skills: [], tools: [], custom: [] });
   });
 
   it('migrates legacy hit dice fields and fills missing defaults', () => {
@@ -43,5 +44,23 @@ describe('characterMigration', () => {
     expect(migrated.spells.known).toEqual(['magic-missile']);
     expect(migrated.spells.pactSlots).toEqual({ level: 1, current: 0, max: 0 });
     expect(migrated.wallet).toEqual({ cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 });
+    expect(migrated.expertise).toEqual({ skills: [], tools: [], custom: [] });
+  });
+
+  it('preserves expertise fields when normalizing character data', () => {
+    const migrated = normalizeCharacterData({
+      id: 'expertise-1',
+      expertise: {
+        skills: ['perception'],
+        tools: ['盗贼工具'],
+        custom: ['异界文献'],
+      },
+    } as LegacyCharacterData);
+
+    expect(migrated.expertise).toEqual({
+      skills: ['perception'],
+      tools: ['盗贼工具'],
+      custom: ['异界文献'],
+    });
   });
 });

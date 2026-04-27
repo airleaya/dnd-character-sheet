@@ -28,6 +28,16 @@ describe('structured item library adapter', () => {
     expect(tradeGoods.every((item) => item.weight === 1)).toBe(true);
   });
 
+  it('preserves both capacity descriptions for containers that have them', () => {
+    const backpack = getLibraryItemById('backpack');
+
+    expect(backpack?.type).toBe('container');
+    expect(backpack).toMatchObject({
+      capacityWeight: 30,
+      capacityVolume: '1立方尺'
+    });
+  });
+
   it('computes pack weight from resolved pack contents', () => {
     expect(getLibraryItemById('burglars_pack')?.weight).toBe(47.5);
     expect(getLibraryItemById('explorers_pack')?.weight).toBe(59);

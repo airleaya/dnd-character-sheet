@@ -8,6 +8,7 @@ import {
   isLibraryCloneDragElement,
   setupDragData,
 } from '../../../utils/inventoryDropUtils';
+import { formatContainerCapacity } from '../../../utils/containerCapacity';
 import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
 
 import type { InventoryItem } from '../../../types/Item';
@@ -76,6 +77,8 @@ const containerPreviewLabel = computed(() => {
   return parts.join('，');
 });
 
+const containerCapacityLabel = computed(() => formatContainerCapacity(props.item));
+
 // 核心逻辑：通用容器代理
 // 如果任意容器内只有 1 种内容物，则“穿透”控制该内容物数量
 const proxyTargetItem = computed(() => {
@@ -116,13 +119,18 @@ const handleQuantityChange = (delta: number) => {
 // 2. 重量与交互逻辑
 // ---------------------------------------------
 
-const containerTotalWeight = computed(() => {
-  const base = props.item.weight * props.item.quantity;
-    if (ignoresContentWeight(props.item)) {
-    return base.toFixed(1);
+const containerSelfWeight = computed(() => props.item.weight * props.item.quantity);
+
+const containerContentWeight = computed(() => {
+  if (ignoresContentWeight(props.item)) {
+    return 0;
   }
-  const contentWeight = childItems.value.reduce((sum: number, i: InventoryItem) => sum + (i.weight * i.quantity), 0);
-  return (base + contentWeight).toFixed(1);
+
+  return containerContentItems.value.reduce((sum: number, item: InventoryItem) => sum + store.getItemWeight(item), 0);
+});
+
+const containerWeightLabel = computed(() => {
+  return `${containerSelfWeight.value.toFixed(1)} + ${containerContentWeight.value.toFixed(1)}`;
 });
 
 const onDropIntoContainer = (evt: InventoryDragChangeEvent) => {
@@ -195,12 +203,18 @@ const handleDelete = () => {
         <span class="name-text">{{ item.name }}</span>
         
         <span v-if="item.type === 'container'" class="container-badge">
+          <span class="container-capacity">容量：{{ containerCapacityLabel }}</span>
           <span>({{ containerPreviewLabel }})</span>
         </span>
       </div>
 
       <div class="col-weight">
-        <span v-if="item.type === 'container'">{{ containerTotalWeight }} lb</span>
+        <span
+          v-if="item.type === 'container'"
+          :title="`自重 ${containerSelfWeight.toFixed(1)} lb + 内容 ${containerContentWeight.toFixed(1)} lb`"
+        >
+          {{ containerWeightLabel }} lb
+        </span>
         <span v-else>{{ (item.weight * item.quantity).toFixed(2) }} lb</span>
       </div>
 
@@ -356,7 +370,9 @@ const handleDelete = () => {
   }
 
   .container-badge {
-    display: block;
+    display: flex;
+    gap: 6px;
+    align-items: center;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -366,10 +382,17 @@ const handleDelete = () => {
     margin-left: 6px;
     font-style: italic;
   }
+
+  .container-capacity {
+    flex-shrink: 0;
+    color: #5f6c7b;
+    font-style: normal;
+    font-weight: 600;
+  }
 }
 
 .col-weight { 
-  width: 70px; 
+  width: 112px; 
   text-align: right; 
   font-family: monospace; 
   color: #868e96; 

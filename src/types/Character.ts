@@ -35,6 +35,13 @@ export interface CharacterProficiencies {
   languages: string[];// e.g. ['common']
 }
 
+// 专精项结构：技能和工具必须来自已有熟练项，自定义项用于记录规则外来源。
+export interface CharacterExpertise {
+  skills: string[];
+  tools: string[];
+  custom: string[];
+}
+
 
 // 扩充 CharacterProfile (增加玩家名、阵营、背景)
 export interface CharacterProfile {
@@ -192,6 +199,8 @@ export interface Character {
 
   proficiencies: CharacterProficiencies;
 
+  expertise: CharacterExpertise;
+  
   // 法术书状态
   spells: CharacterSpells;
 

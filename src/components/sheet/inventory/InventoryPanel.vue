@@ -16,6 +16,8 @@ import {
 import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
 
 import { formatCost } from '../../../utils/currencyUtils';
+import { formatContainerCapacity } from '../../../utils/containerCapacity';
+import { getCarryingLoadTone } from '../../../utils/carryingLoad';
 import type { ItemCost } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
 
@@ -60,13 +62,6 @@ const getItemCost = (item: InventoryItem): ItemCost | undefined => {
     return item.data.cost as ItemCost | undefined;
   }
   return undefined;
-};
-
-const getContainerCapacity = (item: InventoryItem): string => {
-  if ('capacityVolume' in item.data && typeof item.data.capacityVolume === 'string') {
-    return item.data.capacityVolume;
-  }
-  return '未知';
 };
 
 const formatContainerContentPreviewItem = (item: InventoryItem): string =>
@@ -157,6 +152,10 @@ onMounted(() => {
   window.addEventListener('resize', onWindowResize);
 });
 
+const carryingLoadTone = computed(() =>
+  getCarryingLoadTone(store.totalWeight, store.carryingCapacity)
+);
+
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onWindowResize);
 });
@@ -237,7 +236,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
   <div class="inventory-panel" v-if="store.character">
     
     <div class="panel-header">
-      <h3 :class="{ 'text-overweight': store.totalWeight > store.carryingCapacity }">
+      <h3 class="carrying-load" :class="`load-${carryingLoadTone}`">
         行囊 ({{ store.totalWeight.toFixed(1) }} / {{ store.carryingCapacity }} lb)
       </h3>
       <span class="tip">支持容器嵌套与拖拽</span>
@@ -354,7 +353,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
             <ItemDescriptionRenderer :description="hoveredItem.description" :blocks="hoveredItem.descriptionBlocks" />
             
             <div v-if="hoveredItem.type === 'container'" class="extra-info">
-               容量: {{ getContainerCapacity(hoveredItem) }}
+               容量: {{ formatContainerCapacity(hoveredItem) }}
               <br />
                内容: {{ getContainerContentPreview(hoveredItem) }}
             </div>
@@ -387,10 +386,22 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     border-bottom: 1px solid #ddd;
     .tip { font-size: 0.8rem; color: #7f8c8d; }
 
-    /* ✅ 新增：超重时的红色警示 */
-    .text-overweight {
-      color: #e74c3c; /* 红色 */
-      animation: pulse 2s infinite; /* 可选：加个呼吸灯效果 */
+    .carrying-load {
+      color: #2c3e50;
+      transition: color 0.2s ease;
+
+      &.load-yellow {
+        color: #b7950b;
+      }
+
+      &.load-orange {
+        color: #d35400;
+      }
+
+      &.load-red {
+        color: #e74c3c;
+        animation: pulse 2s infinite;
+      }
     }
   }
 

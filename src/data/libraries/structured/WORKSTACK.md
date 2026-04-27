@@ -1,5 +1,26 @@
 # Structured Item Library Work Stack
 
+## 2026-04-28 容器重量展示
+- [x] 库存物品栏容器重量从合计值改为 `自重 + 内容重量` 分解显示。
+- [x] 内容重量改用运行时负重口径，包含普通内容、悬挂栏内容和嵌套内容。
+- [x] `ignoreContentWeight` 容器的内容重量显示为 `0.0`，保持只计自重规则。
+- [x] 增加库存行 UI 测试，覆盖普通容器、空容器和忽略内容重量容器。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\inventoryItemRow.ui.test.ts tests\useInventoryLogic.test.ts`
+
+## 2026-04-28 容器容量展示
+- [x] 新增 `formatContainerCapacity`，统一格式化容器重量容量与体积容量。
+- [x] 库存物品行显示容器容量，同时保留内容物预览。
+- [x] 库存悬浮框改用同一容量格式化工具，避免只显示体积容量。
+- [x] 物品库展示卡显示容器容量，并共用同一格式化工具。
+- [x] `formatContainerCapacity` 同时支持运行时库物品根字段和库存实例 `data` 字段。
+- [x] 对背包等双容量容器增加 adapter 断言，确保 `capacityWeight` 与 `capacityVolume` 同时保留。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\containerCapacity.test.ts tests\inventoryItemRow.ui.test.ts tests\useInventoryLogic.test.ts tests\itemLibraryAdapter.test.ts`
+  - `npm run test -- tests\containerCapacity.test.ts tests\libraryTooltip.ui.test.ts tests\inventoryItemRow.ui.test.ts tests\itemLibraryAdapter.test.ts`
+
 ## 2026-04-28 版本收口
 - [x] 将项目版本号从 `0.12.0` 提升到 `0.12.1`。
 - [x] 将 `0.12.1-进行中` 日志收口为正式 `0.12.1`。

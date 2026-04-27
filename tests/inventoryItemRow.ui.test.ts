@@ -17,7 +17,8 @@ const createContainer = (instanceId: string, name = 'Backpack'): InventoryItem =
   quantity: 1,
   type: 'container',
   data: {
-    capacityVolume: '30 lb',
+    capacityWeight: 30,
+    capacityVolume: '1立方尺',
   },
 });
 
@@ -79,10 +80,12 @@ describe('InventoryItemRow container content preview', () => {
     const wrapper = mountRow(container);
     const badge = wrapper.find('.container-badge');
 
+    expect(badge.text()).toContain('容量：30 lb；1立方尺');
     expect(badge.text()).toContain('Arrow x20');
     expect(badge.text()).toContain('Vial');
     expect(badge.text()).toContain('Bow');
     expect(badge.text()).not.toContain('另');
+    expect(wrapper.find('.col-weight').text()).toBe('5.0 + 22.0 lb');
     expect(wrapper.find('.qty-static').text()).toBe('--');
     expect(wrapper.find('.btn-mini.plus').exists()).toBe(false);
   });
@@ -116,6 +119,7 @@ describe('InventoryItemRow container content preview', () => {
     const wrapper = mountRow(container);
 
     expect(wrapper.find('.container-badge').text()).toContain('空');
+    expect(wrapper.find('.col-weight').text()).toBe('5.0 + 0.0 lb');
     expect(wrapper.find('.qty-val').text()).toBe('1');
 
     await wrapper.find('.btn-mini.plus').trigger('click');
@@ -142,6 +146,21 @@ describe('InventoryItemRow container content preview', () => {
     expect(vial.quantity).toBe(3);
     expect(container.quantity).toBe(1);
     expect(wrapper.find('.qty-val').text()).toBe('3');
+  });
+
+  it('shows ignored container content weight as zero in the decomposed weight label', () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('ignored-content-weight-label');
+    const container = createContainer('quiver-1', 'Quiver');
+    container.data = { ...container.data, ignoreContentWeight: true };
+    const arrows = createGear('arrows-1', 'Arrow', container.instanceId, 20);
+    character.inventory = [container, arrows];
+    store.character = character;
+
+    const wrapper = mountRow(container);
+
+    expect(wrapper.find('.container-badge').text()).toContain('Arrow x20');
+    expect(wrapper.find('.col-weight').text()).toBe('5.0 + 0.0 lb');
   });
 
   it('counts hanging-slot items when deciding whether quantity proxying is ambiguous', () => {

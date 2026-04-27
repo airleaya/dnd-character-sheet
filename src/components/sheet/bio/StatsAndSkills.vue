@@ -48,6 +48,8 @@ type SkillView = {
   mod: string;
   rawMod: number;
   profLevel: boolean;
+  expertise: boolean;
+  jackOfAllTrades: boolean;
 };
 
 type GroupedSkills = Partial<Record<keyof AbilityScores, SkillView[]>>;
@@ -120,12 +122,14 @@ const groupedSkills = computed<GroupedSkills>(() => {
           v-for="skill in groupedSkills[attr.key]" 
           :key="skill.key" 
           class="skill-row"
-          :class="{ proficient: skill.profLevel }"
+          :class="{ proficient: skill.profLevel, expertise: skill.expertise, jack: skill.jackOfAllTrades }"
           @click="store.toggleSkill(skill.key)"
         >
           <div class="skill-left">
-            <div class="prof-dot" :class="{ filled: skill.profLevel }"></div>
+            <div class="prof-dot" :class="{ filled: skill.profLevel, expertise: skill.expertise }"></div>
             <span class="skill-name">{{ skill.label }}</span>
+            <span v-if="skill.expertise" class="expertise-chip">专</span>
+            <span v-else-if="skill.jackOfAllTrades" class="jack-chip">万</span>
           </div>
           <div class="skill-mod">{{ skill.mod }}</div>
         </div>
@@ -241,11 +245,60 @@ const groupedSkills = computed<GroupedSkills>(() => {
   &:last-child { border-bottom: none; }
   &:hover { background-color: #ecf0f1; }
   &.proficient { background-color: #e8f6f3; .skill-mod { font-weight: bold; color: #27ae60; } .skill-name { font-weight: 600; color: #2c3e50; } }
+  &.expertise {
+    background: #5b2a86;
+    border-left: 3px solid #f2c94c;
+    .skill-mod { color: #f2c94c; font-weight: 900; }
+    .skill-name { color: #f2c94c; font-weight: 800; }
+  }
 }
 .skill-left { display: flex; align-items: center; gap: 8px; }
 .skill-name { font-size: 0.85rem; color: #7f8c8d; }
 .skill-mod { font-size: 0.9rem; color: #95a5a6; font-family: monospace; }
-.prof-dot { width: 10px; height: 10px; border: 1px solid #bdc3c7; border-radius: 50%; &.filled { background-color: #2c3e50; border-color: #2c3e50; } }
+.prof-dot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #bdc3c7;
+  border-radius: 50%;
+
+  &.filled {
+    background-color: #2c3e50;
+    border-color: #2c3e50;
+  }
+
+  &.expertise {
+    background-color: #f2c94c;
+    border-color: transparent;
+    box-shadow: 0 0 0 3px rgba(242, 201, 76, 0.2);
+  }
+}
+
+.expertise-chip {
+  font-size: 0.64rem;
+  line-height: 1;
+  color: #fff0b8;
+  border: 1px solid #f2c94c;
+  background: #5b2a86;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-weight: 900;
+}
+
+.jack-chip {
+  min-width: 16px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a5a00;
+  background: #fff3cd;
+  border: 1px solid #d6a84f;
+  border-radius: 2px;
+  padding: 0 3px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
 
 .card-footer { background: #ecf0f1; border-top: 1px solid #dfe6e9; padding: 8px; .passive-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; color: #2c3e50; .val { background: white; padding: 1px 6px; border-radius: 4px; border: 1px solid #bdc3c7; } } }
 </style>
