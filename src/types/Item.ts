@@ -1,18 +1,30 @@
 // src/types/Item.ts
-import type { 
-  ItemDefinition, 
-  WeaponDefinition, 
-  ArmorDefinition, 
+import type {
+  WeaponDefinition,
+  ArmorDefinition,
   GearDefinition,
   ToolDefinition,
   ConsumableDefinition,
   TreasureDefinition,
   ContainerDefinition,
+  ItemDescriptionBlock,
+  ItemMagicDefinition,
   ItemType
 } from './Library';
 
 // 1. 公共排除项 (这些属性直接存在于 InventoryItem 根层级，不在 data 里重复)
-type CommonExclude = 'id' | 'name' | 'weight' | 'description' | 'type' | 'rarity' | 'cost';
+type CommonExclude =
+  | 'id'
+  | 'name'
+  | 'weight'
+  | 'description'
+  | 'descriptionBlocks'
+  | 'type'
+  | 'rarity'
+  | 'cost'
+  | 'magic'
+  | 'multiplicity'
+  | 'acquisitionRule';
 
 // 2. 利用 Omit 生成 Data 类型
 // 这样 WeaponData 就只包含 damage, range 等战斗属性，而不包含 weight
@@ -27,6 +39,7 @@ export type ConsumableData = Omit<ConsumableDefinition, CommonExclude> & {
   charges?: number; 
 };
 export type TreasureData = Omit<TreasureDefinition, CommonExclude>;
+export type MiscItemData = Record<string, unknown>;
 export type ContainerData = Omit<ContainerDefinition, CommonExclude> & {
   // 容器实例特有属性
   isOpen?: boolean; // 比如：箱子是否打开
@@ -41,23 +54,26 @@ export interface InventoryItem {
   // --- 基础信息 (快照) ---
   name: string;       
   description?: string; 
+  descriptionBlocks?: ItemDescriptionBlock[];
   weight: number;     
   quantity: number;   
   
   type: ItemType;     
+  magic?: ItemMagicDefinition;
+  containerSlot?: 'main' | 'hanging'; // 容器内位置；背包可使用 hanging 表示唯一悬挂栏位
   
   // --- 状态 ---
   parentId?: string; // 如果放在容器里，指向容器的 instanceId
 
   // --- ✅ 动态数据 (特有属性联合类型) ---
   // 这里使用了具体的类型，而不是 Record<string, any>，会有更好的智能提示
-  data: 
-    | WeaponData 
-    | ArmorData 
-    | GearData 
-    | ToolData 
-    | ConsumableData 
+    data:
+    | WeaponData
+    | ArmorData
+    | GearData
+    | ToolData
+    | ConsumableData
     | TreasureData
     | ContainerData
-    | Record<string, any>; // 兜底，兼容未知情况
+    | MiscItemData; // 兜底，兼容未知情况
 }

@@ -1,17 +1,127 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { formatCost } from '../../utils/currencyUtils';
+import type { ItemCost, ItemDescriptionBlock } from '../../types/Library';
 import { getSchoolLabel } from '../../data/rules/dndRules';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
 import { WEAPON_CAT_MAP, ARMOR_TYPE_MAP } from '../../data/rules/proficiencies'
-import { ATTR_MAP, ITEM_TYPE_MAP } from '../../data/rules/dndRules';
+import { ITEM_TYPE_MAP } from '../../data/rules/dndRules';
+import { getTooltipViewportPosition } from '../../stores/tooltip';
+import { formatContainerCapacity } from '../../utils/containerCapacity';
+import ItemDescriptionRenderer from '../common/ItemDescriptionRenderer.vue';
+
+type TooltipItemType = 'item' | 'spell';
+
+type SpellComponents = {
+  v?: boolean;
+  s?: boolean;
+  m?: string | null;
+};
+
+type TooltipItem = {
+  name: string;
+  type?: string;
+  category?: string;
+  displayCategory?: string;
+  displaySubcategory?: string;
+  armorType?: string;
+  ac?: number;
+  dexBonusMax?: number | null;
+  strReq?: number;
+  stealthDis?: boolean;
+  damage?: string;
+  damageType?: string;
+  range?: string | number;
+  properties?: string[];
+  versatileDamage?: string;
+  weight?: number;
+  capacityWeight?: number;
+  capacityVolume?: string;
+  cost?: ItemCost;
+  description?: string;
+  descriptionBlocks?: ItemDescriptionBlock[];
+  level?: number;
+  school?: string;
+  ritual?: boolean;
+  concentration?: boolean;
+  castingTime?: string;
+  components?: SpellComponents;
+  duration?: string;
+  attackType?: 'melee' | 'ranged' | 'save' | 'auto' | 'none';
+  saveAttr?: string;
+  scaling?: string;
+};
 
 const props = defineProps<{
-  item: any;
+  item: TooltipItem;
   position: { x: number; y: number };
-  type: 'item' | 'spell'; // 显式区分类型
+  type: TooltipItemType; // 显式区分类型
 }>();
+
+const tooltipRef = ref<HTMLElement | null>(null);
+const tooltipSize = ref({ width: 320, height: 0 });
+
+const measureTooltip = () => {
+  const rect = tooltipRef.value?.getBoundingClientRect();
+  if (!rect) return;
+
+  tooltipSize.value = {
+    width: rect.width || 320,
+    height: rect.height || 0
+  };
+};
+
+const measureAfterRender = async () => {
+  await nextTick();
+  measureTooltip();
+};
+
+watch(
+  () => [props.item.name, props.position.x, props.position.y, props.type],
+  () => {
+    void measureAfterRender();
+  },
+  { flush: 'post', immediate: true }
+);
+
+const onWindowResize = () => {
+  measureTooltip();
+};
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize);
+  void measureAfterRender();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize);
+});
+
+const tooltipStyle = computed(() => {
+  if (typeof window === 'undefined') {
+    return {
+      top: `${props.position.y}px`,
+      left: `${props.position.x}px`
+    };
+  }
+
+  const safePosition = getTooltipViewportPosition({
+    x: props.position.x,
+    y: props.position.y,
+    tooltipWidth: tooltipSize.value.width,
+    tooltipHeight: tooltipSize.value.height,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+    offset: 0,
+    padding: 12
+  });
+
+  return {
+    top: `${safePosition.top}px`,
+    left: `${safePosition.left}px`
+  };
+});
 
 // ==========================================
 // ✅ 新增：辅助计算函数
@@ -20,10 +130,10 @@ const props = defineProps<{
 // 获取物品右上角的子类型标签
 const subTypeLabel = computed(() => {
   const i = props.item;
-  if (props.type === 'spell') return '法术';
-  if (i.type === 'weapon') return WEAPON_CAT_MAP[i.category] || '武器';
-  if (i.type === 'armor') return ARMOR_TYPE_MAP[i.armorType] || '防具';
-  return ITEM_TYPE_MAP[i.type] || '物品';
+    if (props.type === 'spell') return '法术';
+  if (i.type === 'weapon') return WEAPON_CAT_MAP[i.category ?? ''] || '武器';
+  if (i.type === 'armor') return ARMOR_TYPE_MAP[i.armorType ?? ''] || '防具';
+  return ITEM_TYPE_MAP[i.type ?? ''] || '物品';
 });
 
 // 获取伤害类型的定义（颜色、中文名）
@@ -33,7 +143,7 @@ const getDamageDef = (key: string) => DAMAGE_TYPES[key as keyof typeof DAMAGE_TY
 const getPropDef = (key: string) => WEAPON_PROPERTIES[key as keyof typeof WEAPON_PROPERTIES];
 
 // 格式化 AC 显示字符串
-const formatAC = (i: any) => {
+const formatAC = (i: TooltipItem) => {
   if (i.armorType === 'shield') return `+${i.ac} 护甲等级`;
   
   let text = `${i.ac}`;
@@ -50,14 +160,22 @@ const formatAC = (i: any) => {
 
 // --- 移植过来的展示辅助函数 ---
 
-const formatComponents = (comps: any) => {
+const formatComponents = (comps?: SpellComponents) => {
   if (!comps) return '-';
   const parts = [];
   if (comps.v) parts.push('V');
   if (comps.s) parts.push('S');
-  if (comps.m) parts.push(comps.m === true ? 'M' : `M (${comps.m})`);
+  if (comps.m) parts.push(`M (${comps.m})`);
   return parts.join(', ');
 };
+
+const displayCost = computed(() => formatCost(props.item.cost));
+
+const containerCapacity = computed(() =>
+  props.item.type === 'container' ? formatContainerCapacity(props.item) : ''
+);
+
+const schoolLabel = computed(() => getSchoolLabel(props.item.school ?? ''));
 
 const attackSaveInfo = computed(() => {
   const s = props.item;
@@ -71,8 +189,9 @@ const attackSaveInfo = computed(() => {
 
 <template>
   <div 
+    ref="tooltipRef"
     class="item-tooltip-card"
-    :style="{ top: position.y + 'px', left: position.x + 'px' }"
+    :style="tooltipStyle"
   >
     <div class="card-header">
       <div class="card-title">{{ item.name }}</div>
@@ -88,9 +207,9 @@ const attackSaveInfo = computed(() => {
             <span class="damage-text">{{ item.damage }}</span>
             <span 
               class="damage-tag"
-              :style="{ backgroundColor: getDamageDef(item.damageType).color }"
+              :style="{ backgroundColor: getDamageDef(item.damageType ?? '').color }"
             >
-              {{ getDamageDef(item.damageType).label.split(' ')[0] }}
+              {{ getDamageDef(item.damageType ?? '').label.split(' ')[0] }}
             </span>
           </div>
           <span v-else class="text-muted">-</span>
@@ -136,17 +255,21 @@ const attackSaveInfo = computed(() => {
 
       <div class="stat-row">
         <span>重量: {{ item.weight }} lb</span>
-        <span class="gold">{{ formatCost(item.cost) }}</span>
+        <span class="gold">{{ displayCost }}</span>
+      </div>
+
+      <div v-if="item.type === 'container'" class="stat-row capacity-row">
+        <span>容量: {{ containerCapacity }}</span>
       </div>
       
-      <div class="desc">{{ item.description }}</div>
+      <ItemDescriptionRenderer :description="item.description" :blocks="item.descriptionBlocks" />
     </div>
 
     <div class="card-body" v-if="type === 'spell'">
       <div class="spell-meta-header">
         <span class="spell-school">
           {{ item.level === 0 ? '戏法' : `${item.level}环` }} 
-          {{ getSchoolLabel(item.school) }}系
+          {{ schoolLabel }}系
         </span>
         <div class="meta-tags">
           <span v-if="item.ritual" class="tag ritual">仪式</span>
@@ -346,6 +469,12 @@ const attackSaveInfo = computed(() => {
   
   /* 物品样式 */
   .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+  .capacity-row {
+    justify-content: flex-start;
+    color: #ddd;
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
   .gold { color: #f1c40f; }
 
   /* [新增]：专门针对长文本描述的滚动条样式 */

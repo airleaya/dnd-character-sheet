@@ -3,16 +3,20 @@ import { computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import EditableText from '../../common/EditableText.vue';
 import EditableTextarea from '../../common/EditableTextarea.vue';
+import type { CharacterBio } from '../../../types/Character';
 
-const props = defineProps<{ isOpen: boolean }>();
-const emit = defineEmits(['close']);
+defineProps<{ isOpen: boolean }>();
+
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
 
 const store = useActiveSheetStore();
-const bio = computed(() => store.character?.bio);
+const bio = computed<CharacterBio | null>(() => store.character?.bio ?? null);
+
 
 // 辅助更新函数
-const update = (field: string, val: string) => {
-  // @ts-ignore: 简单的类型推断忽略
+const update = <K extends keyof CharacterBio>(field: K, val: CharacterBio[K]) => {
   store.updateBio(field, val);
 };
 </script>

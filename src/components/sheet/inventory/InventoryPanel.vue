@@ -1,13 +1,28 @@
 <script setup lang="ts">
-import { ref, reactive, computed, provide } from 'vue';
+import { ref, reactive, computed, provide, nextTick, onBeforeUnmount, onMounted, watch } from 'vue';
 import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
-import { calcRealIndex,setupDragData } from '../../../utils/inventoryDropUtils';
+import ItemDescriptionRenderer from '../../common/ItemDescriptionRenderer.vue';
+import { getTooltipViewportPosition } from '../../../stores/tooltip';
+import {
+  calcRealIndex,
+  isInventoryInstanceDragElement,
+  isLibraryCloneDragElement,
+  setupDragData,
+} from '../../../utils/inventoryDropUtils';
+import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
+
 import { formatCost } from '../../../utils/currencyUtils';
+import { formatContainerCapacity } from '../../../utils/containerCapacity';
+import { getCarryingLoadTone } from '../../../utils/carryingLoad';
+import type { ItemCost } from '../../../types/Library';
+import type { InventoryItem } from '../../../types/Item';
 
 const store = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 
 // =========================================
 // 💰 钱包逻辑
@@ -25,7 +40,7 @@ const adjustMoney = (type: 'pp' | 'gp' | 'sp' | 'cp', isAdd: boolean) => {
   const amount = isAdd ? val : -val;
   const success = store.modifyCurrency(type, amount);
   if (!success) {
-    alert('余额不足！');
+    feedback.showToast('余额不足', 'warning');
   } else {
     inputs[type] = ''; 
   }
@@ -35,58 +50,169 @@ const adjustMoney = (type: 'pp' | 'gp' | 'sp' | 'cp', isAdd: boolean) => {
 // 📦 物品列表逻辑
 // =========================================
 
+type InventoryTooltipBadge = {
+  text: string;
+  color: 'blue' | 'orange' | 'cyan' | 'red';
+};
+
+
+
+const getItemCost = (item: InventoryItem): ItemCost | undefined => {
+  if ('cost' in item.data) {
+    return item.data.cost as ItemCost | undefined;
+  }
+  return undefined;
+};
+
+const formatContainerContentPreviewItem = (item: InventoryItem): string =>
+  item.quantity > 1 ? `${item.name} x${item.quantity}` : item.name;
+
+const getContainerContentPreview = (item: InventoryItem): string => {
+  if (item.type !== 'container') {
+    return '';
+  }
+
+  const contents = store.getContainerContents(item.instanceId);
+  const hanging = store.getContainerHangingItem(item.instanceId);
+  const parts = contents.map(formatContainerContentPreviewItem);
+
+  if (hanging) {
+    parts.push(`悬挂 ${formatContainerContentPreviewItem(hanging)}`);
+  }
+
+  return parts.length > 0 ? parts.join('，') : '空';
+};
+
 const rootItems = computed({
   get: () => store.rootInventory,
-  set: (val) => {
+  set: () => {
     // draggable 需要 setter，即使我们主要靠 change 事件处理逻辑
   }
 });
 
-const handleRootDrop = (evt: any) => {
+const handleRootDrop = (evt: InventoryDragChangeEvent) => {
   const insertIndex = calcRealIndex(store.rootInventory, evt, store.character!.inventory);
 
   if (evt.added) {
     const newItem = evt.added.element;
-    if (!newItem.instanceId) {
+    if (isLibraryCloneDragElement(newItem)) {
       store.addItem(newItem.libraryId, insertIndex);
-    } else {
+    } else if (isInventoryInstanceDragElement(newItem)) {
       store.moveItemToRoot(newItem.instanceId, insertIndex);
     }
-  }
-  else if (evt.moved) {
-    store.reorderItem(evt.moved.element.instanceId, insertIndex);
+  } else if (evt.moved) {
+    const movedItem = evt.moved.element;
+    if (isInventoryInstanceDragElement(movedItem)) {
+      store.reorderItem(movedItem.instanceId, insertIndex);
+    }
   }
 };
+
 
 // =========================================
 // 🖱️ 悬浮窗逻辑 (Tooltip)
 // =========================================
-const hoveredItem = ref<any>(null);
-const tooltipStyle = ref({ top: '0px', left: '0px' });
+const hoveredItem = ref<InventoryItem | null>(null);
+const tooltipRef = ref<HTMLElement | null>(null);
+const tooltipPoint = ref({ x: 0, y: 0 });
+const tooltipSize = ref({ width: 320, height: 0 });
+
+const measureTooltip = () => {
+  const rect = tooltipRef.value?.getBoundingClientRect();
+  if (!rect) return;
+
+  tooltipSize.value = {
+    width: rect.width || 320,
+    height: rect.height || 0
+  };
+};
+
+const measureAfterRender = async () => {
+  await nextTick();
+  measureTooltip();
+};
+
+watch(
+  () => hoveredItem.value?.instanceId,
+  (instanceId) => {
+    if (instanceId) {
+      void measureAfterRender();
+    }
+  },
+  { flush: 'post' }
+);
+
+const onWindowResize = () => {
+  if (hoveredItem.value) {
+    measureTooltip();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize);
+});
+
+const carryingLoadTone = computed(() =>
+  getCarryingLoadTone(store.totalWeight, store.carryingCapacity)
+);
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize);
+});
+
+const tooltipStyle = computed(() => {
+  if (typeof window === 'undefined') {
+    return {
+      top: `${tooltipPoint.value.y + 15}px`,
+      left: `${tooltipPoint.value.x + 15}px`
+    };
+  }
+
+  const position = getTooltipViewportPosition({
+    x: tooltipPoint.value.x,
+    y: tooltipPoint.value.y,
+    tooltipWidth: tooltipSize.value.width,
+    tooltipHeight: tooltipSize.value.height,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight
+  });
+
+  return {
+    top: `${position.top}px`,
+    left: `${position.left}px`
+  };
+});
 
 // 1. 获取徽章 (Badges)
-const getBadges = (item: any) => {
-  const badges = [];
-  const data = item.data || {};
+const getBadges = (item: InventoryItem): InventoryTooltipBadge[] => {
+  const badges: InventoryTooltipBadge[] = [];
+  const data = item.data;
 
-  // 这里的属性取值取决于你的 Item 数据结构
-  // 因为 item.data 包含了大部分属性
-  if (data.charges) badges.push({ text: `${data.charges}次`, color: 'blue' });
-  if (item.type === 'container') badges.push({ text: '容器', color: 'orange' });
-  if (data.ac) badges.push({ text: `AC ${data.ac}`, color: 'cyan' });
-  if (data.damage) badges.push({ text: data.damage, color: 'red' });
-  
+  if ('charges' in data && typeof data.charges === 'number' && data.charges > 0) {
+    badges.push({ text: `${data.charges}次`, color: 'blue' });
+  }
+  if (item.type === 'container') {
+    badges.push({ text: '容器', color: 'orange' });
+  }
+  if ('ac' in data && typeof data.ac === 'number') {
+    badges.push({ text: `AC ${data.ac}`, color: 'cyan' });
+  }
+  if ('damage' in data && typeof data.damage === 'string') {
+    badges.push({ text: data.damage, color: 'red' });
+  }
+
   return badges;
 };
 
 // 2. 显示悬浮窗
-const onShowTooltip = (item: any, event: MouseEvent) => {
+const onShowTooltip = (item: InventoryItem, event: MouseEvent) => {
   hoveredItem.value = item;
   // 简单的位置计算：鼠标右下方偏移
-  tooltipStyle.value = {
-    top: `${event.clientY + 15}px`,
-    left: `${event.clientX + 15}px`
+  tooltipPoint.value = {
+    x: event.clientX,
+    y: event.clientY
   };
+  void measureAfterRender();
 };
 
 // 3. 隐藏悬浮窗
@@ -101,7 +227,7 @@ provide('inventoryTooltip', {
 });
 
 // 拖拽开始处理函数
-const onDragStart = (e: DragEvent, item: any) => {
+const onDragStart = (e: DragEvent, item: InventoryItem) => {
   setupDragData(e, 'inventory-item', item.instanceId);
 };
 </script>
@@ -110,7 +236,7 @@ const onDragStart = (e: DragEvent, item: any) => {
   <div class="inventory-panel" v-if="store.character">
     
     <div class="panel-header">
-      <h3 :class="{ 'text-overweight': store.totalWeight > store.carryingCapacity }">
+      <h3 class="carrying-load" :class="`load-${carryingLoadTone}`">
         行囊 ({{ store.totalWeight.toFixed(1) }} / {{ store.carryingCapacity }} lb)
       </h3>
       <span class="tip">支持容器嵌套与拖拽</span>
@@ -196,6 +322,7 @@ const onDragStart = (e: DragEvent, item: any) => {
       <Transition name="fade">
         <div 
           v-if="hoveredItem" 
+          ref="tooltipRef"
           class="inventory-tooltip"
           :style="tooltipStyle"
         >
@@ -208,7 +335,7 @@ const onDragStart = (e: DragEvent, item: any) => {
               <span>重量: {{ store.getItemWeight(hoveredItem) }} lb</span>
               
               <span class="gold" v-if="hoveredItem.type !== 'container'">
-                {{ formatCost(hoveredItem.data?.cost || hoveredItem.cost) }}
+                {{ formatCost(getItemCost(hoveredItem)) }}
               </span>
             </div>
             
@@ -223,10 +350,12 @@ const onDragStart = (e: DragEvent, item: any) => {
               </span>
             </div>
 
-            <div class="desc">{{ hoveredItem.description }}</div>
+            <ItemDescriptionRenderer :description="hoveredItem.description" :blocks="hoveredItem.descriptionBlocks" />
             
             <div v-if="hoveredItem.type === 'container'" class="extra-info">
-               容量: {{ hoveredItem.data?.capacityVolume || '未知' }}
+               容量: {{ formatContainerCapacity(hoveredItem) }}
+              <br />
+               内容: {{ getContainerContentPreview(hoveredItem) }}
             </div>
           </div>
         </div>
@@ -250,15 +379,29 @@ const onDragStart = (e: DragEvent, item: any) => {
   .panel-header {
     display: flex;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
     padding: 0.5rem 1rem;
     background: #ecf0f1;
     border-bottom: 1px solid #ddd;
     .tip { font-size: 0.8rem; color: #7f8c8d; }
 
-    /* ✅ 新增：超重时的红色警示 */
-    .text-overweight {
-      color: #e74c3c; /* 红色 */
-      animation: pulse 2s infinite; /* 可选：加个呼吸灯效果 */
+    .carrying-load {
+      color: #2c3e50;
+      transition: color 0.2s ease;
+
+      &.load-yellow {
+        color: #b7950b;
+      }
+
+      &.load-orange {
+        color: #d35400;
+      }
+
+      &.load-red {
+        color: #e74c3c;
+        animation: pulse 2s infinite;
+      }
     }
   }
 
@@ -269,12 +412,12 @@ const onDragStart = (e: DragEvent, item: any) => {
 }
 
   .wallet-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 8px;
     padding: 10px;
     background: #fdfdfd;
     border-bottom: 1px solid #eee;
-    overflow-x: auto;
     flex-shrink: 0;
   }
 

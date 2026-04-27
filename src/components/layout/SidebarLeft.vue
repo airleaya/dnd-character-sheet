@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref,onMounted,onUnmounted,nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useCharacterStore } from '../../stores/characterStore';
 import { useActiveSheetStore } from '../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../stores/uiFeedback';
 import { CLASS_DICTIONARY } from '../../data/rules/classes';
+import type { CharacterClassRecord } from '../../types/Character';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 const fileInput = ref<HTMLInputElement | null>(null); // 文件输入框引用
 
 // 原生拖拽相关状态
@@ -62,9 +65,15 @@ const cancelRenameGroup = () => {
   editingGroupId.value = null;
 };
 
-const handleDeleteGroup = (e: Event, groupId: string, name: string) => {
+const handleDeleteGroup = async (e: Event, groupId: string, name: string) => {
   e.stopPropagation();
-  if (confirm(`确定要删除分组 "${name}" 吗？\n(组内的角色不会被删除，将移回未分组列表)`)) {
+  const confirmed = await feedback.confirm({
+    title: '删除分组',
+    message: `确定要删除分组 "${name}" 吗？\n组内角色不会被删除，只会移回未分组列表。`,
+    tone: 'warning',
+    confirmText: '删除分组',
+  });
+  if (confirmed) {
     charStore.deleteGroup(groupId);
   }
 };
@@ -80,7 +89,7 @@ const toggleBulkMode = () => {
 };
 
 // 辅助方法：将角色的职业数组翻译并拼接为形如 "战士/法师" 的字符串
-const getClassNames = (classes: any[]) => {
+const getClassNames = (classes: CharacterClassRecord[]) => {
   if (!classes || classes.length === 0) return '未选职业';
   
   const names = classes.map(c => {
@@ -120,7 +129,10 @@ const toggleSelectAll = () => {
 // --- 🆕 批量导出逻辑 ---
 const handleBulkExport = async () => {
   const ids = Array.from(selectedIds.value);
-  if (ids.length === 0) return alert('请先选择要导出的角色');
+  if (ids.length === 0) {
+    feedback.showToast('请先选择要导出的角色', 'warning');
+    return;
+  }
 
   // 1. 请求用户选择目标文件夹
   const targetDir = await window.electronAPI.selectDirectory();
@@ -142,12 +154,12 @@ const handleBulkExport = async () => {
         await window.electronAPI.exportCharacter(targetDir, filename, json);
         successCount++;
       } catch (e) {
-        console.error(`导出 ${char.profile.name} 失败`, e);
+        console.error(`[sidebar-left] Failed to export ${char.profile.name}`, e);
       }
     }
   }
 
-  alert(`✅ 已成功导出 ${successCount} 个角色到:\n${targetDir}`);
+  feedback.showToast(`已成功导出 ${successCount} 个角色`, 'success');
   isBulkMode.value = false; // 导出完成后退出批量模式
 };
 
@@ -157,7 +169,14 @@ const handleBulkDelete = async () => {
   const count = ids.length;
   if (count === 0) return;
 
-  if (!confirm(`⚠️ 危险操作：确定要永久删除这 ${count} 个角色吗？\n此操作无法撤销！`)) {
+  const confirmed = await feedback.confirm({
+    title: '批量删除角色',
+    message: `确定要永久删除这 ${count} 个角色吗？\n此操作无法撤销。`,
+    tone: 'danger',
+    confirmText: '确认删除',
+  });
+
+  if (!confirmed) {
     return;
   }
 
@@ -177,9 +196,15 @@ const handleBulkDelete = async () => {
 };
 
 // 🗑️ 删除角色
-const handleDelete = (e: Event, id: string, name: string) => {
+const handleDelete = async (e: Event, id: string, name: string) => {
   e.stopPropagation(); // 防止触发 handleSelect
-  if (confirm(`⚠️ 确定要永久删除角色 "${name}" 吗？此操作无法撤销。`)) {
+  const confirmed = await feedback.confirm({
+    title: '删除角色',
+    message: `确定要永久删除角色 "${name}" 吗？\n此操作无法撤销。`,
+    tone: 'danger',
+    confirmText: '确认删除',
+  });
+  if (confirmed) {
     charStore.deleteCharacter(id);
     // 如果删除的是当前选中的角色，清空当前视图
     if (activeStore.character?.id === id) {
@@ -203,20 +228,13 @@ const handleCreate = async () => {
   window.focus();
 };
 
-// 切换角色
-const handleSelect = (id: string) => {
-  activeStore.loadCharacter(id);
-};
-
-
-
 // 📤 导出当前选中的角色 (增强版)
 const handleExport = () => {
   // 1. 获取当前正在查看的角色对象
   const charInMemory = activeStore.character;
   
   if (!charInMemory) {
-    alert('⚠️ 导出失败：当前没有选中的角色');
+    feedback.showToast('当前没有选中的角色', 'warning');
     return;
   }
 
@@ -226,18 +244,16 @@ const handleExport = () => {
   // 3. 🚨 兜底逻辑：如果 LocalStorage 里找不到 (比如刚刚新建还未保存，或缓存丢失)
   // 我们直接把当前内存里的 activeStore.character 导出
   if (!result) {
-    console.warn('LocalStorage 中未找到该角色，正在使用内存数据导出...');
-    
     try {
       const json = JSON.stringify(charInMemory, null, 2);
       // 生成文件名
-      const safeName = charInMemory.profile.name.replace(/[^a-z0-9\u4e00-\u9fa5\._\-]/gi, '_');
+      const safeName = charInMemory.profile.name.replace(/[^a-z0-9\u4e00-\u9fa5._-]/gi, '_');
       const filename = `${safeName}_Lv${charInMemory.profile.level}.json`;
       
       result = { json, filename };
     } catch (e) {
-      console.error(e);
-      alert('❌ 导出发生严重错误，请查看控制台');
+      console.error('[sidebar-left] Failed to prepare in-memory export payload', e);
+      feedback.showToast('导出发生严重错误，请查看控制台', 'danger');
       return;
     }
   }
@@ -257,7 +273,7 @@ const handleExport = () => {
     
     URL.revokeObjectURL(url); // 释放内存
   } else {
-    alert('❌ 导出失败：无法生成数据');
+    feedback.showToast('导出失败：无法生成数据', 'danger');
   }
 };
 
@@ -302,7 +318,7 @@ const onFileSelected = async (e: Event) => {
         }
       }
     } catch (err) {
-      console.error(`❌ 文件 "${file.name}" 导入失败:`, err);
+      console.error(`[sidebar-left] Failed to import file ${file.name}`, err);
       // 这里不中断循环，继续处理下一个文件
     }
   }
@@ -317,10 +333,6 @@ const onFileSelected = async (e: Event) => {
     // ⚠️ 核心修复：强制窗口重新获取焦点，防止输入框卡死
     // 放在循环结束后执行一次即可
     window.focus();
-    
-    console.log(`✅ 批量操作完成：成功导入 ${successCount} 个角色`);
-  } else if (successCount === 0) {
-    console.warn('⚠️ 没有角色被成功导入');
   }
 
   // 3. 清空 input，允许下次选择相同文件
@@ -333,10 +345,10 @@ const handleSave = async () => {
   
   try {
     await charStore.saveCharacterData(activeStore.character);
-    alert('✅ 保存成功！'); // 简单提示
+    feedback.showToast('保存成功', 'success');
   } catch (e) {
-    console.error(e);
-    alert('❌ 保存失败，请检查控制台。');
+    console.error('[sidebar-left] Failed to save active character', e);
+    feedback.showToast('保存失败，请检查控制台', 'danger');
   }
 };
 

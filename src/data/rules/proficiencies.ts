@@ -1,7 +1,7 @@
 // src/data/rules/proficiencies.ts
 
 // ✅ 1. 引入类型定义，确保 Key 值与系统核心定义完全一致
-import type { ArmorType, WeaponCategory } from '../../types/Library';
+import type { ArmorType } from '../../types/Library';
 
 // 定义 UI 选项接口
 interface ProficiencyOption<T extends string> {

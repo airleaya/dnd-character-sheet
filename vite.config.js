@@ -3,6 +3,24 @@ import vue from '@vitejs/plugin-vue'
 import electron from 'vite-plugin-electron'
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/vue')) return 'vendor-vue'
+          if (id.includes('node_modules/vuedraggable')) return 'vendor-dnd'
+          if (id.includes('/src/data/spells/')) return 'spell-data'
+          if (id.includes('/src/data/libraries/')) return 'library-data'
+          if (id.includes('/src/components/sheet/spellbook/')) return 'spellbook-ui'
+          if (id.includes('/src/components/sheet/library/')) return 'library-ui'
+        },
+      },
+    },
+  },
+  test: {
+    environment: 'node',
+    include: ['tests/**/*.test.ts'],
+  },
   plugins: [
     vue(),
     electron([

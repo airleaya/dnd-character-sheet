@@ -35,6 +35,13 @@ export interface CharacterProficiencies {
   languages: string[];// e.g. ['common']
 }
 
+// 专精项结构：技能和工具必须来自已有熟练项，自定义项用于记录规则外来源。
+export interface CharacterExpertise {
+  skills: string[];
+  tools: string[];
+  custom: string[];
+}
+
 
 // 扩充 CharacterProfile (增加玩家名、阵营、背景)
 export interface CharacterProfile {
@@ -43,7 +50,7 @@ export interface CharacterProfile {
   race: string;
   classes: CharacterClassRecord[];
   background?: string; // <--- 新增
-  alignment?: number;  // <--- 新增
+  alignment?: string | number;  // <--- 新增
   level: number;
   xp: number;
   avatarUrl?: string; 
@@ -71,8 +78,16 @@ export interface CharacterBio {
   treasureNotes: string;   // 财宝笔记
 }
 
+export interface HitDieEntry {
+  current: number;
+  max: number;
+}
+
+export type HitDiceMap = Record<string, HitDieEntry>;
+
 // 3. 战斗相关数据
 export interface CombatStats {
+
   hpCurrent: number;
   hpMax: number;
   tempHp: number;
@@ -84,9 +99,10 @@ export interface CombatStats {
   // draconic: 13 + 敏捷
   acMode?: 'default' | 'barbarian' | 'monk' | 'draconic';
 
-  // 用基于字典的多类型生命骰
+    // 用基于字典的多类型生命骰
   // Key 为骰子类型 (例如 'd6', 'd8')
-  hitDice: Record<string, { current: number; max: number }>;
+  hitDice: HitDiceMap;
+
   
   // 速度 (手动修改)
   speed: number; 
@@ -127,11 +143,12 @@ export interface CharacterSpells {
   };
 
   // 3. 邪术师契约魔法 (Pact Magic) - 如果需要单独处理
-  pactSlots?: {
+    pactSlots: {
     level: number;
     current: number;
     max: number;
   };
+
 
   // 4. 法术列表 (只存 ID)
   known: string[];    // 已知法术 (法师的法术书，或术士的已知表)
@@ -139,7 +156,8 @@ export interface CharacterSpells {
 
   // 法术来源映射表，Key 为法术 ID，Value 为职业/来源标识 (如 'wizard', 'warlock')
   // 采用可选字典结构，兼顾旧存档兼容性并为兼职系统预留扩展口
-  spellSources?: Record<string, string>;
+    spellSources: Record<string, string>;
+
 }
 
 
@@ -158,7 +176,8 @@ export interface Character {
   
   equippedIds: string[]; // 已装备物品 ID
 
-  wallet:Wallet
+    wallet: Wallet;
+
 
   // 【技能熟练项】
   // 二元选项：Key 存在且为 true 即为熟练，否则为不熟练
@@ -172,8 +191,16 @@ export interface Character {
   /** 用户手动隐藏的攻击条目 ID 列表 (用于 ActionsPanel) */
   hiddenAttacks: string[];
 
+  /** Positive-selection model for the attack panel. Order matches the visible panel order. */
+  selectedAttackKeys: string[];
+
+  /** Indicates whether legacy attack visibility has been migrated into selectedAttackKeys. */
+  attackSelectionInitialized: boolean;
+
   proficiencies: CharacterProficiencies;
 
+  expertise: CharacterExpertise;
+  
   // 法术书状态
   spells: CharacterSpells;
 

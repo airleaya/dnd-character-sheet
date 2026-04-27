@@ -1,268 +1,560 @@
-import { computed } from 'vue';
+import { computed, watchEffect } from 'vue';
 import type { Ref } from 'vue';
-import type { Character } from '../../types/Character';
-import type { InventoryItem } from '../../types/Item';
+import type { Character, HitDiceMap } from '../../types/Character';
+import type { ArmorData, InventoryItem, WeaponData } from '../../types/Item';
 import type { AbilityKey } from '../../types/Library';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { ATTR_MAP } from '../../data/rules/dndRules';
 
-// 注意：这里我们需要传入 proficiencyBonus 的引用，因为计算攻击命中时需要用到熟练加值
+export type AttackSourceType = 'unarmed' | 'weapon';
+export type AttackMode = 'base' | 'ranged' | 'thrown' | 'offhand' | 'versatile';
+export type HandMode = 'none' | 'one_hand' | 'two_hand' | 'offhand';
+export type AmmoDisplay = 'hidden' | 'tracked' | 'required_unknown';
+
+export interface AttackBonusBreakdown {
+  abilityModifier: number;
+  proficiencyBonus: number;
+  proficiencyApplied: boolean;
+  hitBonus: number;
+  damageBonus: number;
+  offhandDamagePenalty: boolean;
+}
+
+export interface RawAttackEntry {
+  rawKey: string;
+  legacyId: string;
+  sourceType: AttackSourceType;
+  sourceId: string;
+  sourceTemplateId?: string;
+  sourceFingerprint: string;
+  name: string;
+  abilityPath: AbilityKey;
+  attackMode: AttackMode;
+  handMode: HandMode;
+  hit: string;
+  damage: string;
+  bonusBreakdown: AttackBonusBreakdown;
+  range: string;
+  properties: string[];
+  needsAmmo: boolean;
+  ammoType?: string;
+  ammoCount: number | null;
+  specialText?: string;
+}
+
+export interface AttackCatalogEntry {
+  catalogKey: string;
+  name: string;
+  sourceType: AttackSourceType;
+  abilityPath: AbilityKey;
+  attackMode: AttackMode;
+  handMode: HandMode;
+  hit: string;
+  damage: string;
+  bonusBreakdown: AttackBonusBreakdown;
+  range: string;
+  properties: string[];
+  needsAmmo: boolean;
+  ammoType?: string;
+  ammoCount: number | null;
+  ammoDisplay: AmmoDisplay;
+  specialText?: string;
+  rawKeys: string[];
+}
+
+const DEFAULT_MELEE_RANGE = '5 尺';
+
+const isArmorItem = (item: InventoryItem): item is InventoryItem & { data: ArmorData } => item.type === 'armor';
+const isWeaponItem = (item: InventoryItem): item is InventoryItem & { data: WeaponData } => item.type === 'weapon';
+const isAmmoConsumable = (item: InventoryItem, requiredType: string) =>
+  item.type === 'consumable' && 'ammoType' in item.data && item.data.ammoType === requiredType;
+
+const cloneHitDice = (hitDice: HitDiceMap): HitDiceMap =>
+  Object.fromEntries(Object.entries(hitDice).map(([type, entry]) => [type, { ...entry }]));
+
+const abilityModifier = (score: number) => Math.floor((score - 10) / 2);
+
+const formatSigned = (value: number) => (value >= 0 ? `+${value}` : `${value}`);
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'unknown';
+
+const formatDamage = (damageDice: string, modifier: number, damageType: string) => {
+  const modifierText = modifier > 0 ? `+${modifier}` : modifier < 0 ? `${modifier}` : '';
+  return `${damageDice} ${modifierText} ${damageType}`.replace(/\s+/g, ' ').trim();
+};
+
+const resolveDamageTypeLabel = (rawType: string) => {
+  const typeKey = rawType.toLowerCase();
+  const damageDef =
+    typeKey in DAMAGE_TYPES ? DAMAGE_TYPES[typeKey as keyof typeof DAMAGE_TYPES] : undefined;
+  return damageDef ? damageDef.label : rawType;
+};
+
+const createWeaponFingerprint = (item: InventoryItem & { data: WeaponData }) => {
+  const props = [...(item.data.properties || [])].sort().join(',');
+  const parts = [
+    item.templateId || 'custom',
+    item.name,
+    item.data.damage,
+    item.data.damageType,
+    item.data.range || DEFAULT_MELEE_RANGE,
+    props,
+    item.data.requiredAmmoType || 'none',
+    item.data.specialEffect || '',
+  ];
+  return `tpl:${parts.map(slugify).join(':')}`;
+};
+
+const createCatalogKey = (entry: RawAttackEntry) =>
+  `${entry.sourceType}:${entry.sourceFingerprint}:${entry.attackMode}:${entry.abilityPath}:${entry.handMode}`;
+
+const resolveAmmoDisplay = (entry: RawAttackEntry): AmmoDisplay => {
+  if (!entry.needsAmmo) return 'hidden';
+  if (entry.ammoType) return 'tracked';
+  return 'required_unknown';
+};
+
+const uniqueKeys = (values: string[]) => Array.from(new Set(values));
+
 export function useCombatLogic(
   character: Ref<Character | null>,
   save: () => void,
   proficiencyBonus: Ref<number>
 ) {
-  // ==========================================
-  // 🧠 Getters (计算属性)
-  // ==========================================
-
-  // --- 先攻 (Initiative) ---
   const initiative = computed(() => {
-    if (!character.value) return "+0";
-    const dexMod = Math.floor((character.value.stats.dex - 10) / 2);
-    return dexMod >= 0 ? `+${dexMod}` : `${dexMod}`;
+    if (!character.value) return '+0';
+    return formatSigned(abilityModifier(character.value.stats.dex));
   });
 
-  // --- 护甲等级 (Armor Class) ---
   const armorClass = computed(() => {
     if (!character.value) return 10;
     const char = character.value;
     const combat = char.combat;
-    
-    // 1. 计算敏捷调整值
-    const dexMod = Math.floor((char.stats.dex - 10) / 2);
+    const dexMod = abilityModifier(char.stats.dex);
 
-    // 2. 获取已装备物品
     const equippedItems = char.equippedIds
       .map(id => char.inventory.find(i => i.instanceId === id))
-      .filter(i => i !== undefined) as InventoryItem[];
+      .filter((item): item is InventoryItem => item !== undefined);
+    const equippedArmor = equippedItems.filter(isArmorItem);
 
-    // 3. 分离主甲和盾牌
-    const mainArmor = equippedItems.find(i => {
-      const d = i.data as any;
-      return i.type === 'armor' && d.armorType !== 'shield';
-    });
-    const shields = equippedItems.filter(i => {
-      const d = i.data as any;
-      return i.type === 'armor' && d.armorType === 'shield';
-    });
+    const mainArmor = equippedArmor.find(i => i.data.armorType !== 'shield');
+    const shields = equippedArmor.filter(i => i.data.armorType === 'shield');
 
-    // 4. 计算基础 AC
     let finalAC = 10 + dexMod;
 
     if (mainArmor) {
-      const d = mainArmor.data as any;
-      const base = d.ac || 10;
-      switch (d.armorType) {
-        case 'heavy':  finalAC = base; break;
-        case 'medium': finalAC = base + Math.min(dexMod, 2); break;
-        case 'light':  finalAC = base + dexMod; break;
-        default:       finalAC = base + dexMod;
+      const armorData = mainArmor.data;
+      const base = armorData.ac || 10;
+      switch (armorData.armorType) {
+        case 'heavy':
+          finalAC = base;
+          break;
+        case 'medium':
+          finalAC = base + Math.min(dexMod, 2);
+          break;
+        case 'light':
+          finalAC = base + dexMod;
+          break;
+        default:
+          finalAC = base + dexMod;
+          break;
       }
     } else {
       const mode = combat.acMode || 'default';
       switch (mode) {
         case 'barbarian':
-          const conMod = Math.floor((char.stats.con - 10) / 2);
-          finalAC = 10 + dexMod + conMod;
+          finalAC = 10 + dexMod + abilityModifier(char.stats.con);
           break;
         case 'monk':
-          const wisMod = Math.floor((char.stats.wis - 10) / 2);
-          finalAC = 10 + dexMod + wisMod;
+          finalAC = 10 + dexMod + abilityModifier(char.stats.wis);
           break;
         case 'draconic':
           finalAC = 13 + dexMod;
           break;
-        case 'default':
         default:
           finalAC = 10 + dexMod;
           break;
       }
     }
 
-    // 5. 盾牌加值处理
     if (shields.length > 0) {
-      const shieldBonus = (shields[0].data as any).ac || 2;
+      const shieldBonus = shields[0]?.data.ac || 2;
       if (!mainArmor && combat.acMode === 'monk') {
-         // 武僧持盾失效回退
-         finalAC = 10 + dexMod + shieldBonus;
+        finalAC = 10 + dexMod + shieldBonus;
       } else {
-         finalAC += shieldBonus;
+        finalAC += shieldBonus;
       }
     }
+
     return finalAC;
   });
 
-  // --- 护甲穿戴熟练检查 ---
   const isWearingNonProficientArmor = computed(() => {
     if (!character.value) return false;
     const char = character.value;
-    
-    const equippedArmor = char.inventory.filter(i => 
-      char.equippedIds.includes(i.instanceId) && i.type === 'armor'
+
+    const equippedArmor = char.inventory.filter(
+      (item): item is InventoryItem & { data: ArmorData } =>
+        char.equippedIds.includes(item.instanceId) && isArmorItem(item)
     );
 
-    for (const item of equippedArmor) {
-      const data = item.data as any;
-      const type = data.armorType;
-      if (type && !char.proficiencies.armor.includes(type)) {
-        return true;
-      }
-    }
-    return false;
+    return equippedArmor.some(item => {
+      const type = item.data.armorType;
+      return Boolean(type && !char.proficiencies.armor.includes(type));
+    });
   });
 
-  // --- 攻击面板计算 (核心) ---
-  const attacks = computed(() => {
+  const rawAttacks = computed<RawAttackEntry[]>(() => {
     if (!character.value) return [];
+
     const char = character.value;
-    const hiddenIds = char.hiddenAttacks || []; 
-    
-    const strMod = Math.floor((char.stats.str - 10) / 2);
-    const dexMod = Math.floor((char.stats.dex - 10) / 2);
     const pb = proficiencyBonus.value;
+    const strMod = abilityModifier(char.stats.str);
+    const dexMod = abilityModifier(char.stats.dex);
+    const activeModes = char.activeAttackModes.filter(k => k !== 'str' && k !== 'dex') as AbilityKey[];
 
-    const activeModes = (char.activeAttackModes || [])
-      .filter(k => k !== 'str' && k !== 'dex') as AbilityKey[];
+    const attackList: RawAttackEntry[] = [];
 
-    const attackList: any[] = [];
+    const pushAttack = (entry: RawAttackEntry) => {
+      attackList.push(entry);
+    };
 
-    // A. 徒手打击
-    const unarmedHit = strMod + pb;
-    const unarmedDmg = 1 + strMod;
-    attackList.push({
-      id: 'unarmed',
-      baseId: 'unarmed',
-      name: '👊 徒手打击',
-      hit: unarmedHit >= 0 ? `+${unarmedHit}` : `${unarmedHit}`,
-      damage: `${unarmedDmg} (钝击)`,
-      range: '5 尺',
-      properties: [],
-      isHidden: hiddenIds.includes('unarmed'),
-      needsAmmo: false,
-      ammoCount: null
-    });
+    const buildUnarmedEntry = (abilityPath: AbilityKey) => {
+      const modifier = abilityModifier(char.stats[abilityPath]);
+      const rawKey = abilityPath === 'str' ? 'unarmed' : `unarmed_${abilityPath}`;
+      const attrLabel = ATTR_MAP[abilityPath] || abilityPath;
+      const name = abilityPath === 'str' ? '👊 徒手攻击' : `👊 徒手攻击 (${attrLabel})`;
 
-    activeModes.forEach(attr => {
-      const mod = Math.floor((char.stats[attr] - 10) / 2);
-      const hit = mod + pb;
-      const dmg = 1 + mod;
-      const attrLabel = ATTR_MAP[attr] || attr;
-      
-      attackList.push({
-        id: `unarmed_${attr}`,
-        baseId: 'unarmed',
-        name: `👊 徒手打击 (${attrLabel})`,
-        hit: hit >= 0 ? `+${hit}` : `${hit}`,
-        damage: `${dmg} (钝击)`,
-        range: '5 尺',
+      pushAttack({
+        rawKey,
+        legacyId: rawKey,
+        sourceType: 'unarmed',
+        sourceId: 'unarmed',
+        sourceFingerprint: 'unarmed',
+        name,
+        abilityPath,
+        attackMode: 'base',
+        handMode: 'none',
+        hit: formatSigned(modifier + pb),
+        damage: `${1 + modifier} (钝击)`,
+        bonusBreakdown: {
+          abilityModifier: modifier,
+          proficiencyBonus: pb,
+          proficiencyApplied: true,
+          hitBonus: modifier + pb,
+          damageBonus: modifier,
+          offhandDamagePenalty: false,
+        },
+        range: DEFAULT_MELEE_RANGE,
         properties: [],
-        isHidden: hiddenIds.includes(`unarmed_${attr}`),
         needsAmmo: false,
-        ammoCount: null
+        ammoCount: null,
       });
-    });
+    };
 
-    // B. 武器逻辑
+    buildUnarmedEntry('str');
+    activeModes.forEach(buildUnarmedEntry);
+
     char.inventory.forEach(item => {
-      if (item.type !== 'weapon') return;
-      const data = item.data as any;
-      if (!data) return;
-      const props = data.properties || [];
+      if (!isWeaponItem(item)) return;
 
-      // 熟练度判定
+      const data = item.data;
+      const properties = data.properties || [];
+      const sourceFingerprint = createWeaponFingerprint(item);
+
       let isProficient = false;
-      const cat = data.category || '';
-      if (cat.startsWith('simple') && char.proficiencies.weapons.includes('simple')) isProficient = true;
-      else if (cat.startsWith('martial') && char.proficiencies.weapons.includes('martial')) isProficient = true;
+      const category = data.category || '';
+      if (category.startsWith('simple') && char.proficiencies.weapons.includes('simple')) {
+        isProficient = true;
+      } else if (category.startsWith('martial') && char.proficiencies.weapons.includes('martial')) {
+        isProficient = true;
+      }
       if (!isProficient && item.templateId && char.proficiencies.weapons.includes(item.templateId)) {
-         isProficient = true;
+        isProficient = true;
       }
 
-      // 弹药逻辑
-      const needsAmmo = props.includes('ammunition');
+      const needsAmmo = properties.includes('ammunition');
       const requiredType = data.requiredAmmoType;
       let ammoCount = 0;
-      let ammoItemIds: string[] = [];
       if (needsAmmo && requiredType) {
-        const matchingStacks = char.inventory.filter(i => i.type === 'consumable' && (i.data as any)?.ammoType === requiredType);
+        const matchingStacks = char.inventory.filter(i => isAmmoConsumable(i, requiredType));
         matchingStacks.forEach(stack => {
-          ammoCount += (stack.quantity || 0);
-          ammoItemIds.push(stack.instanceId);
+          ammoCount += stack.quantity || 0;
         });
       }
 
-      const isFinesse = props.includes('finesse');
-      const isVersatile = props.includes('versatile');
-      const isThrown = props.includes('thrown');
-      const isTwoHanded = props.includes('two_handed');
-      const isRanged = data.category?.includes('ranged') || (data.range && data.range.includes('/') && !isThrown);
+      const damageTypeLabel = resolveDamageTypeLabel(data.damageType || 'none');
+      const isFinesse = properties.includes('finesse');
+      const isVersatile = properties.includes('versatile');
+      const isThrown = properties.includes('thrown');
+      const isTwoHanded = properties.includes('two_handed');
+      const isRanged =
+        data.category?.includes('ranged') || (Boolean(data.range?.includes('/')) && !isThrown);
 
-      const addEntry = (modVal: number, suffix: string, label: string, damageDice: string, isOffhand = false) => {
-        const derivedId = `${item.instanceId}${suffix}`;
-        const hitVal = modVal + (isProficient ? pb : 0);
-        const hitStr = hitVal >= 0 ? `+${hitVal}` : `${hitVal}`;
+      const addWeaponEntry = (
+        abilityPath: AbilityKey,
+        {
+          suffix,
+          nameLabel,
+          damageDice,
+          attackMode,
+          handMode,
+          offhand = false,
+          rangeOverride,
+        }: {
+          suffix: string;
+          nameLabel: string;
+          damageDice: string;
+          attackMode: AttackMode;
+          handMode: HandMode;
+          offhand?: boolean;
+          rangeOverride?: string;
+        }
+      ) => {
+        const modifier = abilityModifier(char.stats[abilityPath]);
+        const hitValue = modifier + (isProficient ? pb : 0);
+        const damageModifier = offhand && modifier > 0 ? 0 : modifier;
+        const rawKey = `${item.instanceId}${suffix}`;
 
-        let dmgModVal = modVal;
-        if (isOffhand && modVal > 0) dmgModVal = 0;
-        const dmgModStr = dmgModVal > 0 ? `+${dmgModVal}` : (dmgModVal < 0 ? `${dmgModVal}` : '');
-
-        const rawType = data.damageType || 'none';
-        const typeKey = rawType.toLowerCase();
-        const dictItem = DAMAGE_TYPES ? (DAMAGE_TYPES as any)[typeKey] : undefined;
-        const typeLabel = dictItem ? dictItem.label : typeKey;
-
-        attackList.push({
-          id: derivedId,
-          baseId: item.instanceId,
-          name: `${item.name}${label}`,
-          hit: hitStr,
-          damage: `${damageDice} ${dmgModStr} ${typeLabel}`,
-          range: data.range || '5 尺',
-          properties: props,
-          isHidden: hiddenIds.includes(derivedId),
-          needsAmmo: needsAmmo,
+        pushAttack({
+          rawKey,
+          legacyId: rawKey,
+          sourceType: 'weapon',
+          sourceId: item.instanceId,
+          sourceTemplateId: item.templateId,
+          sourceFingerprint,
+          name: `${item.name}${nameLabel}`,
+          abilityPath,
+          attackMode,
+          handMode,
+          hit: formatSigned(hitValue),
+          damage: formatDamage(damageDice, damageModifier, damageTypeLabel),
+          bonusBreakdown: {
+            abilityModifier: modifier,
+            proficiencyBonus: pb,
+            proficiencyApplied: isProficient,
+            hitBonus: hitValue,
+            damageBonus: damageModifier,
+            offhandDamagePenalty: offhand && modifier > 0,
+          },
+          range: rangeOverride || data.range || DEFAULT_MELEE_RANGE,
+          properties,
+          needsAmmo,
           ammoType: requiredType,
-          ammoCount: needsAmmo ? ammoCount : null,
-          availableAmmoIds: ammoItemIds
+          ammoCount: needsAmmo && requiredType ? ammoCount : null,
+          specialText: data.specialEffect,
         });
       };
 
       if (isRanged) {
-        addEntry(dexMod, '_ranged', '', data.damage);
+        addWeaponEntry('dex', {
+          suffix: '_ranged',
+          nameLabel: '',
+          damageDice: data.damage,
+          attackMode: 'ranged',
+          handMode: isTwoHanded ? 'two_hand' : 'one_hand',
+        });
       } else {
-        addEntry(strMod, '_str', ' (力量)', data.damage);
-        if (isFinesse) addEntry(dexMod, '_dex', ' (敏捷)', data.damage);
-        if (isVersatile && data.versatileDamage) addEntry(strMod, '_2h', ' (双手)', data.versatileDamage);
-        if (isThrown) {
-           addEntry(strMod, '_thrown_str', ' (投掷/力)', data.range || '20/60');
-           if (isFinesse) addEntry(dexMod, '_thrown_dex', ' (投掷/敏)', data.range || '20/60');
+        addWeaponEntry('str', {
+          suffix: '_str',
+          nameLabel: ' (力量)',
+          damageDice: data.damage,
+          attackMode: 'base',
+          handMode: 'one_hand',
+        });
+
+        if (isFinesse) {
+          addWeaponEntry('dex', {
+            suffix: '_dex',
+            nameLabel: ' (敏捷)',
+            damageDice: data.damage,
+            attackMode: 'base',
+            handMode: 'one_hand',
+          });
         }
+
+        if (isVersatile && data.versatileDamage) {
+          addWeaponEntry('str', {
+            suffix: '_2h',
+            nameLabel: ' (双手)',
+            damageDice: data.versatileDamage,
+            attackMode: 'versatile',
+            handMode: 'two_hand',
+          });
+        }
+
+        if (isThrown) {
+          addWeaponEntry('str', {
+            suffix: '_thrown_str',
+            nameLabel: ' (投掷/力量)',
+            damageDice: data.damage,
+            attackMode: 'thrown',
+            handMode: 'one_hand',
+            rangeOverride: data.range || '20/60',
+          });
+
+          if (isFinesse) {
+            addWeaponEntry('dex', {
+              suffix: '_thrown_dex',
+              nameLabel: ' (投掷/敏捷)',
+              damageDice: data.damage,
+              attackMode: 'thrown',
+              handMode: 'one_hand',
+              rangeOverride: data.range || '20/60',
+            });
+          }
+        }
+
         if (!isTwoHanded) {
-           const bestStatIsDex = dexMod > strMod && isFinesse;
-           const offhandMod = bestStatIsDex ? dexMod : strMod;
-           addEntry(offhandMod, '_off', ' (副手)', data.damage, true);
+          const bestStatIsDex = dexMod > strMod && isFinesse;
+          addWeaponEntry(bestStatIsDex ? 'dex' : 'str', {
+            suffix: '_off',
+            nameLabel: ' (副手)',
+            damageDice: data.damage,
+            attackMode: 'offhand',
+            handMode: 'offhand',
+            offhand: true,
+          });
         }
       }
 
       activeModes.forEach(attr => {
-        const mod = Math.floor((char.stats[attr] - 10) / 2);
         const attrLabel = ATTR_MAP[attr] || attr;
-        addEntry(mod, `_${attr}`, ` (${attrLabel})`, data.damage);
+        addWeaponEntry(attr, {
+          suffix: `_${attr}`,
+          nameLabel: ` (${attrLabel})`,
+          damageDice: data.damage,
+          attackMode: 'base',
+          handMode: 'one_hand',
+        });
+
         if (isVersatile && data.versatileDamage) {
-          addEntry(mod, `_${attr}_2h`, ` (${attrLabel}/双手)`, data.versatileDamage);
+          addWeaponEntry(attr, {
+            suffix: `_${attr}_2h`,
+            nameLabel: ` (${attrLabel}/双手)`,
+            damageDice: data.versatileDamage,
+            attackMode: 'versatile',
+            handMode: 'two_hand',
+          });
         }
+
         if (isThrown) {
-          addEntry(mod, `_${attr}_thrown`, ` (${attrLabel}/投掷)`, data.range || '20/60');
+          addWeaponEntry(attr, {
+            suffix: `_${attr}_thrown`,
+            nameLabel: ` (${attrLabel}/投掷)`,
+            damageDice: data.damage,
+            attackMode: 'thrown',
+            handMode: 'one_hand',
+            rangeOverride: data.range || '20/60',
+          });
         }
       });
     });
+
     return attackList;
   });
 
-  // ==========================================
-  // 🛠️ Actions (操作方法)
-  // ==========================================
+  const attackCatalog = computed<AttackCatalogEntry[]>(() => {
+    const grouped = new Map<string, AttackCatalogEntry>();
+
+    rawAttacks.value.forEach(entry => {
+      const catalogKey = createCatalogKey(entry);
+      const existing = grouped.get(catalogKey);
+      if (existing) {
+        existing.rawKeys.push(entry.rawKey);
+        return;
+      }
+
+      grouped.set(catalogKey, {
+        catalogKey,
+        name: entry.name,
+        sourceType: entry.sourceType,
+        abilityPath: entry.abilityPath,
+        attackMode: entry.attackMode,
+        handMode: entry.handMode,
+        hit: entry.hit,
+        damage: entry.damage,
+        bonusBreakdown: entry.bonusBreakdown,
+        range: entry.range,
+        properties: entry.properties,
+        needsAmmo: entry.needsAmmo,
+        ammoType: entry.ammoType,
+        ammoCount: entry.ammoCount,
+        ammoDisplay: resolveAmmoDisplay(entry),
+        specialText: entry.specialText,
+        rawKeys: [entry.rawKey],
+      });
+    });
+
+    return Array.from(grouped.values());
+  });
+
+  const attackCatalogMap = computed(() => {
+    const map = new Map<string, AttackCatalogEntry>();
+    attackCatalog.value.forEach(entry => map.set(entry.catalogKey, entry));
+    return map;
+  });
+
+  const selectedAttackKeys = computed(() => character.value?.selectedAttackKeys ?? []);
+
+  const selectedAttacks = computed<AttackCatalogEntry[]>(() =>
+    selectedAttackKeys.value
+      .map(key => attackCatalogMap.value.get(key))
+      .filter((entry): entry is AttackCatalogEntry => entry !== undefined)
+  );
+
+  const availableAttacks = computed<AttackCatalogEntry[]>(() => {
+    const selected = new Set(selectedAttackKeys.value);
+    return attackCatalog.value.filter(entry => !selected.has(entry.catalogKey));
+  });
+
+  watchEffect(() => {
+    const char = character.value;
+    if (!char || char.attackSelectionInitialized) return;
+
+    const hiddenIds = new Set(char.hiddenAttacks);
+    const visibleCatalogKeys = uniqueKeys(
+      rawAttacks.value
+        .filter(entry => !hiddenIds.has(entry.legacyId))
+        .map(entry => createCatalogKey(entry))
+    );
+
+    char.selectedAttackKeys = visibleCatalogKeys;
+    char.attackSelectionInitialized = true;
+    save();
+  });
+
+  const selectAttack = (catalogKey: string) => {
+    if (!character.value) return;
+    if (!attackCatalogMap.value.has(catalogKey)) return;
+    if (character.value.selectedAttackKeys.includes(catalogKey)) return;
+
+    character.value.selectedAttackKeys = [...character.value.selectedAttackKeys, catalogKey];
+    save();
+  };
+
+  const removeSelectedAttack = (catalogKey: string) => {
+    if (!character.value) return;
+    if (!character.value.selectedAttackKeys.includes(catalogKey)) return;
+
+    character.value.selectedAttackKeys = character.value.selectedAttackKeys.filter(
+      key => key !== catalogKey
+    );
+    save();
+  };
+
+  const toggleAttackSelection = (catalogKey: string) => {
+    if (!character.value) return;
+    if (character.value.selectedAttackKeys.includes(catalogKey)) {
+      removeSelectedAttack(catalogKey);
+      return;
+    }
+    selectAttack(catalogKey);
+  };
 
   const applyDamage = (amount: number) => {
     if (!character.value || amount <= 0) return;
@@ -278,6 +570,7 @@ export function useCombatLogic(
         combat.tempHp = 0;
       }
     }
+
     if (remainingDmg > 0) {
       combat.hpCurrent -= remainingDmg;
       if (combat.hpCurrent < 0) combat.hpCurrent = 0;
@@ -313,41 +606,56 @@ export function useCombatLogic(
     save();
   };
 
-  const updateCombatStat = (field: keyof Character['combat'], value: any) => {
+  const changeHitDiceCurrent = (type: string, delta: number) => {
     if (!character.value) return;
-    (character.value.combat as any)[field] = value;
+
+    const currentHitDice = character.value.combat.hitDice;
+    const entry = currentHitDice[type];
+    if (!entry) return;
+
+    const nextCurrent = Math.min(Math.max(entry.current + delta, 0), entry.max);
+    if (nextCurrent === entry.current) return;
+
+    const nextHitDice = cloneHitDice(currentHitDice);
+    nextHitDice[type].current = nextCurrent;
+    character.value.combat.hitDice = nextHitDice;
+    save();
+  };
+
+  const setHitDiceMax = (type: string, newMax: number) => {
+    if (!character.value) return;
+
+    const sanitizedMax = Math.max(0, newMax);
+    const currentHitDice = character.value.combat.hitDice;
+    const nextHitDice = cloneHitDice(currentHitDice);
+    const existingEntry = nextHitDice[type] ?? { current: 0, max: 0 };
+
+    nextHitDice[type] = {
+      current: Math.min(existingEntry.current, sanitizedMax),
+      max: sanitizedMax,
+    };
+
+    character.value.combat.hitDice = nextHitDice;
+    save();
+  };
+
+  const updateCombatStat = <K extends keyof Character['combat']>(
+    field: K,
+    value: Character['combat'][K]
+  ) => {
+    if (!character.value) return;
+    character.value.combat[field] = value;
     save();
   };
 
   const toggleInspiration = (index: number) => {
     if (!character.value) return;
-    if (!character.value.combat.inspiration) {
-      character.value.combat.inspiration = [false, false, false];
-    }
     character.value.combat.inspiration[index] = !character.value.combat.inspiration[index];
-    save();
-  };
-
-  const toggleAttackVisibility = (derivedId: string) => {
-    if (!character.value) return;
-    if (!character.value.hiddenAttacks) {
-      character.value.hiddenAttacks = [];
-    }
-    const list = character.value.hiddenAttacks;
-    const index = list.indexOf(derivedId);
-    if (index > -1) {
-      list.splice(index, 1);
-    } else {
-      list.push(derivedId);
-    }
     save();
   };
 
   const toggleAttackMode = (attr: AbilityKey) => {
     if (!character.value) return;
-    if (!character.value.activeAttackModes) {
-      character.value.activeAttackModes = [];
-    }
     const list = character.value.activeAttackModes;
     const idx = list.indexOf(attr);
     if (idx > -1) {
@@ -362,15 +670,24 @@ export function useCombatLogic(
     initiative,
     armorClass,
     isWearingNonProficientArmor,
-    attacks,
+    rawAttacks,
+    attackCatalog,
+    availableAttacks,
+    selectedAttackKeys,
+    selectedAttacks,
+    attacks: selectedAttacks,
     applyDamage,
     applyHeal,
     fullHeal,
     setTempHp,
+    changeHitDiceCurrent,
+    setHitDiceMax,
     updateCombatStat,
     resetDeathSaves,
     toggleInspiration,
-    toggleAttackVisibility,
-    toggleAttackMode
+    selectAttack,
+    removeSelectedAttack,
+    toggleAttackSelection,
+    toggleAttackMode,
   };
 }

@@ -3,13 +3,18 @@ import type { Directive } from 'vue';
 import { useTooltipStore } from '../stores/tooltip';
 import { WEAPON_PROPERTIES } from '../data/rules/weaponProperties';
 
-// 简单的字典映射类型
-const DICTIONARIES: Record<string, any> = {
-  ...WEAPON_PROPERTIES
-  // 未来可以在这里解构合并更多的字典，比如 法术字典、状态字典
+type TooltipDictionaryEntry = {
+  label: string;
+  description: string;
 };
 
-export const vTooltip: Directive = {
+type TooltipBindingValue = string | { title?: string; content?: string };
+
+const DICTIONARIES: Record<string, TooltipDictionaryEntry> = {
+  ...WEAPON_PROPERTIES
+};
+
+export const vTooltip: Directive<HTMLElement, TooltipBindingValue> = {
   mounted(el, binding) {
     const store = useTooltipStore();
 
@@ -31,9 +36,9 @@ export const vTooltip: Directive = {
         content = key;
       }
       // 3. 也支持直接传入对象 v-tooltip="{title:'标题', content:'内容'}"
-      else if (typeof key === 'object') {
-        title = key.title;
-        content = key.content;
+            else if (key && typeof key === 'object') {
+        title = key.title ?? '';
+        content = key.content ?? '';
       }
 
       if (content || title) {

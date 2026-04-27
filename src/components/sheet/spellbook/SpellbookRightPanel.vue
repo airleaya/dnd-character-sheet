@@ -2,8 +2,10 @@
 import { ref, inject } from 'vue';
 import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 
 const store = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 
 // 接收父组件提供的 Toast 方法
 const showToast = inject<((msg: string, type?: 'success' | 'warning') => void)>('showToast');
@@ -11,15 +13,25 @@ const showToast = inject<((msg: string, type?: 'success' | 'warning') => void)>(
 // ==========================================
 // 1. 拖拽与学习逻辑
 // ==========================================
-const dropList = ref([]);
+type DroppedSpell = {
+  id?: string;
+  spellId?: string;
+  name?: string;
+};
+
+type DragChangeEvent = {
+  added?: {
+    element: DroppedSpell;
+  };
+};
+
+const dropList = ref<DroppedSpell[]>([]);
 // 新增：决定拖入法术时标记为何种来源
 const learningSource = ref<'primary' | 'secondary'>('primary');
 
-const onMove = (evt: any) => {
-  return true;
-};
+const onMove = () => true;
 
-const handleDrop = (evt: any) => {
+const handleDrop = (evt: DragChangeEvent) => {
   if (evt.added) {
     const element = evt.added.element;
     const spellId = element.spellId;
@@ -49,8 +61,16 @@ const isPrepared = (id: string) => store.character?.spells.prepared.includes(id)
 
 const togglePrep = (id: string) => store.togglePreparedSpell(id);
 
-const forget = (id: string) => {
-  if (confirm('确定要遗忘这个法术吗？')) store.forgetSpell(id);
+const forget = async (id: string) => {
+  const confirmed = await feedback.confirm({
+    title: '遗忘法术',
+    message: '确定要遗忘这个法术吗？',
+    tone: 'warning',
+    confirmText: '确认遗忘',
+  });
+  if (confirmed) {
+    store.forgetSpell(id);
+  }
 };
 
 // 获取法术来源文本用于UI展示

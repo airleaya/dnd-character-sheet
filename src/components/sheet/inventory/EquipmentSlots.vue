@@ -183,6 +183,8 @@ const playBounceAnimation = (item: InventoryItem) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
     margin-bottom: 0.8rem;
   }
 
@@ -225,7 +227,8 @@ const playBounceAnimation = (item: InventoryItem) => {
     box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     cursor: grab;
     transition: all 0.2s;
-    min-width: 180px;
+    flex: 1 1 220px;
+    min-width: min(220px, 100%);
     position: relative;
 
     &:hover {
@@ -246,6 +249,7 @@ const playBounceAnimation = (item: InventoryItem) => {
 
     .card-content {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -253,7 +257,7 @@ const playBounceAnimation = (item: InventoryItem) => {
 
     .name-row {
       display: flex; align-items: center; gap: 4px;
-      .name { font-weight: 600; font-size: 0.9rem; color: #2c3e50; }
+      .name { font-weight: 600; font-size: 0.9rem; color: #2c3e50; overflow-wrap: anywhere; }
       .warn-icon { font-size: 0.8rem; cursor: help; }
     }
 

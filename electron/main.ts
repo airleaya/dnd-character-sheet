@@ -1,33 +1,92 @@
-import { app, BrowserWindow, ipcMain,dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import type { Character } from '../src/types/Character'
+import type { IpcFailureResult, IpcResult, IpcVoidResult } from '../src/types/electron'
 
-// 🚨 删除之前添加的这两行 url 相关的代码
-// import { fileURLToPath } from 'url'
-// const __filename = fileURLToPath(import.meta.url)
-// const __dirname = path.dirname(__filename)
+const toErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  return String(error);
+};
 
-// 直接使用原生的 process.cwd() 和 __dirname，因为我们现在是 CommonJS 模式
-const SAVE_DIR = path.join(process.cwd(), 'saves');
-// 定义窗口配置文件路径
-const CONFIG_PATH = path.join(process.cwd(), 'window-config.json');
+const createErrorResult = (error: unknown): IpcFailureResult => ({
+  success: false,
+  error: toErrorMessage(error),
+});
 
+const MAIN_LOG_PREFIX = '[electron/main]';
 
-if (!fs.existsSync(SAVE_DIR)) {
-  fs.mkdirSync(SAVE_DIR, { recursive: true });
-}
+const getLegacySavesDir = (): string => path.join(process.cwd(), 'saves');
+const getLegacyWindowConfigPath = (): string => path.join(process.cwd(), 'window-config.json');
+const getUserDataRoot = (): string => app.getPath('userData');
+const getSavesDir = (): string => path.join(getUserDataRoot(), 'saves');
+const getWindowConfigPath = (): string => path.join(getUserDataRoot(), 'window-config.json');
+
+const ensureDirectoryExists = (dirPath: string): void => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+};
+
+const directoryHasJsonFiles = (dirPath: string): boolean => {
+  if (!fs.existsSync(dirPath)) return false;
+  return fs.readdirSync(dirPath).some(file => file.endsWith('.json'));
+};
+
+const copyDirectoryContents = (sourceDir: string, targetDir: string): void => {
+  if (!fs.existsSync(sourceDir)) return;
+
+  ensureDirectoryExists(targetDir);
+  const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const targetPath = path.join(targetDir, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirectoryContents(sourcePath, targetPath);
+      continue;
+    }
+
+    if (!fs.existsSync(targetPath)) {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+  }
+};
+
+const migrateLegacyStorageIfNeeded = (): void => {
+  const savesDir = getSavesDir();
+  const legacySavesDir = getLegacySavesDir();
+  const windowConfigPath = getWindowConfigPath();
+  const legacyWindowConfigPath = getLegacyWindowConfigPath();
+
+  ensureDirectoryExists(savesDir);
+
+  if (!directoryHasJsonFiles(savesDir) && directoryHasJsonFiles(legacySavesDir)) {
+    copyDirectoryContents(legacySavesDir, savesDir);
+  }
+
+  if (!fs.existsSync(windowConfigPath) && fs.existsSync(legacyWindowConfigPath)) {
+    ensureDirectoryExists(path.dirname(windowConfigPath));
+    fs.copyFileSync(legacyWindowConfigPath, windowConfigPath);
+  }
+};
 
 let win: BrowserWindow | null = null
 let isReadyToQuit = false;
 
 // 读取窗口状态辅助函数
 const loadWindowState = () => {
+  const candidatePaths = [getWindowConfigPath(), getLegacyWindowConfigPath()];
+
   try {
-    if (fs.existsSync(CONFIG_PATH)) {
-      return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+    for (const configPath of candidatePaths) {
+      if (fs.existsSync(configPath)) {
+        return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      }
     }
   } catch (e) {
-    console.error('Failed to load window state:', e);
+    console.error(`${MAIN_LOG_PREFIX} Failed to load window state`, e);
   }
   return null; 
 };
@@ -36,10 +95,12 @@ const loadWindowState = () => {
 const saveWindowState = () => {
   if (!win) return;
   try {
-    const bounds = win.getBounds(); // 包含 x, y, width, height
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(bounds));
+    const bounds = win.getBounds();
+    const configPath = getWindowConfigPath();
+    ensureDirectoryExists(path.dirname(configPath));
+    fs.writeFileSync(configPath, JSON.stringify(bounds));
   } catch (e) {
-    console.error('Failed to save window state:', e);
+    console.error(`${MAIN_LOG_PREFIX} Failed to save window state`, e);
   }
 };
 
@@ -90,42 +151,61 @@ const createWindow = () => {
 }
 
 app.whenReady().then(() => {
+  migrateLegacyStorageIfNeeded();
   createWindow()
 
   // --- IPC 监听保持不变 ---
-  ipcMain.handle('save-character', async (_event, filename, content) => {
+  ipcMain.handle('save-character', async (_event, filename: string, content: string): Promise<IpcVoidResult> => {
     try {
-      const filePath = path.join(SAVE_DIR, filename);
+      const savesDir = getSavesDir();
+      ensureDirectoryExists(savesDir);
+      const filePath = path.join(savesDir, filename);
       fs.writeFileSync(filePath, content, 'utf-8');
-      console.log('✅ Saved:', filePath);
-      return { success: true };
+      return { success: true, data: null };
     } catch (e) {
-      console.error('Save Error:', e);
-      return { success: false, error: e };
+      console.error(`${MAIN_LOG_PREFIX} Save failed`, e);
+      return createErrorResult(e);
     }
   });
 
-  ipcMain.handle('load-all-characters', async () => {
+  ipcMain.handle('load-all-characters', async (): Promise<IpcResult<Character[]>> => {
     try {
-      const files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith('.json'));
-      const characters = files.map(file => {
-        try {
-          const content = fs.readFileSync(path.join(SAVE_DIR, file), 'utf-8');
-          return JSON.parse(content);
-        } catch (err) { return null; }
-      }).filter(Boolean);
+      const preferredSavesDir = getSavesDir();
+      const fallbackSavesDir = getLegacySavesDir();
+      const activeSavesDir = directoryHasJsonFiles(preferredSavesDir)
+        ? preferredSavesDir
+        : fallbackSavesDir;
+
+      ensureDirectoryExists(preferredSavesDir);
+      const files = fs.existsSync(activeSavesDir)
+        ? fs.readdirSync(activeSavesDir).filter(f => f.endsWith('.json'))
+        : [];
+
+      const characters = files
+        .map(file => {
+          try {
+            const content = fs.readFileSync(path.join(activeSavesDir, file), 'utf-8');
+            return JSON.parse(content) as Character;
+          } catch {
+            return null;
+          }
+        })
+        .filter((character): character is Character => character !== null);
+
       return { success: true, data: characters };
     } catch (e) {
-      return { success: false, error: e };
+      return createErrorResult(e);
     }
   });
 
-  ipcMain.handle('delete-character', async (_event, filename) => {
+  ipcMain.handle('delete-character', async (_event, filename: string): Promise<IpcVoidResult> => {
     try {
-      const filePath = path.join(SAVE_DIR, filename);
+      const filePath = path.join(getSavesDir(), filename);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return { success: true };
-    } catch (e) { return { success: false, error: e }; }
+      return { success: true, data: null };
+    } catch (e) {
+      return createErrorResult(e);
+    }
   });
 
   // -------------------------------------------------------------
@@ -145,15 +225,14 @@ app.whenReady().then(() => {
   });
 
   // 2. 导出文件到指定目录 (允许写入任意路径)
-  ipcMain.handle('export-character', async (_event, dirPath, filename, content) => {
+  ipcMain.handle('export-character', async (_event, dirPath: string, filename: string, content: string): Promise<IpcVoidResult> => {
     try {
       const fullPath = path.join(dirPath, filename);
       fs.writeFileSync(fullPath, content, 'utf-8');
-      console.log('✅ Exported to:', fullPath);
-      return { success: true };
+      return { success: true, data: null };
     } catch (e) {
-      console.error('Export Error:', e);
-      return { success: false, error: e };
+      console.error(`${MAIN_LOG_PREFIX} Export failed`, e);
+      return createErrorResult(e);
     }
   });
   //-----------------------------------------

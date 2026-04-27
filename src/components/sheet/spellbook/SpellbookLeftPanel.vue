@@ -4,7 +4,10 @@ import { useActiveSheetStore } from '../../../stores/activeSheet';
 import type { AbilityKey } from '../../../types/Library';
 import { CLASS_DICTIONARY } from '../../../data/rules/classes';
 
-const emit = defineEmits(['close']);
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
+
 const store = useActiveSheetStore();
 
 // 格式化职业和角色名称的计算属性
@@ -93,7 +96,7 @@ const updatePactLevel = (delta: number) => {
           <p class="subtitle">{{ characterName || '未命名' }}</p>
         </template>
       </div>
-      <button class="btn-close" @click="$emit('close')" title="关闭 (Esc)">✖</button>
+      <button class="btn-close" @click="emit('close')" title="关闭 (Esc)">✖</button>
     </div>
 
     <div class="section-block">
@@ -143,8 +146,8 @@ const updatePactLevel = (delta: number) => {
         </div>
     </div>
     
-    </* 邪术师相关设定为整理好，暂时不展示。 */>
-    <div class="section-block warlock-block" v-if=false>
+        <!-- 邪术师相关设定尚未整理好，暂时不展示。 -->
+    <div class="section-block warlock-block" v-if="false">
       <h3 class="section-title pact-title">契约魔法 Pact Magic (邪术师)</h3>
       <div class="slot-rows">
         <div class="slot-row">

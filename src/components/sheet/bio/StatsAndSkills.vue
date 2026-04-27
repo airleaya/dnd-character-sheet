@@ -2,11 +2,10 @@
 import { computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import EditableText from '../../common/EditableText.vue';
-import type { Character } from '../../../types/Character';
-import { useCharacterStore } from '../../../stores/characterStore';
-import type { AbilityScores } from '../../../types/Character';
+import type { AbilityScores, Character } from '../../../types/Character';
 
 const store = useActiveSheetStore();
+const character = computed(() => store.character);
 
 const attributes: { key: keyof Character['stats']; label: string }[] = [
   { key: 'str', label: '力量' },
@@ -23,54 +22,55 @@ const getMod = (val: number) => {
 };
 
 // 【新增】计算豁免检定加值
-const getSaveMod = (attrKey: string) => {
-  // 0. 安全检查：如果 character还没加载，直接返回 0
-  if (!store.character) return '+0';
+const getSaveMod = (key: keyof AbilityScores) => {
+  if (!character.value) return '+0';
 
-  // 1. 【修复核心报错】
-  // 不再使用 typeof store.character... 
-  // 而是直接告诉 TS："这个 key 是 AbilityScores 接口的键之一"
-  const key = attrKey as keyof AbilityScores;
-
-  // 2. 获取属性调整值 (baseMod)
-  // 假设你有一个 getMod 函数处理属性值到调整值的转换
-  const val = store.character.stats[key]; 
-  const baseMod = Math.floor((val - 10) / 2); // 或者调用你的 getMod(val)
-
-  // 3. 获取熟练度 (布尔值)
-  // ?. 防止 undefined, || false 确保得到布尔值
-  const isProf = store.character.savingThrows?.[key] || false;
-
-  // 4. 计算总值 (三元运算符处理布尔值)
+  const val = character.value.stats[key];
+  const baseMod = Math.floor((val - 10) / 2);
+  const isProf = character.value.savingThrows[key];
   const total = baseMod + (isProf ? store.proficiencyBonus : 0);
 
   return total >= 0 ? `+${total}` : `${total}`;
 };
 
 const adjustStat = (key: keyof Character['stats'], delta: number) => {
-  if (!store.character) return;
-  const currentVal = store.character.stats[key];
+  if (!character.value) return;
+  const currentVal = character.value.stats[key];
+
   const newVal = Math.max(1, currentVal + delta);
   store.updateStat(key, newVal);
 };
 
-const groupedSkills = computed(() => {
-  // @ts-ignore
-  if (!store.skills) return {};
-  const groups: Record<string, any[]> = {};
-  
-  // @ts-ignore
-  store.skills.forEach((skill: any) => {
-    const attrKey = skill.attr.toLowerCase();
-    if (!groups[attrKey]) groups[attrKey] = [];
-    groups[attrKey].push(skill);
+type SkillView = {
+  key: string;
+  label: string;
+  attr: string;
+  mod: string;
+  rawMod: number;
+  profLevel: boolean;
+  expertise: boolean;
+  jackOfAllTrades: boolean;
+};
+
+type GroupedSkills = Partial<Record<keyof AbilityScores, SkillView[]>>;
+
+const groupedSkills = computed<GroupedSkills>(() => {
+  const groups: GroupedSkills = {};
+
+  store.skills.forEach((skill) => {
+    const attrKey = skill.attr.toLowerCase() as keyof AbilityScores;
+    const targetGroup = groups[attrKey] ?? [];
+    targetGroup.push(skill);
+    groups[attrKey] = targetGroup;
   });
+
   return groups;
 });
 </script>
 
 <template>
-  <div class="stats-grid-container" v-if="store.character">
+    <div class="stats-grid-container" v-if="character">
+
     
     <div 
       v-for="attr in attributes" 
@@ -78,14 +78,16 @@ const groupedSkills = computed(() => {
       class="attr-card"
     >
       <div class="card-header">
-        <div class="attr-mod">{{ getMod(store.character.stats[attr.key]) }}</div>
+                <div class="attr-mod">{{ getMod(character.stats[attr.key]) }}</div>
+
         <div class="header-controls">
           <span class="attr-label">{{ attr.label }}</span>
           <div class="val-stepper">
             <button class="btn-step" @click="adjustStat(attr.key, -1)">-</button>
             <span class="attr-val-box">
               <EditableText 
-                 :model-value="store.character.stats[attr.key]"
+                                  :model-value="character.stats[attr.key]"
+
                  @update:model-value="v => store.updateStat(attr.key, Number(v))"
               />
             </span>
@@ -98,11 +100,13 @@ const groupedSkills = computed(() => {
         
         <div 
           class="saving-throw-row"
-          :class="{ 'proficient': store.character.savingThrows?.[attr.key] }"
+                    :class="{ 'proficient': character.savingThrows[attr.key] }"
+
           @click="store.toggleSavingThrow(attr.key)"
         >
           <div class="st-left">
-            <div class="prof-diamond" :class="{ filled: store.character.savingThrows?.[attr.key] }"></div>
+                        <div class="prof-diamond" :class="{ filled: character.savingThrows[attr.key] }"></div>
+
             <span class="st-name">豁免</span>
           </div>
           <div class="st-mod">
@@ -118,12 +122,14 @@ const groupedSkills = computed(() => {
           v-for="skill in groupedSkills[attr.key]" 
           :key="skill.key" 
           class="skill-row"
-          :class="{ 'proficient': skill.profLevel > 0 }"
+          :class="{ proficient: skill.profLevel, expertise: skill.expertise, jack: skill.jackOfAllTrades }"
           @click="store.toggleSkill(skill.key)"
         >
           <div class="skill-left">
-            <div class="prof-dot" :class="{ filled: skill.profLevel > 0 }"></div>
+            <div class="prof-dot" :class="{ filled: skill.profLevel, expertise: skill.expertise }"></div>
             <span class="skill-name">{{ skill.label }}</span>
+            <span v-if="skill.expertise" class="expertise-chip">专</span>
+            <span v-else-if="skill.jackOfAllTrades" class="jack-chip">万</span>
           </div>
           <div class="skill-mod">{{ skill.mod }}</div>
         </div>
@@ -239,11 +245,60 @@ const groupedSkills = computed(() => {
   &:last-child { border-bottom: none; }
   &:hover { background-color: #ecf0f1; }
   &.proficient { background-color: #e8f6f3; .skill-mod { font-weight: bold; color: #27ae60; } .skill-name { font-weight: 600; color: #2c3e50; } }
+  &.expertise {
+    background: #5b2a86;
+    border-left: 3px solid #f2c94c;
+    .skill-mod { color: #f2c94c; font-weight: 900; }
+    .skill-name { color: #f2c94c; font-weight: 800; }
+  }
 }
 .skill-left { display: flex; align-items: center; gap: 8px; }
 .skill-name { font-size: 0.85rem; color: #7f8c8d; }
 .skill-mod { font-size: 0.9rem; color: #95a5a6; font-family: monospace; }
-.prof-dot { width: 10px; height: 10px; border: 1px solid #bdc3c7; border-radius: 50%; &.filled { background-color: #2c3e50; border-color: #2c3e50; } }
+.prof-dot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #bdc3c7;
+  border-radius: 50%;
+
+  &.filled {
+    background-color: #2c3e50;
+    border-color: #2c3e50;
+  }
+
+  &.expertise {
+    background-color: #f2c94c;
+    border-color: transparent;
+    box-shadow: 0 0 0 3px rgba(242, 201, 76, 0.2);
+  }
+}
+
+.expertise-chip {
+  font-size: 0.64rem;
+  line-height: 1;
+  color: #fff0b8;
+  border: 1px solid #f2c94c;
+  background: #5b2a86;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-weight: 900;
+}
+
+.jack-chip {
+  min-width: 16px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a5a00;
+  background: #fff3cd;
+  border: 1px solid #d6a84f;
+  border-radius: 2px;
+  padding: 0 3px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
 
 .card-footer { background: #ecf0f1; border-top: 1px solid #dfe6e9; padding: 8px; .passive-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; color: #2c3e50; .val { background: white; padding: 1px 6px; border-radius: 4px; border: 1px solid #bdc3c7; } } }
 </style>

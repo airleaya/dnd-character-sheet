@@ -1,6 +1,7 @@
-import { contextBridge, ipcRenderer,webFrame } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
+import type { ElectronApi } from '../src/types/electron'
 
-contextBridge.exposeInMainWorld('electronAPI', {
+const electronAPI: ElectronApi = {
   saveCharacter: (filename: string, content: string) => ipcRenderer.invoke('save-character', filename, content),
   loadAllCharacters: () => ipcRenderer.invoke('load-all-characters'),
   deleteCharacter: (filename: string) => ipcRenderer.invoke('delete-character', filename),
@@ -12,4 +13,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   exportCharacter: (dirPath: string, filename: string, content: string) =>
     ipcRenderer.invoke('export-character', dirPath, filename, content),
-})
+}
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI)

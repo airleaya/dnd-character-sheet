@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForge } from '../../composables/useForge';
-import { getGlobalDragPayload } from '../../utils/inventoryDropUtils';
+import { getGlobalDragPayload, parseDragPayload } from '../../utils/inventoryDropUtils';
+
 
 const { handleDropData } = useForge();
 
@@ -9,7 +10,7 @@ const { handleDropData } = useForge();
 const isHovering = ref(false);
 
 // 1. 强行接管进入事件
-const onDragEnter = (e: DragEvent) => {
+const onDragEnter = () => {
   isHovering.value = true;
 };
 
@@ -24,7 +25,7 @@ const onDragOver = (e: DragEvent) => {
   isHovering.value = true;
 };
 
-const onDragLeave = (e: DragEvent) => {
+const onDragLeave = () => {
   isHovering.value = false;
 };
 
@@ -38,10 +39,14 @@ const onDrop = (e: DragEvent) => {
   // 优先信赖全局变量 (Electron环境下最稳)
   const data = globalData || nativeData;
 
-  if (data) {
-    handleDropData(data);
-  }
+    if (!data) return;
+
+  const payload = parseDragPayload(data);
+  if (!payload) return;
+
+  handleDropData(JSON.stringify(payload));
 };
+
 </script>
 
 <template>

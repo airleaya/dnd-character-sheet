@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ALIGNMENT_DICT } from '../../../data/rules/alignment';
 
 const props = defineProps<{
-  modelValue?: number; // 接收1-9的数字，或undefined
+  modelValue?: string | number; // 接收1-9的数字、字符串数字，或 undefined
 }>();
 
 const emit = defineEmits(['update:modelValue']);
@@ -13,10 +13,11 @@ const pickerRef = ref<HTMLElement | null>(null);
 
 // 计算当前应显示的文本
 const currentText = computed(() => {
-  if (!props.modelValue || !ALIGNMENT_DICT[props.modelValue]) {
+  const alignmentId = Number(props.modelValue);
+  if (!alignmentId || !ALIGNMENT_DICT[alignmentId]) {
     return '选择阵营';
   }
-  return ALIGNMENT_DICT[props.modelValue];
+  return ALIGNMENT_DICT[alignmentId];
 });
 
 // 处理用户选择
@@ -63,7 +64,7 @@ onUnmounted(() => {
             v-for="(label, id) in ALIGNMENT_DICT" 
             :key="id"
             class="grid-item"
-            :class="{ active: props.modelValue === Number(id) }"
+            :class="{ active: Number(props.modelValue) === Number(id) }"
             @click="selectAlignment(Number(id))"
           >
             {{ label }}

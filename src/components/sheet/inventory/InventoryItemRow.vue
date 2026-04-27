@@ -2,17 +2,35 @@
 import { ref, computed, inject } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import draggable from 'vuedraggable';
-import { calcRealIndex,setupDragData } from '../../../utils/inventoryDropUtils';
+import {
+  calcRealIndex,
+  isInventoryInstanceDragElement,
+  isLibraryCloneDragElement,
+  setupDragData,
+} from '../../../utils/inventoryDropUtils';
+import { formatContainerCapacity } from '../../../utils/containerCapacity';
+import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
+
+import type { InventoryItem } from '../../../types/Item';
+
+type InventoryTooltipApi = {
+  onEnter: (item: InventoryItem, event: MouseEvent) => void;
+  onLeave: () => void;
+};
+
+
 
 const props = defineProps<{
-  item: any; // 当前物品对象
+  item: InventoryItem;
 }>();
 
 const store = useActiveSheetStore();
 const isExpanded = ref(false);
 
-const tooltipApi = inject('inventoryTooltip', {
-  onEnter: (item: any, e: MouseEvent) => {},
+const ignoresContentWeight = (item: InventoryItem) => 'ignoreContentWeight' in item.data && item.data.ignoreContentWeight === true;
+
+const tooltipApi = inject<InventoryTooltipApi>('inventoryTooltip', {
+  onEnter: () => {},
   onLeave: () => {}
 });
 
@@ -20,39 +38,59 @@ const tooltipApi = inject('inventoryTooltip', {
 // 1. 堆叠与代理逻辑 (Proxy Logic)
 // ---------------------------------------------
 
-// 定义白名单：除了 consumable 类型外，还有哪些 ID 允许堆叠/调整数量
-const STACKABLE_IDS = ['dart', 'rations', 'torch', 'oil'];
-
-// 判断当前物品是否“可堆叠” (控制 +/- 按钮是否显示)
-const isStackable = computed(() => {
-  if (props.item.type === 'consumable') return true;
-  if (props.item.data?.isAmmunition) return true;
-  if (STACKABLE_IDS.includes(props.item.templateId)) return true;
-  return false;
-});
-
 // 获取容器内容
 const childItems = computed({
   get: () => store.getContainerContents(props.item.instanceId),
-  set: (val) => { /* draggable 写入 */ }
+  set: () => { /* draggable 写入 */ }
 });
 
-// 🔥 核心逻辑：智能箭袋代理
-// 如果是箭袋 (ignoreContentWeight=true)，且里面只有 1 种物品，则“穿透”控制内部物品
+const hangingItems = computed({
+  get: () => {
+    const item = store.getContainerHangingItem(props.item.instanceId);
+    return item ? [item] : [];
+  },
+  set: () => { /* draggable 写入由 change 事件处理 */ }
+});
+
+const hasHangingSlot = computed(() => props.item.type === 'container' && props.item.templateId === 'backpack');
+const containerContentItems = computed(() => [...childItems.value, ...hangingItems.value]);
+
+// 判断当前物品是否“可堆叠” (控制 +/- 按钮是否显示)
+const isStackable = computed(() => props.item.type !== 'container' || containerContentItems.value.length === 0);
+
+const formatPreviewItem = (item: InventoryItem): string =>
+  item.quantity > 1 ? `${item.name} x${item.quantity}` : item.name;
+
+const containerPreviewLabel = computed(() => {
+  const children = childItems.value;
+  const hanging = hangingItems.value;
+
+  if (children.length === 0 && hanging.length === 0) {
+    return '空';
+  }
+
+  const parts = children.map(formatPreviewItem);
+  if (hanging.length > 0) {
+    parts.push(`悬挂 ${formatPreviewItem(hanging[0])}`);
+  }
+
+  return parts.join('，');
+});
+
+const containerCapacityLabel = computed(() => formatContainerCapacity(props.item));
+
+// 核心逻辑：通用容器代理
+// 如果任意容器内只有 1 种内容物，则“穿透”控制该内容物数量
 const proxyTargetItem = computed(() => {
-  const data = props.item.data || {};
-  
-  // 必须是“忽略重量”的容器 (特征：箭袋/次元袋)
-  if (props.item.type === 'container' && data.ignoreContentWeight) {
-    const children = childItems.value;
-    
-    // 情况 A: 只有一个种类的物品 -> 代理它
-    if (children.length === 1) {
-      return children[0];
-    }
-    // 情况 B: 空或混合 -> 不代理，返回 null
+  if (props.item.type !== 'container') {
     return null;
   }
+
+  const contents = containerContentItems.value;
+  if (contents.length === 1) {
+    return contents[0];
+  }
+
   return null;
 });
 
@@ -81,33 +119,54 @@ const handleQuantityChange = (delta: number) => {
 // 2. 重量与交互逻辑
 // ---------------------------------------------
 
-const containerTotalWeight = computed(() => {
-  const base = props.item.weight * props.item.quantity;
-  const data = props.item.data || {};
-  if (data.ignoreContentWeight) {
-    return base.toFixed(1);
+const containerSelfWeight = computed(() => props.item.weight * props.item.quantity);
+
+const containerContentWeight = computed(() => {
+  if (ignoresContentWeight(props.item)) {
+    return 0;
   }
-  const contentWeight = childItems.value.reduce((sum: number, i: any) => sum + (i.weight * i.quantity), 0);
-  return (base + contentWeight).toFixed(1);
+
+  return containerContentItems.value.reduce((sum: number, item: InventoryItem) => sum + store.getItemWeight(item), 0);
 });
 
-const onDropIntoContainer = (evt: any) => {
+const containerWeightLabel = computed(() => {
+  return `${containerSelfWeight.value.toFixed(1)} + ${containerContentWeight.value.toFixed(1)}`;
+});
+
+const onDropIntoContainer = (evt: InventoryDragChangeEvent) => {
   const currentChildren = store.getContainerContents(props.item.instanceId);
   const insertIndex = calcRealIndex(currentChildren, evt, store.character!.inventory);
 
   if (evt.added) {
     const newItem = evt.added.element;
-    if (!newItem.instanceId) {
+    if (isLibraryCloneDragElement(newItem)) {
       store.addItem(newItem.libraryId, insertIndex, props.item.instanceId);
-    } else {
+    } else if (isInventoryInstanceDragElement(newItem)) {
       store.moveItemToContainer(newItem.instanceId, props.item.instanceId, insertIndex);
     }
   } else if (evt.moved) {
-    store.reorderItem(evt.moved.element.instanceId, insertIndex);
+    const movedItem = evt.moved.element;
+    if (isInventoryInstanceDragElement(movedItem)) {
+      store.reorderItem(movedItem.instanceId, insertIndex);
+    }
   }
 };
 
-const onDragStart = (e: DragEvent, item: any) => {
+const onDropIntoHangingSlot = (evt: InventoryDragChangeEvent) => {
+  if (!hasHangingSlot.value || hangingItems.value.length > 0) return;
+
+  if (evt.added) {
+    const newItem = evt.added.element;
+    if (isLibraryCloneDragElement(newItem)) {
+      store.addItem(newItem.libraryId, undefined, props.item.instanceId, 'hanging');
+    } else if (isInventoryInstanceDragElement(newItem)) {
+      store.moveItemToContainerSlot(newItem.instanceId, props.item.instanceId, 'hanging');
+    }
+  }
+};
+
+
+const onDragStart = (e: DragEvent, item: InventoryItem) => {
   setupDragData(e, 'inventory-item', item.instanceId);
 };
 
@@ -144,14 +203,18 @@ const handleDelete = () => {
         <span class="name-text">{{ item.name }}</span>
         
         <span v-if="item.type === 'container'" class="container-badge">
-          <span v-if="childItems.length === 0">(空)</span>
-          <span v-else-if="proxyTargetItem">({{ proxyTargetItem.name }})</span>
-          <span v-else>(内含 {{ childItems.length }} 项)</span>
+          <span class="container-capacity">容量：{{ containerCapacityLabel }}</span>
+          <span>({{ containerPreviewLabel }})</span>
         </span>
       </div>
 
       <div class="col-weight">
-        <span v-if="item.type === 'container'">{{ containerTotalWeight }} lb</span>
+        <span
+          v-if="item.type === 'container'"
+          :title="`自重 ${containerSelfWeight.toFixed(1)} lb + 内容 ${containerContentWeight.toFixed(1)} lb`"
+        >
+          {{ containerWeightLabel }} lb
+        </span>
         <span v-else>{{ (item.weight * item.quantity).toFixed(2) }} lb</span>
       </div>
 
@@ -203,6 +266,35 @@ const handleDelete = () => {
           </div>
         </template>
       </draggable>
+
+      <div v-if="hasHangingSlot" class="hanging-slot-shell">
+        <div class="hanging-slot-label">
+          <span class="hanging-dot"></span>
+          <span>悬挂栏</span>
+          <small>额外 1 格</small>
+        </div>
+        <draggable
+          v-model="hangingItems"
+          :group="{ name: 'inventory', put: ['library', 'inventory', 'equipment'] }"
+          item-key="instanceId"
+          class="hanging-drag-area"
+          @change="onDropIntoHangingSlot"
+          ghost-class="ghost"
+        >
+          <template #item="{ element }">
+            <InventoryItemRow
+              :item="element"
+              @dragstart="onDragStart($event, element)"
+            />
+          </template>
+
+          <template #header>
+            <div v-if="hangingItems.length === 0" class="hanging-empty-slot">
+              <span>挂一件物品</span>
+            </div>
+          </template>
+        </draggable>
+      </div>
     </div>
 
   </div>
@@ -268,14 +360,39 @@ const handleDelete = () => {
   display: flex; 
   align-items: center; 
   overflow: hidden;
+  min-width: 0;
   padding-right: 8px;
 
-  .name-text { font-weight: 500; font-size: 0.9rem; }
-  .container-badge { font-size: 0.75rem; color: #868e96; margin-left: 6px; font-style: italic; }
+  .name-text {
+    flex-shrink: 0;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+
+  .container-badge {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    color: #868e96;
+    margin-left: 6px;
+    font-style: italic;
+  }
+
+  .container-capacity {
+    flex-shrink: 0;
+    color: #5f6c7b;
+    font-style: normal;
+    font-weight: 600;
+  }
 }
 
 .col-weight { 
-  width: 70px; 
+  width: 112px; 
   text-align: right; 
   font-family: monospace; 
   color: #868e96; 
@@ -356,6 +473,59 @@ const handleDelete = () => {
 }
 
 .nested-drag-area { min-height: 10px; }
+
+.hanging-slot-shell {
+  margin: 6px 8px 8px 30px;
+  border: 1px dashed #b8c2cc;
+  border-left: 3px solid #8e9aaf;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(142, 154, 175, 0.08), rgba(255,255,255,0.9));
+  overflow: hidden;
+}
+
+.hanging-slot-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  color: #5f6c7b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(142, 154, 175, 0.08);
+
+  small {
+    margin-left: auto;
+    color: #9aa5b1;
+    font-weight: 500;
+  }
+}
+
+.hanging-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8e9aaf;
+  box-shadow: 0 0 0 3px rgba(142, 154, 175, 0.14);
+}
+
+.hanging-drag-area { min-height: 30px; }
+
+.hanging-empty-slot {
+  margin: 6px;
+  padding: 8px;
+  color: #98a2ad;
+  font-size: 0.78rem;
+  text-align: center;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.65);
+}
+
+.hanging-badge {
+  margin-left: 5px;
+  color: #5f6c7b;
+  font-style: normal;
+  font-weight: 600;
+}
 
 .empty-slot {
   padding: 12px;

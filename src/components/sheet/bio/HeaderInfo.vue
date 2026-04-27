@@ -3,25 +3,86 @@ import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import EditableText from '../../common/EditableText.vue';
 import ProficiencySettingsModal from './../modals/ProficiencySettingsModal.vue';
+import ExpertiseSettingsModal from './../modals/ExpertiseSettingsModal.vue';
 import BioPanel from './../bio/BioPanel.vue'; 
 import ClassSelector from './../bio/ClassSelector.vue';
 import XpProgressBar from './XpProgressBar.vue';
 import AlignmentPicker from './AlignmentPicker.vue';
+import type { CharacterProfile } from '../../../types/Character';
+import { ATTR_MAP } from '../../../data/rules/dndRules';
+import { useTooltipStore, type TooltipData } from '../../../stores/tooltip';
 
 const store = useActiveSheetStore();
+const tooltipStore = useTooltipStore();
 
 const character = computed(() => store.character);
 // const xpInput = ref<number | ''>(''); 已移动至XpProgressBar中
 const showProfModal = ref(false);
+const showExpertiseModal = ref(false);
 const showBioModal = ref(false); // 控制 Bio Modal 显隐
-
-const fmt = (num: number | undefined) => num?.toLocaleString() ?? '0';
 
 // const handleAddXp 已移动至XpProgressBar中
 // const handleResetXp 已移动至XpProgressBar中
 
-const update = (field: string, val: any) => {
-  store.updateProfile(field as any, val);
+const update = <K extends keyof CharacterProfile>(field: K, val: CharacterProfile[K]) => {
+  store.updateProfile(field, val);
+};
+
+const emptyText = '暂无';
+
+const proficientSkillLabels = computed(() => store.skills
+  .filter((skill) => skill.profLevel)
+  .map((skill) => skill.expertise ? `${skill.label}（专精）` : skill.label));
+
+const proficientSaveLabels = computed(() => {
+  if (!character.value) return [];
+
+  return Object.entries(character.value.savingThrows)
+    .filter(([, isProficient]) => isProficient)
+    .map(([key]) => `${ATTR_MAP[key] ?? key}豁免`);
+});
+
+const formatToolProficiency = (tool: string) =>
+  store.isToolExpertise(tool) ? `${tool}（专精）` : tool;
+
+const buildProficiencyTooltip = (): TooltipData => ({
+  title: '熟练项',
+  sections: [
+    { label: '技能', items: proficientSkillLabels.value.length ? proficientSkillLabels.value : [emptyText] },
+    { label: '豁免', items: proficientSaveLabels.value.length ? proficientSaveLabels.value : [emptyText] },
+    { label: '护甲', items: character.value?.proficiencies.armor.length ? character.value.proficiencies.armor : [emptyText] },
+    { label: '武器', items: character.value?.proficiencies.weapons.length ? character.value.proficiencies.weapons : [emptyText] },
+    {
+      label: '工具',
+      items: character.value?.proficiencies.tools.length
+        ? character.value.proficiencies.tools.map(formatToolProficiency)
+        : [emptyText]
+    },
+    { label: '语言', items: character.value?.proficiencies.languages.length ? character.value.proficiencies.languages : [emptyText] },
+  ],
+});
+
+const buildExpertiseTooltip = (): TooltipData => {
+  if (!store.expertiseSummary.length) {
+    return { title: '专精', content: '暂无专精' };
+  }
+
+  return {
+    title: '专精',
+    sections: [
+      { label: '技能', items: store.skillExpertiseLabels.length ? store.skillExpertiseLabels : [emptyText] },
+      { label: '工具', items: store.toolExpertiseLabels.length ? store.toolExpertiseLabels : [emptyText] },
+      { label: '自定义', items: store.customExpertiseLabels.length ? store.customExpertiseLabels : [emptyText] },
+    ],
+  };
+};
+
+const showTooltip = (data: TooltipData, event: MouseEvent) => {
+  tooltipStore.show(data, event.clientX, event.clientY);
+};
+
+const moveTooltip = (event: MouseEvent) => {
+  tooltipStore.updatePosition(event.clientX, event.clientY);
 };
 </script>
 
@@ -102,7 +163,23 @@ const update = (field: string, val: any) => {
         📝 设定
       </button>
 
-      <button class="btn-tool btn-settings" @click="showProfModal = true">
+      <button
+        class="btn-tool btn-expertise"
+        @click="showExpertiseModal = true"
+        @mouseenter="showTooltip(buildExpertiseTooltip(), $event)"
+        @mousemove="moveTooltip"
+        @mouseleave="tooltipStore.hide()"
+      >
+        ✦ 专精
+      </button>
+
+      <button
+        class="btn-tool btn-settings"
+        @click="showProfModal = true"
+        @mouseenter="showTooltip(buildProficiencyTooltip(), $event)"
+        @mousemove="moveTooltip"
+        @mouseleave="tooltipStore.hide()"
+      >
         ⚙️ 熟练
       </button>
       
@@ -114,6 +191,11 @@ const update = (field: string, val: any) => {
     <ProficiencySettingsModal 
       :is-open="showProfModal" 
       @close="showProfModal = false" 
+    />
+
+    <ExpertiseSettingsModal
+      :is-open="showExpertiseModal"
+      @close="showExpertiseModal = false"
     />
     
     <BioPanel 
@@ -242,6 +324,7 @@ const update = (field: string, val: any) => {
     /* 调整配色，使其和谐且不刺眼 */
     .btn-bio { background: #e67e22; color: white; }
     .btn-settings { background: #ecf0f1; color: #2c3e50; }
+    .btn-expertise { background: #8e44ad; color: white; }
     .btn-spellbook { background: #9b59b6; color: white; }
   }
 }

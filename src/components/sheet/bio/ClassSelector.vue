@@ -22,6 +22,10 @@ onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside);
 });
 
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside);
+});
+
 const classesData = computed(() => store.character?.profile.classes || []);
 
 // 判断是否允许添加兼职的计算属性
@@ -31,8 +35,8 @@ const canAddMulticlass = computed(() => {
   // 1. 必须已经选择了主职
   if (classesData.value.length === 0 || !classesData.value[0]?.classId) return false;
   
-  // 2. 维持原有的最多双职业限制
-  if (classesData.value.length >= 2) return false;
+  // 2. 职业数量不能超过角色总等级
+  if (classesData.value.length >= store.character.profile.level) return false;
 
   const profile = store.character.profile;
   const totalAlloc = totalAllocated.value;

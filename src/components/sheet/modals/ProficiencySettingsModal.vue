@@ -9,11 +9,13 @@ import {
 } from '../../../data/rules/proficiencies';
 import { WEAPON_LIBRARY } from '../../../data/libraries/weapons';
 
-const props = defineProps<{
+defineProps<{
   isOpen: boolean;
 }>();
 
-const emit = defineEmits(['close']);
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
 const store = useActiveSheetStore();
 
 const newTool = ref('');
@@ -186,8 +188,10 @@ const onWeaponPresetChange = (e: Event) => {
                 <span 
                   v-for="(t, idx) in store.character.proficiencies?.tools" :key="idx" 
                   class="tag"
+                  :class="{ expertise: store.isToolExpertise(t) }"
                 >
                   {{ t }}
+                  <span v-if="store.isToolExpertise(t)" class="expertise-mark">专精</span>
                   <span class="tag-remove" @click="removeTool(idx)">×</span>
                 </span>
               </div>
@@ -256,6 +260,13 @@ const onWeaponPresetChange = (e: Event) => {
     background: #f1f3f5; color: #333; padding: 4px 10px; border-radius: 4px; font-size: 0.9rem;
     display: flex; align-items: center; gap: 6px;
     &.lang { background: #e8f5e9; color: #2e7d32; }
+    &.expertise {
+      background: #f4ecf7;
+      color: #6c3483;
+      border: 1px solid #d7bde2;
+      font-weight: 700;
+    }
+    .expertise-mark { font-size: 0.68rem; color: #8e44ad; font-weight: 900; }
     .tag-remove { cursor: pointer; font-weight: bold; color: #adb5bd; &:hover{ color: #e74c3c; } }
   }
 }

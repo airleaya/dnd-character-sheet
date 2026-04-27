@@ -3,17 +3,23 @@ import { ref, provide } from 'vue'; // 👈 记得引入 computed
 import SpellbookLeftPanel from './SpellbookLeftPanel.vue';
 import SpellbookRightPanel from './SpellbookRightPanel.vue';
 
-const props = defineProps<{
+defineProps<{
   isOpen: boolean;
 }>();
 
-const emit = defineEmits(['close']);
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
 
 // ==========================================
 // 交互反馈系统 (Toast) - 保持在父组件以覆盖全局
 // ==========================================
-const toast = ref({ show: false, message: '', type: 'success' }); // type: 'success' | 'warning'
-let toastTimer: any = null;
+const toast = ref<{ show: boolean; message: string; type: 'success' | 'warning' }>({
+  show: false,
+  message: '',
+  type: 'success',
+});
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 const showToast = (msg: string, type: 'success' | 'warning' = 'success') => {
   toast.value = { show: true, message: msg, type };
@@ -37,7 +43,7 @@ provide('showToast', showToast);
     <div 
       class="spellbook-overlay" 
       v-if="isOpen" 
-      @click.self="$emit('close')"
+      @click.self="emit('close')"
     >
       <div class="book-frame">
         <Transition name="fade-slide">
@@ -50,7 +56,7 @@ provide('showToast', showToast);
         
         <div class="book-layout">
           <div class="layout-left">
-            <SpellbookLeftPanel @close="$emit('close')" />
+            <SpellbookLeftPanel @close="emit('close')" />
           </div>
           
           <div class="layout-right">
