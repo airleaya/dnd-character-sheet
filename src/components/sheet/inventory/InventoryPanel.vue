@@ -69,6 +69,25 @@ const getContainerCapacity = (item: InventoryItem): string => {
   return '未知';
 };
 
+const formatContainerContentPreviewItem = (item: InventoryItem): string =>
+  item.quantity > 1 ? `${item.name} x${item.quantity}` : item.name;
+
+const getContainerContentPreview = (item: InventoryItem): string => {
+  if (item.type !== 'container') {
+    return '';
+  }
+
+  const contents = store.getContainerContents(item.instanceId);
+  const hanging = store.getContainerHangingItem(item.instanceId);
+  const parts = contents.map(formatContainerContentPreviewItem);
+
+  if (hanging) {
+    parts.push(`悬挂 ${formatContainerContentPreviewItem(hanging)}`);
+  }
+
+  return parts.length > 0 ? parts.join('，') : '空';
+};
+
 const rootItems = computed({
   get: () => store.rootInventory,
   set: () => {
@@ -336,6 +355,8 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
             
             <div v-if="hoveredItem.type === 'container'" class="extra-info">
                容量: {{ getContainerCapacity(hoveredItem) }}
+              <br />
+               内容: {{ getContainerContentPreview(hoveredItem) }}
             </div>
           </div>
         </div>

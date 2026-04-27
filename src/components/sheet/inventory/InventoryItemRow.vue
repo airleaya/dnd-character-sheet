@@ -26,7 +26,6 @@ const props = defineProps<{
 const store = useActiveSheetStore();
 const isExpanded = ref(false);
 
-const hasIsAmmunition = (item: InventoryItem) => 'isAmmunition' in item.data && item.data.isAmmunition === true;
 const ignoresContentWeight = (item: InventoryItem) => 'ignoreContentWeight' in item.data && item.data.ignoreContentWeight === true;
 
 const tooltipApi = inject<InventoryTooltipApi>('inventoryTooltip', {
@@ -37,17 +36,6 @@ const tooltipApi = inject<InventoryTooltipApi>('inventoryTooltip', {
 // ---------------------------------------------
 // 1. 堆叠与代理逻辑 (Proxy Logic)
 // ---------------------------------------------
-
-// 定义白名单：除了 consumable 类型外，还有哪些 ID 允许堆叠/调整数量
-const STACKABLE_IDS = ['dart', 'rations', 'torch', 'oil'];
-
-// 判断当前物品是否“可堆叠” (控制 +/- 按钮是否显示)
-const isStackable = computed(() => {
-  if (props.item.type === 'consumable') return true;
-  if (hasIsAmmunition(props.item)) return true;
-  if (STACKABLE_IDS.includes(props.item.templateId)) return true;
-  return false;
-});
 
 // 获取容器内容
 const childItems = computed({
@@ -64,21 +52,42 @@ const hangingItems = computed({
 });
 
 const hasHangingSlot = computed(() => props.item.type === 'container' && props.item.templateId === 'backpack');
+const containerContentItems = computed(() => [...childItems.value, ...hangingItems.value]);
 
-// 🔥 核心逻辑：智能箭袋代理
-// 如果是箭袋 (ignoreContentWeight=true)，且里面只有 1 种物品，则“穿透”控制内部物品
+// 判断当前物品是否“可堆叠” (控制 +/- 按钮是否显示)
+const isStackable = computed(() => props.item.type !== 'container' || containerContentItems.value.length === 0);
+
+const formatPreviewItem = (item: InventoryItem): string =>
+  item.quantity > 1 ? `${item.name} x${item.quantity}` : item.name;
+
+const containerPreviewLabel = computed(() => {
+  const children = childItems.value;
+  const hanging = hangingItems.value;
+
+  if (children.length === 0 && hanging.length === 0) {
+    return '空';
+  }
+
+  const parts = children.map(formatPreviewItem);
+  if (hanging.length > 0) {
+    parts.push(`悬挂 ${formatPreviewItem(hanging[0])}`);
+  }
+
+  return parts.join('，');
+});
+
+// 核心逻辑：通用容器代理
+// 如果任意容器内只有 1 种内容物，则“穿透”控制该内容物数量
 const proxyTargetItem = computed(() => {
-    // 必须是“忽略重量”的容器 (特征：箭袋/次元袋)
-  if (props.item.type === 'container' && ignoresContentWeight(props.item)) {
-    const children = childItems.value;
-    
-    // 情况 A: 只有一个种类的物品 -> 代理它
-    if (children.length === 1) {
-      return children[0];
-    }
-    // 情况 B: 空或混合 -> 不代理，返回 null
+  if (props.item.type !== 'container') {
     return null;
   }
+
+  const contents = containerContentItems.value;
+  if (contents.length === 1) {
+    return contents[0];
+  }
+
   return null;
 });
 
@@ -186,10 +195,7 @@ const handleDelete = () => {
         <span class="name-text">{{ item.name }}</span>
         
         <span v-if="item.type === 'container'" class="container-badge">
-          <span v-if="childItems.length === 0">(空)</span>
-          <span v-else-if="proxyTargetItem">({{ proxyTargetItem.name }})</span>
-          <span v-if="hasHangingSlot && hangingItems.length > 0" class="hanging-badge">+悬挂</span>
-          <span v-else>(内含 {{ childItems.length }} 项)</span>
+          <span>({{ containerPreviewLabel }})</span>
         </span>
       </div>
 
@@ -340,10 +346,26 @@ const handleDelete = () => {
   display: flex; 
   align-items: center; 
   overflow: hidden;
+  min-width: 0;
   padding-right: 8px;
 
-  .name-text { font-weight: 500; font-size: 0.9rem; }
-  .container-badge { font-size: 0.75rem; color: #868e96; margin-left: 6px; font-style: italic; }
+  .name-text {
+    flex-shrink: 0;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+
+  .container-badge {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    color: #868e96;
+    margin-left: 6px;
+    font-style: italic;
+  }
 }
 
 .col-weight { 

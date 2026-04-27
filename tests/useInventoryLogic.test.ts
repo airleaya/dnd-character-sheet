@@ -52,6 +52,37 @@ describe('useInventoryLogic', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
+  it('stacks duplicate non-consumable items in the same inventory location', () => {
+    const character = ref(createDefaultCharacter('inventory-2b'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('longsword');
+    logic.addItem('longsword');
+
+    const swords = character.value.inventory.filter((item) => item.templateId === 'longsword');
+    expect(swords).toHaveLength(1);
+    expect(swords[0].quantity).toBe(2);
+  });
+
+  it('stacks empty containers but keeps containers with contents separate', () => {
+    const character = ref(createDefaultCharacter('inventory-2c'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('backpack');
+    logic.addItem('backpack');
+
+    let backpacks = character.value.inventory.filter((item) => item.templateId === 'backpack');
+    expect(backpacks).toHaveLength(1);
+    expect(backpacks[0].quantity).toBe(2);
+
+    logic.addItem('torch', undefined, backpacks[0].instanceId);
+    logic.addItem('backpack');
+
+    backpacks = character.value.inventory.filter((item) => item.templateId === 'backpack');
+    expect(backpacks).toHaveLength(2);
+    expect(backpacks.map((item) => item.quantity)).toEqual([2, 1]);
+  });
+
   it('creates a fresh quiver and adds arrows through the acquisition rule', () => {
     const character = ref(createDefaultCharacter('inventory-3'));
     const save = vi.fn();

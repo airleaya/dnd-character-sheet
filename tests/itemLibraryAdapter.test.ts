@@ -21,6 +21,13 @@ describe('structured item library adapter', () => {
     expect(getLibraryItemById('eberron_dragonshard')?.displayCategory).toBe('特殊材料');
   });
 
+  it('uses 1 lb as the runtime weight for every trade good', () => {
+    const tradeGoods = ITEM_LIBRARY.filter((item) => item.category === 'trade_good');
+
+    expect(tradeGoods).toHaveLength(23);
+    expect(tradeGoods.every((item) => item.weight === 1)).toBe(true);
+  });
+
   it('computes pack weight from resolved pack contents', () => {
     expect(getLibraryItemById('burglars_pack')?.weight).toBe(47.5);
     expect(getLibraryItemById('explorers_pack')?.weight).toBe(59);

@@ -1,5 +1,44 @@
 # Structured Item Library Work Stack
 
+## 2026-04-28 版本收口
+- [x] 将项目版本号从 `0.12.0` 提升到 `0.12.1`。
+- [x] 将 `0.12.1-进行中` 日志收口为正式 `0.12.1`。
+- [x] `TODOLIST.md` 当前基线更新为 `0.12.1`，物品库正式替换与迁移条目标记为已完成。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run audit:item-library`
+  - `npm run test -- tests\useInventoryLogic.test.ts tests\inventoryItemRow.ui.test.ts tests\itemLibraryAdapter.test.ts tests\itemLibraryAudit.test.ts`
+  - `npm run build`
+
+## 2026-04-28 全物品堆叠规则
+- [x] `useInventoryLogic.addOrMerge` 从白名单堆叠改为同位置同模板默认合并数量。
+- [x] 含有内容物的容器不作为堆叠合并目标；空容器仍可合并数量。
+- [x] `InventoryItemRow` 将数量按钮扩展到所有普通物品和空容器；含内容容器继续按内容透视/穿透规则处理。
+- [x] 增加库存逻辑测试，覆盖非消耗品合并、空容器合并与含物容器分离。
+- [x] 增加库存行 UI 测试，覆盖普通物品数量按钮与空容器自身数量按钮。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\useInventoryLogic.test.ts tests\inventoryItemRow.ui.test.ts`
+
+## 2026-04-28 贸易品重量口径
+- [x] 在 `phbCommerceTrinkets.ts` 结构化适配中将所有 `trade_good` 条目的重量统一为 1 磅。
+- [x] 保持服务、食宿、生活开销、施法服务和小饰品的原有重量口径不变。
+- [x] 在 `tests/itemLibraryAdapter.test.ts` 中新增贸易品重量断言，当前 23 个贸易品必须全部为 1 磅。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\itemLibraryAdapter.test.ts tests\itemLibraryAudit.test.ts`
+  - `npm run audit:item-library`
+
+## 2026-04-28 容器内容透视与穿透数量控制
+- [x] 将容器行内容预览从箭袋/特殊容器扩展到所有容器。
+- [x] 容器行预览改为完整内容清单，行宽不足时由 CSS 省略号截断，不再生成“另 N 项”文本。
+- [x] 库存悬浮框新增容器内容预览，完整展示普通内容区与悬挂栏内容。
+- [x] 数量穿透调控改为通用容器规则，且仅在普通内容区与悬挂栏合计只有 1 个内容物时启用。
+- [x] 增加 `tests/inventoryItemRow.ui.test.ts`，覆盖完整预览、单内容穿透、多内容禁用穿透。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\inventoryItemRow.ui.test.ts tests\useInventoryLogic.test.ts`
+
 ## 2026-04-28 复数子个体物品审定
 
 - [x] 在结构化类型中预留 `multiplicity`，用于记录来源数量、单位、审定模式、来源文本和审定备注。

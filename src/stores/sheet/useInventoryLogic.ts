@@ -2,19 +2,10 @@ import { computed } from 'vue';
 import type { Ref } from 'vue';
 import type { Character, Wallet } from '../../types/Character';
 import type { ContainerData, InventoryItem } from '../../types/Item';
-import type { CurrencyUnit, PackDefinition } from '../../types/Library';
+import type { CurrencyUnit, LibraryItem, PackDefinition } from '../../types/Library';
 import { createItemFromLibrary } from '../../utils/itemFactory';
 import { CURRENCY_RATES } from '../../data/rules/currency';
 import { getLibraryItemById } from '../../data/libraries/itemLibrary';
-
-const STACKABLE_ITEM_IDS = new Set([
-  'arrows',
-  'crossbow_bolts',
-  'blowgun_needles',
-  'sling_bullets',
-  'iron_spikes_10',
-  'dart'
-]);
 
 type ContainerInventoryItem = InventoryItem & { data: ContainerData };
 
@@ -25,6 +16,8 @@ const isContainerItem = (item: InventoryItem): item is ContainerInventoryItem =>
 const ignoresContentWeight = (item: InventoryItem): boolean => {
   return isContainerItem(item) && item.data.ignoreContentWeight === true;
 };
+
+const isContainerDefinition = (item: LibraryItem | undefined): boolean => item?.type === 'container';
 
 function computeItemWeightRecursive(item: InventoryItem, allItems: InventoryItem[]): number {
   const weight = (item.weight ?? 0) * (item.quantity ?? 1);
@@ -182,13 +175,15 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
   const addOrMerge = (libraryId: string, quantity: number, targetParentId?: string, targetContainerSlot?: InventoryItem['containerSlot']): InventoryItem | undefined => {
     if (!character.value) return undefined;
 
-    const canStack = STACKABLE_ITEM_IDS.has(libraryId);
-    if (!canStack) {
-      return createNewItem(libraryId, quantity, targetParentId, undefined, targetContainerSlot);
-    }
+    const definition = getLibraryItemById(libraryId);
+    const isContainer = isContainerDefinition(definition);
 
     const existingItem = character.value.inventory.find(
-      (item) => item.templateId === libraryId && item.parentId === targetParentId && item.containerSlot === targetContainerSlot
+      (item) =>
+        item.templateId === libraryId &&
+        item.parentId === targetParentId &&
+        item.containerSlot === targetContainerSlot &&
+        (!isContainer || !character.value?.inventory.some((child) => child.parentId === item.instanceId))
     );
 
     if (!existingItem) {

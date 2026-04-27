@@ -1,6 +1,76 @@
 # UPDATE_LOG
 
-## [0.12.1-进行中] - 2026-04-28
+## [0.12.1] - 2026-04-28
+- 类型：版本 / 发布 / 验证
+- 条目：物品库重构阶段收口并迭代到 `0.12.1`
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `TODOLIST.md`
+  - `UPDATE_LOG.md`
+- 已完成变化：
+  - 项目版本号从 `0.12.0` 自增长到 `0.12.1`。
+  - 将本轮物品库正式替换、容器透视、全物品堆叠、贸易品重量口径和复数子个体迁移记录从 `0.12.1-进行中` 收口为正式 `0.12.1`。
+  - `TODOLIST.md` 当前基线更新为 `0.12.1`，物品库正式替换与迁移条目标记为已完成。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
+  - `npm run test -- tests\useInventoryLogic.test.ts tests\inventoryItemRow.ui.test.ts tests\itemLibraryAdapter.test.ts tests\itemLibraryAudit.test.ts` 通过，4 个测试文件，26 个用例。
+  - `npm run build` 通过，并生成 `0.12.1` 安装包与便携版构建产物。
+
+## [0.12.1] - 2026-04-28
+- 类型：库存 / 堆叠规则 / 容器交互 / 测试
+- 条目：将消耗品堆叠规则扩展到所有物品
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `tests/useInventoryLogic.test.ts`
+  - `tests/inventoryItemRow.ui.test.ts`
+- 已完成变化：
+  - 库存创建逻辑从少数白名单堆叠改为同位置同模板默认合并数量，武器、护甲、工具、装备、贸易品等普通物品都会沿用消耗品的堆叠口径。
+  - 容器作为例外处理：空容器可以合并数量；已有普通内容或悬挂内容的容器不会作为合并目标，避免含物容器被数量堆叠后产生归属歧义。
+  - 行囊物品行的数量按钮扩展到所有普通物品；空容器可调自身数量，含内容容器继续按唯一内容物穿透或在多内容物时禁用数量按钮。
+  - 新增测试覆盖非消耗品合并、空容器合并、含物容器分离、普通物品行数量按钮与空容器数量按钮。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\useInventoryLogic.test.ts tests\inventoryItemRow.ui.test.ts` 通过，2 个测试文件，15 个用例。
+
+## [0.12.1] - 2026-04-28
+- 类型：数据 / 物品库 / 贸易品 / 测试
+- 条目：统一贸易品运行时重量
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/data/libraries/structured/phbCommerceTrinkets.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+- 已完成变化：
+  - 所有 `trade_good` 贸易品在结构化到运行时物品库时统一写入 `weight: 1`，即每个贸易品条目按 1 磅参与行囊负重。
+  - 非贸易品的服务、食宿、生活开销和小饰品不受该规则影响，继续使用各自原有重量口径。
+  - 新增 adapter 回归测试，断言当前 23 个贸易品全部为 1 磅，防止后续新增贸易品漏写重量。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\itemLibraryAdapter.test.ts tests\itemLibraryAudit.test.ts` 通过，2 个测试文件，11 个用例。
+  - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
+
+## [0.12.1] - 2026-04-28
+- 类型：UI / 库存 / 容器交互 / 测试
+- 条目：扩展容器内容透视与穿透数量控制
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `tests/inventoryItemRow.ui.test.ts`
+- 已完成变化：
+  - 容器行现在展示全部内容物预览，不再用“另 N 项”压缩数据；当行宽不足时由行内徽章的 CSS 省略号截断后续文本。
+  - 库存悬浮框的容器信息新增“内容”行，完整列出普通内容物与悬挂栏内容，便于核查容器内部状态。
+  - 数量穿透从箭袋专属扩展为通用容器规则，但仅当普通内容区与悬挂栏合计只有 1 个内容物时启用，避免多内容物时按钮目标不明确。
+  - 新增 `inventoryItemRow.ui.test.ts` 覆盖多内容预览、单内容穿透调控、普通内容+悬挂内容时禁用穿透三类场景。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\inventoryItemRow.ui.test.ts tests\useInventoryLogic.test.ts` 通过，2 个测试文件，11 个用例。
+
+## [0.12.1] - 2026-04-28
 - 类型：数据 / 负重 / 物品库 / 库存规则
 - 条目：修正拆分物品的物品库与行囊重量口径
 - 负责人：雪荔枝 / Codex
@@ -22,7 +92,7 @@
   - `npm run test -- tests\itemLibraryAdapter.test.ts tests\useInventoryLogic.test.ts tests\itemLibraryAudit.test.ts` 通过，3 个测试文件，18 个用例。
   - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
 
-## [0.12.1-进行中] - 2026-04-28
+## [0.12.1] - 2026-04-28
 - 类型：数据 / 库存规则 / 审计 / 测试
 - 条目：迁移复数子个体审定结果与特殊获取规则
 - 负责人：雪荔枝 / Codex
@@ -49,7 +119,7 @@
   - `npm run test -- tests\itemLibraryAdapter.test.ts tests\useInventoryLogic.test.ts tests\pluralItemReview.test.ts tests\itemLibraryAudit.test.ts` 通过，4 个测试文件，19 个用例。
   - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
 
-## [0.12.1-进行中] - 2026-04-28
+## [0.12.1] - 2026-04-28
 - 类型：数据 / 审计 / 物品库
 - 条目：生成复数子个体物品审定表
 - 负责人：雪荔枝 / Codex
@@ -70,7 +140,7 @@
   - `npm run typecheck` 通过。
   - `npm run test -- tests\pluralItemReview.test.ts tests\itemLibraryAudit.test.ts tests\itemLibraryAdapter.test.ts` 通过，3 个测试文件，10 个用例。
 
-## [0.12.1-进行中] - 2026-04-28
+## [0.12.1] - 2026-04-28
 - 类型：UI / Tooltip / 物品库 / 库存
 - 条目：为查看物品悬浮框添加视口边缘保护
 - 负责人：雪莹枫 / Codex
@@ -86,7 +156,7 @@
   - `npm run typecheck` 通过。
   - `npm run test -- tests/globalTooltip.ui.test.ts tests/useInventoryLogic.test.ts tests/itemLibraryAdapter.test.ts` 通过，3 个测试文件，15 个用例。
 
-## [0.12.1-进行中] - 2026-04-27
+## [0.12.1] - 2026-04-27
 - 类型：数据 / 描述 / 审计 / 测试
 - 条目：物品描述原始文本溯源增强
 - 负责人：雪莹枫 / Codex
@@ -106,7 +176,7 @@
   - `npm run test -- tests/useInventoryLogic.test.ts tests/itemLibraryAdapter.test.ts tests/itemLibraryAudit.test.ts` 通过，3 个测试文件，15 个用例。
   - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
 
-## [0.12.1-进行中] - 2026-04-27
+## [0.12.1] - 2026-04-27
 - 类型：UI / 物品库 / 库存规则 / 测试
 - 条目：记录物品库 UI 与套组/容器规则迭代
 - 负责人：雪莺林 / Codex
@@ -133,7 +203,7 @@
 - 记录要求：
   - 后续所有物品库与库存规则迭代，无论改动大小，都必须同步写入 `UPDATE_LOG.md`、`TODOLIST.md` 以及相关工作流/工作栈文件。
 
-## [0.12.1-进行中] - 2026-04-27
+## [0.12.1] - 2026-04-27
 - 类型：数据 / 审计 / 迁移 / 测试
 - 条目：完成新物品库审计闭环第一轮
 - 负责人：雪莺林 / Codex
@@ -158,7 +228,7 @@
 - 备注：
   - Vitest 在默认沙箱中仍会因 esbuild 子进程 `spawn EPERM` 失败；本次测试已在获准的沙箱外命令中通过。
 
-## [0.12.1-进行中] - 2026-04-27
+## [0.12.1] - 2026-04-27
 - 类型：数据 / 重构 / 迁移 / UI
 - 条目：启动物品库正式替换迭代
 - 负责人：雪荔枝 / Codex
@@ -221,7 +291,7 @@
 > - `TODOLIST.md` 关注：**还要做什么**
 > - `UPDATE_LOG.md` 关注：**已经做了什么**
 
-当前基线版本：`0.11.7`
+当前基线版本：`0.12.1`
 默认记录人：**雪荔枝**
 
 ---

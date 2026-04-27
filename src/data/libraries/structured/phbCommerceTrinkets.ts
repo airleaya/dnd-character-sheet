@@ -22,6 +22,8 @@ const CATEGORY_BY_COMMERCE_TYPE: Record<string, StructuredCommerceItem['category
   trinket: 'treasure'
 };
 
+const TRADE_GOOD_WEIGHT_LB = 1;
+
 const isParsedCommerce = (entry: ItemIntakeEntry): entry is ItemIntakeEntry & { parsed: ParsedCommerce } =>
   Boolean(entry.parsed?.id && entry.parsed?.name && entry.parsed?.commerceType);
 
@@ -59,9 +61,15 @@ const audit = (sourceIntakeId: string, comparedFields: StructuredAuditField[], i
 const categoryFor = (commerceType: string): StructuredCommerceItem['category'] =>
   CATEGORY_BY_COMMERCE_TYPE[commerceType] ?? 'treasure';
 
+const weightFor = (entry: ItemIntakeEntry & { parsed: ParsedCommerce }): number =>
+  entry.parsed.commerceType === 'trade_good'
+    ? TRADE_GOOD_WEIGHT_LB
+    : entry.parsed.weight ?? 0;
+
 const commerceItem = (entry: ItemIntakeEntry & { parsed: ParsedCommerce }): StructuredCommerceItem => {
   const names = splitDisplayName(entry.parsed.name);
   const category = categoryFor(entry.parsed.commerceType);
+  const weight = weightFor(entry);
   const comparedFields = [
     field('id', entry.parsed.id, entry.parsed.id),
     field('name', names.name, splitDisplayName(entry.parsed.name).name),
@@ -70,6 +78,13 @@ const commerceItem = (entry: ItemIntakeEntry & { parsed: ParsedCommerce }): Stru
     field('category', category, categoryFor(entry.parsed.commerceType)),
     field('commerceType', entry.parsed.commerceType, entry.parsed.commerceType),
     field('cost', entry.parsed.cost, entry.parsed.cost),
+    field(
+      'weight',
+      weight,
+      entry.parsed.commerceType === 'trade_good'
+        ? TRADE_GOOD_WEIGHT_LB
+        : entry.parsed.weight ?? 0
+    ),
     field('quantity', entry.parsed.quantity, entry.parsed.quantity),
     field('description', entry.parsed.description, entry.parsed.description),
     field('tags', entry.parsed.tags, entry.parsed.tags)
@@ -83,7 +98,7 @@ const commerceItem = (entry: ItemIntakeEntry & { parsed: ParsedCommerce }): Stru
     category,
     subcategory: entry.parsed.commerceType,
     cost: entry.parsed.cost,
-    weight: entry.parsed.weight,
+    weight,
     description: entry.parsed.description,
     tags: entry.parsed.tags,
     commerceType: entry.parsed.commerceType,
