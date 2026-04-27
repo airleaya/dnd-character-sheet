@@ -1,5 +1,163 @@
 # UPDATE_LOG
 
+## [0.12.1-进行中] - 2026-04-28
+- 类型：数据 / 负重 / 物品库 / 库存规则
+- 条目：修正拆分物品的物品库与行囊重量口径
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `src/data/libraries/structured/phbAdventuringGear.ts`
+  - `src/data/libraries/structured/pluralItemMigrationReport.md`
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/data/libraries/itemLibraryDeepAudit.ts`
+  - `src/utils/itemFactory.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+  - `tests/useInventoryLogic.test.ts`
+- 已完成变化：
+  - 拆分后的物品在物品库中恢复为来源表的一组价格和一组重量，例如箭仍显示 20 支合计 1 gp / 1 lb。
+  - 行囊实例创建时按 `LibraryItem.weight / multiplicity.sourceQuantity` 写入单体重量，因此库存负重仍按子个体数量计算。
+  - 套组重量计算与深度审计同步使用库存单体重量口径，避免未来套组内容引用拆分物品时误按组重量计算。
+  - 迁移报告已改写为同时记录“物品库重量/价格”和“行囊单体重量”。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\itemLibraryAdapter.test.ts tests\useInventoryLogic.test.ts tests\itemLibraryAudit.test.ts` 通过，3 个测试文件，18 个用例。
+  - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
+
+## [0.12.1-进行中] - 2026-04-28
+- 类型：数据 / 库存规则 / 审计 / 测试
+- 条目：迁移复数子个体审定结果与特殊获取规则
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `src/data/libraries/structured/phbAdventuringGear.ts`
+  - `src/data/libraries/structured/phbPackSupplementalItems.ts`
+  - `src/data/libraries/structured/pluralItemReview.md`
+  - `src/data/libraries/structured/pluralItemMigrationReport.md`
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+  - `tests/useInventoryLogic.test.ts`
+  - `tests/pluralItemReview.test.ts`
+- 已完成变化：
+  - 箭、弩矢、吹矢、投石索弹丸和长铁钉已按审定结果拆为单体重量/单体价格。
+  - 滚珠和铁蒺藜按用户自由描述处理：数据不拆分，但获取时赠送小包，并把整组物品放入小包。
+  - 弩矢获取时改为赠送弩矢匣；吹矢和投石索弹丸获取时赠送小包；箭获取时每次单独赠送新的箭袋。
+  - 口粮、绳索、链条、梯子、长杆、弦线等记录 `multiplicity` 审定信息但不改变获取逻辑。
+  - 容器容量、使用次数、页数等候选按“不是复数物品”处理，不写入复数拆分规则。
+  - `useInventoryLogic.addItem` 改为读取通用 `acquisitionRule`，移除了箭/弩矢的硬编码获取分支。
+  - 运行时描述会为带获取规则的物品追加“在本软件中获取该物品时：...”。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\itemLibraryAdapter.test.ts tests\useInventoryLogic.test.ts tests\pluralItemReview.test.ts tests\itemLibraryAudit.test.ts` 通过，4 个测试文件，19 个用例。
+  - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
+
+## [0.12.1-进行中] - 2026-04-28
+- 类型：数据 / 审计 / 物品库
+- 条目：生成复数子个体物品审定表
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `src/data/libraries/structured/pluralItemReview.md`
+  - `src/data/libraries/structured/types.ts`
+  - `src/types/Library.ts`
+  - `src/types/Item.ts`
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/utils/itemFactory.ts`
+  - `tests/pluralItemReview.test.ts`
+- 已完成变化：
+  - 新增 `multiplicity` 与 `acquisitionRule` 静态字段类型，作为复数子个体与特殊获取规则的预留接口。
+  - 运行时物品库 adapter 会保留上述静态字段；库存实例暂不保存这些审定字段，也不改变当前获取、重量或价格逻辑。
+  - 新增 `pluralItemReview.md`，记录箭、弩矢、吹矢、投石索弹丸、滚珠、铁蒺藜、长铁钉、口粮、长度规格物品、容量候选和套组候选的审定证据与推荐选项。
+  - 本轮仅生成审定材料，尚未拆分任何正式物品数据。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\pluralItemReview.test.ts tests\itemLibraryAudit.test.ts tests\itemLibraryAdapter.test.ts` 通过，3 个测试文件，10 个用例。
+
+## [0.12.1-进行中] - 2026-04-28
+- 类型：UI / Tooltip / 物品库 / 库存
+- 条目：为查看物品悬浮框添加视口边缘保护
+- 负责人：雪莹枫 / Codex
+- 关联文件：
+  - `src/components/sidebar/LibraryTooltip.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/stores/tooltip.ts`
+- 已完成变化：
+  - 物品库/法术库查看悬浮框改为在组件内部测量真实宽高，并通过统一的 `getTooltipViewportPosition` 夹住视口边界。
+  - 库存物品查看悬浮框同步接入同一套边缘保护，避免靠近窗口右侧或底部时内容被截出屏幕。
+  - 保留原有鼠标附近显示与悬浮框续命交互，不改变物品描述、表格渲染和库存数据逻辑。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests/globalTooltip.ui.test.ts tests/useInventoryLogic.test.ts tests/itemLibraryAdapter.test.ts` 通过，3 个测试文件，15 个用例。
+
+## [0.12.1-进行中] - 2026-04-27
+- 类型：数据 / 描述 / 审计 / 测试
+- 条目：物品描述原始文本溯源增强
+- 负责人：雪莹枫 / Codex
+- 关联文件：
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/data/libraries/itemLibraryDeepAudit.ts`
+  - `src/data/libraries/structured/phbPackSupplementalItems.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+- 已完成变化：
+  - 运行时物品描述统一改为“这是来自xx的xx物品。”加原始结构化描述/规则文本的组合格式。
+  - `descriptionBlocks` 现在会先渲染来源段落与追溯到的描述细节，再追加套组内容、XGE 工具 DC、财宝信息、龙晶材料信息等结构化表格。
+  - 套组补全条目（弦线、募捐盒、熏香、香炉、祭袍、小袋沙、小刀）不再只显示占位描述，改为说明其来自对应套组清单，并明确原文未提供独立规则描述。
+  - 深度审计新增描述迁移检查：每个运行时物品必须包含来源前缀，并必须包含结构化源条目的描述或规则文本。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests/itemLibraryAdapter.test.ts tests/itemLibraryAudit.test.ts` 通过，2 个测试文件，9 个用例。
+  - `npm run test -- tests/useInventoryLogic.test.ts tests/itemLibraryAdapter.test.ts tests/itemLibraryAudit.test.ts` 通过，3 个测试文件，15 个用例。
+  - `npm run audit:item-library` 通过，2 个测试文件，5 个用例。
+
+## [0.12.1-进行中] - 2026-04-27
+- 类型：UI / 物品库 / 库存规则 / 测试
+- 条目：记录物品库 UI 与套组/容器规则迭代
+- 负责人：雪莺林 / Codex
+- 关联文件：
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `src/types/Item.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+  - `tests/useInventoryLogic.test.ts`
+- 已完成变化：
+  - 物品库一级菜单与当前二级菜单支持双层吸附。
+  - 武器条目直接展示武器属性徽章，并在武器二级菜单提供 `简近 / 简远 / 军近 / 军远` 筛选。
+  - 护甲二级菜单提供 `轻甲 / 中甲 / 重甲` 筛选。
+  - 背包新增唯一的额外 `悬挂栏`，与背包主体内容分开展示与存储。
+  - 套组展开时会把物品放入套组提供的容器，并将容器重命名为 `容器名（套组名）`，例如 `背包（探索套组）`、`箱子（大使套组）`。
+  - 套组重量改为按内容自引用计算，并在物品库条目上以 `总重 xx lb` 标注。
+  - 箭袋恢复穿透规则：箭袋只计算自重，且当内部只有一种弹药时，数量控制在箭袋行暴露。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run audit:item-library` 通过。
+  - `npm run test -- tests/useInventoryLogic.test.ts tests/itemLibraryAdapter.test.ts` 通过：2 个测试文件，11 个用例。
+- 记录要求：
+  - 后续所有物品库与库存规则迭代，无论改动大小，都必须同步写入 `UPDATE_LOG.md`、`TODOLIST.md` 以及相关工作流/工作栈文件。
+
+## [0.12.1-进行中] - 2026-04-27
+- 类型：数据 / 审计 / 迁移 / 测试
+- 条目：完成新物品库审计闭环第一轮
+- 负责人：雪莺林 / Codex
+- 关联文件：
+  - `src/data/libraries/itemMigrationAuditReport.ts`
+  - `src/data/libraries/itemLibraryDeepAudit.ts`
+  - `src/data/libraries/itemIdMigration.ts`
+  - `src/data/libraries/itemLibrary.ts`
+  - `tests/itemLibraryAudit.test.ts`
+  - `tests/itemLibraryMigration.test.ts`
+  - `package.json`
+- 已完成变化：
+  - 新增逐项迁移审计报告：记录源录入 id、结构化 id、运行时 id、字段映射、审核结果与备注。
+  - 新增深度审计入口：检查总数、重复 id、源文本匹配、非魔法默认值、套组引用闭合、表格描述保留与价格规则。
+  - 新增 `npm run audit:item-library`，将物品库审计固定为可重复执行的工程命令。
+  - 修正二级目录显示标签，服务、贸易品、小饰品等不再暴露英文内部分类 id。
+  - 扩展旧物品 id 迁移表，覆盖旧套组、旧工具、旧弹药、旧容器与旧消耗品常见 id。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run audit:item-library` 通过：2 个测试文件，5 个用例。
+  - `npm run test -- tests/itemLibraryAdapter.test.ts tests/itemMagicDefinition.test.ts tests/characterMigration.test.ts tests/useInventoryLogic.test.ts tests/itemLibraryAudit.test.ts tests/itemLibraryMigration.test.ts` 通过：6 个测试文件，16 个用例。
+- 备注：
+  - Vitest 在默认沙箱中仍会因 esbuild 子进程 `spawn EPERM` 失败；本次测试已在获准的沙箱外命令中通过。
+
 ## [0.12.1-进行中] - 2026-04-27
 - 类型：数据 / 重构 / 迁移 / UI
 - 条目：启动物品库正式替换迭代

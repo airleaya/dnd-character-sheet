@@ -52,10 +52,28 @@ describe('useInventoryLogic', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
-  it('creates a quiver and adds arrows as a 20-count bundle', () => {
+  it('creates a fresh quiver and adds arrows through the acquisition rule', () => {
     const character = ref(createDefaultCharacter('inventory-3'));
     const save = vi.fn();
     const logic = useInventoryLogic(character, ref([]), save);
+
+    logic.addItem('arrows');
+    logic.addItem('arrows');
+
+    const quivers = character.value.inventory.filter((item) => item.templateId === 'quiver');
+    const arrowStacks = character.value.inventory.filter((item) => item.templateId === 'arrows');
+
+    expect(quivers).toHaveLength(2);
+    expect(arrowStacks.map((item) => item.quantity)).toEqual([20, 20]);
+    expect(arrowStacks.map((item) => item.weight)).toEqual([0.05, 0.05]);
+    expect(arrowStacks[0].parentId).toBe(quivers[0].instanceId);
+    expect(arrowStacks[1].parentId).toBe(quivers[1].instanceId);
+    expect(save).toHaveBeenCalled();
+  });
+
+  it('counts only quiver self weight while exposing a single ammunition stack inside it', () => {
+    const character = ref(createDefaultCharacter('inventory-3b'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
 
     logic.addItem('arrows');
 
@@ -63,8 +81,84 @@ describe('useInventoryLogic', () => {
     const arrows = character.value.inventory.find((item) => item.templateId === 'arrows');
 
     expect(quiver).toBeTruthy();
-    expect(arrows?.quantity).toBe(20);
+    expect(quiver?.data).toHaveProperty('ignoreContentWeight', true);
     expect(arrows?.parentId).toBe(quiver?.instanceId);
-    expect(save).toHaveBeenCalled();
+    expect(logic.getContainerContents.value(quiver!.instanceId)).toEqual([arrows]);
+    expect(logic.getItemWeight.value(quiver!)).toBe(quiver!.weight);
+    expect(logic.totalWeight.value).toBe(quiver!.weight);
+
+    logic.updateItemQuantity(arrows!.instanceId, 1);
+    expect(arrows?.quantity).toBe(21);
+    expect(logic.totalWeight.value).toBe(quiver!.weight);
+  });
+
+  it('uses reviewed custom acquisition containers for split ammunition and bundle gear', () => {
+    const character = ref(createDefaultCharacter('inventory-3c'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('crossbow_bolts');
+    logic.addItem('blowgun_needles');
+    logic.addItem('sling_bullets');
+    logic.addItem('ball_bearings');
+    logic.addItem('caltrops');
+
+    const boltCase = character.value.inventory.find((item) => item.templateId === 'crossbow_bolt_case');
+    const bolts = character.value.inventory.find((item) => item.templateId === 'crossbow_bolts');
+    expect(boltCase).toBeTruthy();
+    expect(bolts?.quantity).toBe(20);
+    expect(bolts?.parentId).toBe(boltCase?.instanceId);
+
+    const pouches = character.value.inventory.filter((item) => item.templateId === 'pouch');
+    expect(pouches).toHaveLength(4);
+    expect(character.value.inventory.find((item) => item.templateId === 'blowgun_needles')?.quantity).toBe(50);
+    expect(character.value.inventory.find((item) => item.templateId === 'sling_bullets')?.quantity).toBe(20);
+    expect(character.value.inventory.find((item) => item.templateId === 'ball_bearings')?.parentId).toBe(pouches[2].instanceId);
+    expect(character.value.inventory.find((item) => item.templateId === 'caltrops')?.parentId).toBe(pouches[3].instanceId);
+  });
+
+  it('creates reviewed split grouped items as a source-sized stack', () => {
+    const character = ref(createDefaultCharacter('inventory-3d'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('iron_spikes_10');
+    logic.addItem('iron_spikes_10');
+
+    const spikes = character.value.inventory.find((item) => item.templateId === 'iron_spikes_10');
+    expect(spikes?.quantity).toBe(20);
+    expect(spikes?.weight).toBe(0.5);
+    expect(logic.totalWeight.value).toBe(10);
+  });
+
+  it('keeps backpack hanging-slot items separate from normal contents', () => {
+    const character = ref(createDefaultCharacter('inventory-4'));
+    const save = vi.fn();
+    const logic = useInventoryLogic(character, ref([]), save);
+
+    logic.addItem('explorers_pack');
+
+    const backpack = character.value.inventory.find((item) => item.templateId === 'backpack');
+    expect(backpack).toBeTruthy();
+    expect(backpack?.name).toBe('背包（探索套组）');
+
+    const rope = character.value.inventory.find((item) => item.templateId === 'hempen_rope_50ft');
+    expect(rope?.parentId).toBe(backpack?.instanceId);
+    expect(rope?.containerSlot).toBe('hanging');
+    expect(logic.getContainerHangingItem.value(backpack!.instanceId)?.instanceId).toBe(rope?.instanceId);
+    expect(logic.getContainerContents.value(backpack!.instanceId).some((item) => item.instanceId === rope?.instanceId)).toBe(false);
+  });
+
+  it('renames non-backpack pack containers with the pack name', () => {
+    const character = ref(createDefaultCharacter('inventory-5'));
+    const save = vi.fn();
+    const logic = useInventoryLogic(character, ref([]), save);
+
+    logic.addItem('diplomats_pack');
+
+    const chest = character.value.inventory.find((item) => item.templateId === 'chest');
+    expect(chest).toBeTruthy();
+    expect(chest?.name).toBe('箱子（大使套组）');
+
+    const fineClothes = character.value.inventory.find((item) => item.templateId === 'clothes_fine');
+    expect(fineClothes?.parentId).toBe(chest?.instanceId);
   });
 });

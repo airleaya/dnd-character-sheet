@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, reactive, computed, provide } from 'vue';
+import { ref, reactive, computed, provide, nextTick, onBeforeUnmount, onMounted, watch } from 'vue';
 import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
 import ItemDescriptionRenderer from '../../common/ItemDescriptionRenderer.vue';
+import { getTooltipViewportPosition } from '../../../stores/tooltip';
 import {
   calcRealIndex,
   isInventoryInstanceDragElement,
@@ -98,7 +99,71 @@ const handleRootDrop = (evt: InventoryDragChangeEvent) => {
 // 🖱️ 悬浮窗逻辑 (Tooltip)
 // =========================================
 const hoveredItem = ref<InventoryItem | null>(null);
-const tooltipStyle = ref({ top: '0px', left: '0px' });
+const tooltipRef = ref<HTMLElement | null>(null);
+const tooltipPoint = ref({ x: 0, y: 0 });
+const tooltipSize = ref({ width: 320, height: 0 });
+
+const measureTooltip = () => {
+  const rect = tooltipRef.value?.getBoundingClientRect();
+  if (!rect) return;
+
+  tooltipSize.value = {
+    width: rect.width || 320,
+    height: rect.height || 0
+  };
+};
+
+const measureAfterRender = async () => {
+  await nextTick();
+  measureTooltip();
+};
+
+watch(
+  () => hoveredItem.value?.instanceId,
+  (instanceId) => {
+    if (instanceId) {
+      void measureAfterRender();
+    }
+  },
+  { flush: 'post' }
+);
+
+const onWindowResize = () => {
+  if (hoveredItem.value) {
+    measureTooltip();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize);
+});
+
+const tooltipStyle = computed(() => {
+  if (typeof window === 'undefined') {
+    return {
+      top: `${tooltipPoint.value.y + 15}px`,
+      left: `${tooltipPoint.value.x + 15}px`
+    };
+  }
+
+  const position = getTooltipViewportPosition({
+    x: tooltipPoint.value.x,
+    y: tooltipPoint.value.y,
+    tooltipWidth: tooltipSize.value.width,
+    tooltipHeight: tooltipSize.value.height,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight
+  });
+
+  return {
+    top: `${position.top}px`,
+    left: `${position.left}px`
+  };
+});
 
 // 1. 获取徽章 (Badges)
 const getBadges = (item: InventoryItem): InventoryTooltipBadge[] => {
@@ -125,10 +190,11 @@ const getBadges = (item: InventoryItem): InventoryTooltipBadge[] => {
 const onShowTooltip = (item: InventoryItem, event: MouseEvent) => {
   hoveredItem.value = item;
   // 简单的位置计算：鼠标右下方偏移
-  tooltipStyle.value = {
-    top: `${event.clientY + 15}px`,
-    left: `${event.clientX + 15}px`
+  tooltipPoint.value = {
+    x: event.clientX,
+    y: event.clientY
   };
+  void measureAfterRender();
 };
 
 // 3. 隐藏悬浮窗
@@ -238,6 +304,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
       <Transition name="fade">
         <div 
           v-if="hoveredItem" 
+          ref="tooltipRef"
           class="inventory-tooltip"
           :style="tooltipStyle"
         >

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { formatCost } from '../../utils/currencyUtils';
 import type { ItemCost, ItemDescriptionBlock } from '../../types/Library';
 import { getSchoolLabel } from '../../data/rules/dndRules';
@@ -7,6 +7,7 @@ import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
 import { WEAPON_CAT_MAP, ARMOR_TYPE_MAP } from '../../data/rules/proficiencies'
 import { ITEM_TYPE_MAP } from '../../data/rules/dndRules';
+import { getTooltipViewportPosition } from '../../stores/tooltip';
 import ItemDescriptionRenderer from '../common/ItemDescriptionRenderer.vue';
 
 type TooltipItemType = 'item' | 'spell';
@@ -54,6 +55,70 @@ const props = defineProps<{
   position: { x: number; y: number };
   type: TooltipItemType; // 显式区分类型
 }>();
+
+const tooltipRef = ref<HTMLElement | null>(null);
+const tooltipSize = ref({ width: 320, height: 0 });
+
+const measureTooltip = () => {
+  const rect = tooltipRef.value?.getBoundingClientRect();
+  if (!rect) return;
+
+  tooltipSize.value = {
+    width: rect.width || 320,
+    height: rect.height || 0
+  };
+};
+
+const measureAfterRender = async () => {
+  await nextTick();
+  measureTooltip();
+};
+
+watch(
+  () => [props.item.name, props.position.x, props.position.y, props.type],
+  () => {
+    void measureAfterRender();
+  },
+  { flush: 'post', immediate: true }
+);
+
+const onWindowResize = () => {
+  measureTooltip();
+};
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize);
+  void measureAfterRender();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize);
+});
+
+const tooltipStyle = computed(() => {
+  if (typeof window === 'undefined') {
+    return {
+      top: `${props.position.y}px`,
+      left: `${props.position.x}px`
+    };
+  }
+
+  const safePosition = getTooltipViewportPosition({
+    x: props.position.x,
+    y: props.position.y,
+    tooltipWidth: tooltipSize.value.width,
+    tooltipHeight: tooltipSize.value.height,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+    offset: 0,
+    padding: 12
+  });
+
+  return {
+    top: `${safePosition.top}px`,
+    left: `${safePosition.left}px`
+  };
+});
 
 // ==========================================
 // ✅ 新增：辅助计算函数
@@ -117,8 +182,9 @@ const attackSaveInfo = computed(() => {
 
 <template>
   <div 
+    ref="tooltipRef"
     class="item-tooltip-card"
-    :style="{ top: position.y + 'px', left: position.x + 'px' }"
+    :style="tooltipStyle"
   >
     <div class="card-header">
       <div class="card-title">{{ item.name }}</div>

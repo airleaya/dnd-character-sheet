@@ -5,7 +5,14 @@ import { ITEM_LIBRARY } from '../../../data/libraries/itemLibrary';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
 import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
-import type { LibraryItem } from '../../../types/Library';
+import type {
+  ArmorDefinition,
+  ArmorType,
+  LibraryItem,
+  WeaponCategory,
+  WeaponDefinition,
+  WeaponPropertyKey
+} from '../../../types/Library';
 import type { LibraryCloneDragElement } from '../../../utils/inventoryDropUtils';
 
 const props = defineProps<{
@@ -59,9 +66,49 @@ const libraryTree = computed<MainGroup[]>(() => {
 });
 
 const expandedState = ref<Record<string, boolean>>({});
+const weaponCategoryFilter = ref<WeaponCategory | null>(null);
+const armorTypeFilter = ref<ArmorType | null>(null);
 
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
+const isWeaponSubGroup = (group: MainGroup, sub: SubGroup) => group.label === '装备' && sub.title === '武器';
+const isArmorSubGroup = (group: MainGroup, sub: SubGroup) => group.label === '装备' && sub.title === '护甲';
+
+const weaponCategoryOptions: Array<{ value: WeaponCategory; label: string }> = [
+  { value: 'simple_melee', label: '简近' },
+  { value: 'simple_ranged', label: '简远' },
+  { value: 'martial_melee', label: '军近' },
+  { value: 'martial_ranged', label: '军远' }
+];
+
+const armorTypeOptions: Array<{ value: ArmorType; label: string }> = [
+  { value: 'light', label: '轻甲' },
+  { value: 'medium', label: '中甲' },
+  { value: 'heavy', label: '重甲' }
+];
+
+const toggleWeaponCategoryFilter = (category: WeaponCategory) => {
+  weaponCategoryFilter.value = weaponCategoryFilter.value === category ? null : category;
+};
+
+const toggleArmorTypeFilter = (type: ArmorType) => {
+  armorTypeFilter.value = armorTypeFilter.value === type ? null : type;
+};
+
+const isArmorItem = (item: LibraryItem): item is ArmorDefinition =>
+  item.type === 'armor' && 'armorType' in item;
+
+const filteredSubItems = (group: MainGroup, sub: SubGroup) => {
+  if (isWeaponSubGroup(group, sub) && weaponCategoryFilter.value) {
+    return sub.items.filter((item) => item.type === 'weapon' && item.category === weaponCategoryFilter.value);
+  }
+
+  if (isArmorSubGroup(group, sub) && armorTypeFilter.value) {
+    return sub.items.filter((item) => isArmorItem(item) && item.armorType === armorTypeFilter.value);
+  }
+
+  return sub.items;
+};
 
 const cloneItem = (item: LibraryItem): LibraryCloneDragElement => ({ libraryId: item.id });
 
@@ -74,15 +121,37 @@ const onDragEnd = () => {
   clearGlobalDragPayload();
 };
 
+const weaponPropertyLabels: Record<WeaponPropertyKey, string> = {
+  ammunition: '弹药',
+  finesse: '灵巧',
+  heavy: '重型',
+  light: '轻型',
+  loading: '装填',
+  reach: '触及',
+  special: '特殊',
+  thrown: '投掷',
+  two_handed: '双手',
+  versatile: '两用'
+};
+
+const isWeaponItem = (item: LibraryItem): item is WeaponDefinition =>
+  item.type === 'weapon' && 'properties' in item && Array.isArray(item.properties);
+
 const getBadges = (item: LibraryItem) => {
-  const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'red' }> = [];
+  const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'red' | 'green' }> = [];
 
   if (item.source) badges.push({ text: item.source, color: 'blue' });
   if ('capacityVolume' in item && item.capacityVolume) badges.push({ text: '容器', color: 'orange' });
   if ('contents' in item && item.contents) badges.push({ text: '套组', color: 'orange' });
+  if (item.type === 'pack') badges.push({ text: `总重 ${item.weight} lb`, color: 'cyan' });
   if ('isAmmunition' in item && item.isAmmunition) badges.push({ text: '弹药', color: 'orange' });
   if ('ac' in item && item.ac) badges.push({ text: `AC ${item.ac}`, color: 'cyan' });
   if ('damage' in item && item.damage) badges.push({ text: item.damage, color: 'red' });
+  if (isWeaponItem(item)) {
+    item.properties.forEach((property) => {
+      badges.push({ text: weaponPropertyLabels[property] ?? property, color: 'green' });
+    });
+  }
   if (item.descriptionBlocks?.some((block) => block.type === 'table')) badges.push({ text: '表格', color: 'cyan' });
 
   return badges;
@@ -99,11 +168,35 @@ const getBadges = (item: LibraryItem) => {
         <div v-for="sub in group.subGroups" :key="sub.title" class="sub-group">
           <div class="sticky-sub-header" @click="toggleExpand(`${group.id}_${sub.title}`)" :class="{ 'is-open': isVisible(`${group.id}_${sub.title}`) }">
             <div class="header-left"><span class="arrow-icon">▶</span>{{ sub.title }}</div>
-            <span class="count">{{ sub.items.length }}</span>
+            <div v-if="isWeaponSubGroup(group, sub)" class="weapon-filter" @click.stop>
+              <button
+                v-for="option in weaponCategoryOptions"
+                :key="option.value"
+                type="button"
+                class="weapon-filter-button"
+                :class="{ active: weaponCategoryFilter === option.value }"
+                @click="toggleWeaponCategoryFilter(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <div v-if="isArmorSubGroup(group, sub)" class="weapon-filter" @click.stop>
+              <button
+                v-for="option in armorTypeOptions"
+                :key="option.value"
+                type="button"
+                class="weapon-filter-button"
+                :class="{ active: armorTypeFilter === option.value }"
+                @click="toggleArmorTypeFilter(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <span class="count">{{ filteredSubItems(group, sub).length }}</span>
           </div>
           <div v-show="isVisible(`${group.id}_${sub.title}`)">
             <draggable
-              :list="sub.items"
+              :list="filteredSubItems(group, sub)"
               :group="{ name: 'library', pull: 'clone', put: false }"
               :clone="cloneItem"
               item-key="id"
@@ -141,7 +234,12 @@ const getBadges = (item: LibraryItem) => {
 </template>
 
 <style scoped lang="scss">
+.items-panel {
+  --main-group-sticky-height: 46px;
+}
+
 .main-group-header {
+  position: sticky; top: 0; z-index: 20; min-height: var(--main-group-sticky-height);
   padding: 14px 12px; margin-top: 1px; background-color: #252525; border-bottom: 1px solid #333; border-left: 4px solid #555;
   font-size: 0.95rem; font-weight: 800; color: #ddd; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none; transition: all 0.2s;
   &:hover { background-color: #2d2d2d; color: #fff; }
@@ -151,13 +249,20 @@ const getBadges = (item: LibraryItem) => {
 }
 
 .sticky-sub-header {
-  position: sticky; top: 0; z-index: 10; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 24px;
+  position: sticky; top: var(--main-group-sticky-height); z-index: 15; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 24px;
   font-size: 0.85rem; font-weight: bold; color: #aaa; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background-color 0.2s;
   &:hover { background-color: #2a2a2a; color: #fff; }
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
   &.is-open { color: #eee; background-color: #282828; .arrow-icon { transform: rotate(90deg); } }
   .count { font-size: 0.7rem; color: #666; background: #1a1a1a; padding: 1px 6px; border-radius: 8px; }
+}
+
+.weapon-filter { display: flex; gap: 4px; margin-left: auto; margin-right: 8px; }
+.weapon-filter-button {
+  border: 1px solid #333; background: #1b1b1b; color: #888; font-size: 0.68rem; line-height: 1; padding: 4px 6px; border-radius: 4px; cursor: pointer;
+  &:hover { color: #ddd; border-color: #555; background: #242424; }
+  &.active { color: #82e0aa; border-color: rgba(130, 224, 170, 0.55); background: rgba(130, 224, 170, 0.12); }
 }
 
 .library-item { background-color: #1e1e1e; border-bottom: 1px solid #282828; padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: #2d2d2d; } }
@@ -172,5 +277,6 @@ const getBadges = (item: LibraryItem) => {
 .badge.orange { color: #eb984e; background: rgba(235, 152, 78, 0.1); }
 .badge.cyan { color: #48c9b0; background: rgba(72, 201, 176, 0.1); }
 .badge.red { color: #ec7063; background: rgba(236, 112, 99, 0.1); }
+.badge.green { color: #82e0aa; background: rgba(130, 224, 170, 0.1); }
 .empty-state { padding: 40px; text-align: center; color: #555; }
 </style>

@@ -10,6 +10,7 @@
     "build": "vite build && electron-builder",
     "preview": "vite preview",
     "test": "vitest run",
+    "audit:item-library": "vitest run tests/itemLibraryAudit.test.ts tests/itemLibraryMigration.test.ts",
     "test:watch": "vitest",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",

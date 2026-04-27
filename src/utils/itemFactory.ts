@@ -13,6 +13,20 @@ const cloneMagicDefinition = (magic?: ItemMagicDefinition): ItemMagicDefinition 
   isCursed: magic?.isCursed
 });
 
+const inventoryUnitWeight = (def: NonNullable<ReturnType<typeof getLibraryItemById>>): number => {
+  const multiplicity = def.multiplicity;
+
+  if (
+    multiplicity &&
+    ['split', 'split_grouped', 'split_custom_rule'].includes(multiplicity.mode) &&
+    multiplicity.sourceQuantity > 0
+  ) {
+    return def.weight / multiplicity.sourceQuantity;
+  }
+
+  return def.weight;
+};
+
 export function createItemFromLibrary(templateId: string): InventoryItem | null {
   const def = getLibraryItemById(templateId);
 
@@ -24,11 +38,15 @@ export function createItemFromLibrary(templateId: string): InventoryItem | null 
   const {
     id: definitionId,
     magic,
+    multiplicity,
+    acquisitionRule,
     descriptionBlocks,
     audit,
     ...dataProps
   } = def;
   void definitionId;
+  void multiplicity;
+  void acquisitionRule;
   void descriptionBlocks;
   void audit;
 
@@ -53,7 +71,7 @@ export function createItemFromLibrary(templateId: string): InventoryItem | null 
     name: def.name,
     type: def.type,
     magic: cloneMagicDefinition(magic),
-    weight: def.weight,
+    weight: inventoryUnitWeight(def),
     quantity: 1,
     parentId: undefined,
     description: def.description,

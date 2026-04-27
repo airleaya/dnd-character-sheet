@@ -67,6 +67,32 @@ export interface StructuredItemMagicDefinition {
   isCursed?: boolean;
 }
 
+export type StructuredMultiplicityMode =
+  | 'bundle'
+  | 'split'
+  | 'split_grouped'
+  | 'split_custom_rule';
+
+export interface StructuredItemMultiplicity {
+  sourceQuantity: number;
+  unitName: string;
+  mode: StructuredMultiplicityMode;
+  sourceText: string;
+  reviewNote?: string;
+}
+
+export interface StructuredAcquisitionRuleCreate {
+  itemId: string;
+  quantity: number;
+  containerId?: string;
+  containerSlot?: 'main' | 'hanging';
+}
+
+export interface StructuredItemAcquisitionRule {
+  text: string;
+  creates?: StructuredAcquisitionRuleCreate[];
+}
+
 export interface StructuredItemCost {
   value: number;
   unit: StructuredCurrencyUnit;
@@ -99,6 +125,8 @@ export interface StructuredBaseItem {
   weight?: number;
   description?: string;
   magic?: StructuredItemMagicDefinition;
+  multiplicity?: StructuredItemMultiplicity;
+  acquisitionRule?: StructuredItemAcquisitionRule;
   tags?: string[];
   audit: StructuredItemAudit;
 }

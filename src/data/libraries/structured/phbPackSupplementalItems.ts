@@ -36,6 +36,15 @@ const audit = (draft: PackSupplementDraft, comparedFields: StructuredAuditField[
 };
 
 const supplementalGear = (draft: PackSupplementDraft): StructuredGearItem => {
+  const multiplicity = draft.id === 'string_10ft'
+    ? {
+        sourceQuantity: 10,
+        unitName: '尺',
+        mode: 'bundle' as const,
+        sourceText: '窃贼套组：10尺弦线',
+        reviewNote: '用户审定为复数组合，并要求将10尺写入物品描述。'
+      }
+    : undefined;
   const comparedFields = [
     field('id', draft.id, draft.id),
     field('name', draft.name, draft.name),
@@ -44,7 +53,8 @@ const supplementalGear = (draft: PackSupplementDraft): StructuredGearItem => {
     field('sourceQuantity', draft.sourceQuantity, draft.sourceQuantity),
     field('weight', draft.weight, draft.weight),
     field('cost', draft.cost, draft.cost),
-    field('description', draft.description, draft.description)
+    field('description', draft.description, draft.description),
+    field('multiplicity', multiplicity, multiplicity)
   ];
 
   return {
@@ -57,6 +67,7 @@ const supplementalGear = (draft: PackSupplementDraft): StructuredGearItem => {
     cost: draft.cost,
     weight: draft.weight,
     description: draft.description,
+    multiplicity,
     tags: ['pack_supplement', draft.sourceIntakeId],
     audit: audit(draft, comparedFields)
   };
@@ -71,7 +82,7 @@ export const STRUCTURED_PHB_PACK_SUPPLEMENTAL_ITEMS: StructuredGearItem[] = [
     name: '弦线',
     englishName: 'String (10 feet)',
     weight: 0,
-    description: '来自窃贼套组的弦线物品。'
+    description: '该条目来自窃贼套组内容清单中的“10尺长的细线”。原文未提供独立规则描述；本库将其作为可展开的套组内容补充条目，重量按0磅记录。'
   }),
   supplementalGear({
     sourceIntakeId: 'pack_priests_pack',
@@ -81,7 +92,7 @@ export const STRUCTURED_PHB_PACK_SUPPLEMENTAL_ITEMS: StructuredGearItem[] = [
     name: '募捐盒',
     englishName: 'Alms Box',
     weight: 1,
-    description: '来自祭司套组的募捐盒物品。'
+    description: '该条目来自祭司套组内容清单中的募捐盒。原文未提供独立规则描述；本库将其作为可展开的套组内容补充条目，重量按1磅记录。'
   }),
   supplementalGear({
     sourceIntakeId: 'pack_priests_pack',
@@ -91,7 +102,7 @@ export const STRUCTURED_PHB_PACK_SUPPLEMENTAL_ITEMS: StructuredGearItem[] = [
     name: '熏香',
     englishName: 'Incense',
     weight: 0,
-    description: '来自祭司套组的熏香物品。'
+    description: '该条目来自祭司套组内容清单中的熏香。原文未提供独立规则描述；本库将其作为可展开的套组内容补充条目，重量按0磅记录。'
   }),
   supplementalGear({
     sourceIntakeId: 'pack_priests_pack',
@@ -101,7 +112,7 @@ export const STRUCTURED_PHB_PACK_SUPPLEMENTAL_ITEMS: StructuredGearItem[] = [
     name: '香炉',
     englishName: 'Censer',
     weight: 3,
-    description: '来自祭司套组的香炉物品。'
+    description: '该条目来自祭司套组内容清单中的香炉。原文未提供独立规则描述；本库将其作为可展开的套组内容补充条目，重量按3磅记录。'
   }),
   supplementalGear({
     sourceIntakeId: 'pack_priests_pack',
@@ -112,7 +123,7 @@ export const STRUCTURED_PHB_PACK_SUPPLEMENTAL_ITEMS: StructuredGearItem[] = [
     englishName: 'Vestments',
     cost: { value: 1, unit: 'gp' },
     weight: 4,
-    description: '来自祭司套组的祭袍物品。套用长袍数据。'
+    description: '该条目来自祭司套组内容清单中的祭袍。原文未提供独立规则描述；本库将其作为可展开的套组内容补充条目，并按长袍数据记录价格与重量。'
   }),
   supplementalGear({
     sourceIntakeId: 'pack_scholars_pack',
@@ -122,7 +133,7 @@ export const STRUCTURED_PHB_PACK_SUPPLEMENTAL_ITEMS: StructuredGearItem[] = [
     name: '小袋沙',
     englishName: 'Small Bag of Sand',
     weight: 0,
-    description: '来自学者套组的小袋沙物品。'
+    description: '该条目来自学者套组内容清单中的小袋沙。原文未提供独立规则描述；本库将其作为可展开的套组内容补充条目，重量按0磅记录。'
   }),
   supplementalGear({
     sourceIntakeId: 'pack_scholars_pack',
@@ -132,7 +143,7 @@ export const STRUCTURED_PHB_PACK_SUPPLEMENTAL_ITEMS: StructuredGearItem[] = [
     name: '小刀',
     englishName: 'Small Knife',
     weight: 0,
-    description: '来自学者套组的小刀物品。'
+    description: '该条目来自学者套组内容清单中的小刀。原文未提供独立规则描述；本库将其作为可展开的套组内容补充条目，重量按0磅记录。'
   })
 ];
 

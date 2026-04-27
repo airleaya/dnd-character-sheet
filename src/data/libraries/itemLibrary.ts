@@ -83,36 +83,116 @@ const asMagicDefinition = (magic?: ItemMagicDefinition): ItemMagicDefinition => 
 });
 
 const textBlock = (text?: string): ItemDescriptionBlock[] =>
-  text && text.trim() ? [{ type: 'paragraph', text }] : [];
+  text
+    ?.split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => ({ type: 'paragraph' as const, text: line })) ?? [];
 
-const baseDescription = (item: StructuredBaseItem): string =>
-  item.description || ('rules' in item && typeof item.rules === 'string' ? item.rules : undefined) || item.name;
+const CATEGORY_LABEL_OVERRIDES: Record<string, string> = {
+  equipment: '装备',
+  tool: '工具',
+  transport: '交通',
+  trade_good: '贸易品',
+  service: '服务',
+  treasure: '财宝',
+  special_material: '特殊材料',
+  misc: '其他'
+};
 
-const baseMeta = (item: StructuredBaseItem, blocks: ItemDescriptionBlock[]): RuntimeDisplayMeta => ({
+const SUBCATEGORY_LABEL_OVERRIDES: Record<string, string> = {
+  armor: '护甲',
+  weapon: '武器',
+  adventuring_gear: '冒险装备',
+  container: '容器',
+  consumable: '消耗品',
+  pack: '套组',
+  artisan_tool: '工匠工具',
+  general_tool: '通用工具',
+  gaming_set: '赌具',
+  musical_instrument: '乐器',
+  vehicle: '载具',
+  mount: '坐骑',
+  gemstone: '宝石',
+  art_object: '艺术品',
+  dragonshard: '龙晶',
+  stabling: '寄养服务',
+  lifestyle_expense: '生活开销',
+  food_drink_lodging: '食物、饮料与住宿',
+  service: '雇佣服务',
+  spellcasting_service: '施法服务',
+  trade_good: '贸易品',
+  trinket: '小饰品'
+};
+
+const categoryLabel = (category: string): string =>
+  CATEGORY_LABEL_OVERRIDES[category] ?? CATEGORY_LABELS[category] ?? category;
+
+const subcategoryLabel = (subcategory?: string): string | undefined =>
+  subcategory ? (SUBCATEGORY_LABEL_OVERRIDES[subcategory] ?? SUBCATEGORY_LABELS[subcategory] ?? subcategory) : undefined;
+
+const SOURCE_LABELS: Record<string, string> = {
+  PHB: 'PHB玩家手册',
+  DMG: 'DMG地下城主指南',
+  XGE: 'XGE珊娜萨的万事指南',
+  ERLW: 'ERLW艾伯伦：从终末战争中崛起'
+};
+
+const sourceLabel = (source: string): string => SOURCE_LABELS[source] ?? source;
+
+const itemKindLabel = (item: StructuredBaseItem, type?: ItemType): string =>
+  subcategoryLabel(item.subcategory) ?? categoryLabel(item.category) ?? type ?? '物品';
+
+const sourceIntro = (item: StructuredBaseItem, type?: ItemType): string =>
+  `这是来自${sourceLabel(item.source)}的${itemKindLabel(item, type)}物品。`;
+
+const sourceDetail = (item: StructuredBaseItem): string =>
+  item.description ||
+  ('rules' in item && typeof item.rules === 'string' ? item.rules : undefined) ||
+  item.name;
+
+const runtimeDescription = (item: StructuredBaseItem, type?: ItemType): string => {
+  const detail = sourceDetail(item).trim();
+  const intro = sourceIntro(item, type);
+  const acquisitionText = item.acquisitionRule?.text ? `\n${item.acquisitionRule.text}` : '';
+
+  return detail ? `${intro}\n${detail}${acquisitionText}` : `${intro}${acquisitionText}`;
+};
+
+const baseMeta = (
+  item: StructuredBaseItem,
+  description: string,
+  extraBlocks: ItemDescriptionBlock[]
+): RuntimeDisplayMeta => ({
   source: item.source,
   category: item.category,
   subcategory: item.subcategory,
-  displayCategory: CATEGORY_LABELS[item.category] ?? item.category,
-  displaySubcategory: item.subcategory ? (SUBCATEGORY_LABELS[item.subcategory] ?? item.subcategory) : undefined,
-  descriptionBlocks: blocks.length > 0 ? blocks : textBlock(baseDescription(item))
+  displayCategory: categoryLabel(item.category),
+  displaySubcategory: subcategoryLabel(item.subcategory),
+  descriptionBlocks: [...textBlock(description), ...extraBlocks]
 });
 
-const baseFields = (item: StructuredBaseItem, type: ItemType, blocks: ItemDescriptionBlock[]) => ({
-  id: item.id,
-  name: item.name,
-  englishName: item.englishName,
-  type,
-  cost: item.cost,
-  weight: item.weight ?? 0,
-  description: baseDescription(item),
-  magic: asMagicDefinition(item.magic),
-  audit: item.audit,
-  tags: item.tags,
-  ...baseMeta(item, blocks)
-});
+const baseFields = (item: StructuredBaseItem, type: ItemType, extraBlocks: ItemDescriptionBlock[]) => {
+  const description = runtimeDescription(item, type);
+
+  return {
+    id: item.id,
+    name: item.name,
+    englishName: item.englishName,
+    type,
+    cost: item.cost,
+    weight: item.weight ?? 0,
+    description,
+    magic: asMagicDefinition(item.magic),
+    multiplicity: item.multiplicity,
+    acquisitionRule: item.acquisitionRule,
+    audit: item.audit,
+    tags: item.tags,
+    ...baseMeta(item, description, extraBlocks)
+  };
+};
 
 const packBlocks = (item: StructuredPackItem): ItemDescriptionBlock[] => [
-  ...textBlock(item.description),
   {
     type: 'table',
     caption: '套组内容',
@@ -122,7 +202,7 @@ const packBlocks = (item: StructuredPackItem): ItemDescriptionBlock[] => [
 ];
 
 const toolBlocks = (item: StructuredToolItem): ItemDescriptionBlock[] => {
-  const blocks = textBlock(item.description);
+  const blocks: ItemDescriptionBlock[] = [];
   const detail = TOOL_DETAIL_BY_ID.get(item.id);
 
   if (!detail) {
@@ -160,7 +240,7 @@ const toolBlocks = (item: StructuredToolItem): ItemDescriptionBlock[] => {
 };
 
 const treasureBlocks = (item: StructuredTreasureItem): ItemDescriptionBlock[] => {
-  const blocks = textBlock(item.description);
+  const blocks: ItemDescriptionBlock[] = [];
 
   if (item.roll !== undefined || item.valueCategory || item.die) {
     blocks.push({
@@ -185,7 +265,6 @@ const specialMaterialBlocks = (item: StructuredBaseItem): ItemDescriptionBlock[]
   ].filter((row) => row[1]);
 
   return [
-    ...textBlock(item.description),
     ...(rows.length
       ? [{
           type: 'table' as const,
@@ -218,10 +297,49 @@ const isTool = (item: StructuredMundaneItem): item is StructuredToolItem =>
 const isTreasure = (item: StructuredMundaneItem): item is StructuredTreasureItem =>
   item.category === 'treasure' && ('valueCategory' in item || item.subcategory === 'gemstone' || item.subcategory === 'art_object');
 
+const STRUCTURED_ITEM_BY_ID = new Map(STRUCTURED_MUNDANE_ITEM_LIBRARY.map((item) => [item.id, item]));
+
+const inferPackContainerId = (item: StructuredPackItem): string | undefined => {
+  const firstContentId = item.contents[0]?.itemId;
+  return firstContentId === 'backpack' || firstContentId === 'chest' ? firstContentId : item.containerId;
+};
+
+const structuredInventoryUnitWeight = (item?: StructuredBaseItem): number => {
+  if (!item) {
+    return 0;
+  }
+
+  if (
+    item.multiplicity &&
+    ['split', 'split_grouped', 'split_custom_rule'].includes(item.multiplicity.mode) &&
+    item.multiplicity.sourceQuantity > 0
+  ) {
+    return (item.weight ?? 0) / item.multiplicity.sourceQuantity;
+  }
+
+  return item.weight ?? 0;
+};
+
+const calculatePackWeight = (item: StructuredPackItem): number => {
+  const weight = item.contents.reduce((total, content) => {
+    const contentItem = STRUCTURED_ITEM_BY_ID.get(content.itemId);
+    return total + structuredInventoryUnitWeight(contentItem) * content.quantity;
+  }, 0);
+
+  return Number(weight.toFixed(2));
+};
+
+const effectExtraBlocks = (description: string | undefined, effect: string | undefined): ItemDescriptionBlock[] =>
+  effect && effect !== description ? [{ type: 'paragraph', text: `效果：${effect}` }] : [];
+
 const toRuntimeItem = (item: StructuredMundaneItem): LibraryItem => {
   if (isWeapon(item)) {
     return {
-      ...baseFields(item, 'weapon', textBlock(item.description ?? item.specialRules)),
+      ...baseFields(
+        item,
+        'weapon',
+        item.specialRules ? [{ type: 'paragraph', text: `特殊规则：${item.specialRules}` }] : []
+      ),
       category: item.weaponCategory,
       damage: item.damage.dice,
       damageType: item.damage.type ?? 'bludgeoning',
@@ -235,7 +353,7 @@ const toRuntimeItem = (item: StructuredMundaneItem): LibraryItem => {
 
   if (isArmor(item)) {
     return {
-      ...baseFields(item, 'armor', textBlock(item.description)),
+      ...baseFields(item, 'armor', []),
       armorType: item.armorKind,
       ac: item.armorClass.base ?? item.armorClass.bonus ?? 0,
       dexBonusMax: item.armorClass.dexBonusMax,
@@ -248,17 +366,17 @@ const toRuntimeItem = (item: StructuredMundaneItem): LibraryItem => {
 
   if (isContainer(item)) {
     return {
-      ...baseFields(item, 'container', textBlock(item.description ?? item.rules)),
+      ...baseFields(item, 'container', effectExtraBlocks(item.description, item.rules)),
       capacityWeight: item.capacity?.weight,
       capacityVolume: item.capacity?.volume,
       maxItems: item.capacity?.items ? Number(item.capacity.items) : undefined,
-      ignoreContentWeight: false
+      ignoreContentWeight: item.id === 'quiver'
     } as ContainerDefinition;
   }
 
   if (isConsumable(item)) {
     return {
-      ...baseFields(item, 'consumable', textBlock(item.description ?? item.effect)),
+      ...baseFields(item, 'consumable', effectExtraBlocks(item.description, item.effect)),
       activation: item.activation,
       effectDescription: item.effect,
       isAmmunition: item.isAmmunition,
@@ -267,9 +385,12 @@ const toRuntimeItem = (item: StructuredMundaneItem): LibraryItem => {
   }
 
   if (isPack(item)) {
+    const containerId = item.containerId ?? inferPackContainerId(item);
+
     return {
       ...baseFields(item, 'pack', packBlocks(item)),
-      containerId: item.containerId,
+      weight: calculatePackWeight(item),
+      containerId,
       contents: item.contents.map((content) => ({ id: content.itemId, quantity: content.quantity }))
     } as PackDefinition;
   }
@@ -289,14 +410,14 @@ const toRuntimeItem = (item: StructuredMundaneItem): LibraryItem => {
 
   if (item.category === 'trade_good') {
     return {
-      ...baseFields(item, 'treasure', textBlock(item.description)),
+      ...baseFields(item, 'treasure', []),
       displayCategory: CATEGORY_LABELS.trade_good
     } as TreasureDefinition;
   }
 
   if (item.category === 'service') {
     return {
-      ...baseFields(item, 'misc', textBlock(item.description)),
+      ...baseFields(item, 'misc', []),
       displayCategory: CATEGORY_LABELS.service
     } as ItemDefinition;
   }
@@ -309,7 +430,7 @@ const toRuntimeItem = (item: StructuredMundaneItem): LibraryItem => {
   }
 
   return {
-    ...baseFields(item, 'gear', textBlock(item.description))
+    ...baseFields(item, 'gear', [])
   } as GearDefinition;
 };
 

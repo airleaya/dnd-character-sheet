@@ -22,7 +22,9 @@ type CommonExclude =
   | 'type'
   | 'rarity'
   | 'cost'
-  | 'magic';
+  | 'magic'
+  | 'multiplicity'
+  | 'acquisitionRule';
 
 // 2. 利用 Omit 生成 Data 类型
 // 这样 WeaponData 就只包含 damage, range 等战斗属性，而不包含 weight
@@ -58,6 +60,7 @@ export interface InventoryItem {
   
   type: ItemType;     
   magic?: ItemMagicDefinition;
+  containerSlot?: 'main' | 'hanging'; // 容器内位置；背包可使用 hanging 表示唯一悬挂栏位
   
   // --- 状态 ---
   parentId?: string; // 如果放在容器里，指向容器的 instanceId

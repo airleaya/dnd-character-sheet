@@ -55,6 +55,16 @@ const childItems = computed({
   set: () => { /* draggable 写入 */ }
 });
 
+const hangingItems = computed({
+  get: () => {
+    const item = store.getContainerHangingItem(props.item.instanceId);
+    return item ? [item] : [];
+  },
+  set: () => { /* draggable 写入由 change 事件处理 */ }
+});
+
+const hasHangingSlot = computed(() => props.item.type === 'container' && props.item.templateId === 'backpack');
+
 // 🔥 核心逻辑：智能箭袋代理
 // 如果是箭袋 (ignoreContentWeight=true)，且里面只有 1 种物品，则“穿透”控制内部物品
 const proxyTargetItem = computed(() => {
@@ -125,6 +135,19 @@ const onDropIntoContainer = (evt: InventoryDragChangeEvent) => {
   }
 };
 
+const onDropIntoHangingSlot = (evt: InventoryDragChangeEvent) => {
+  if (!hasHangingSlot.value || hangingItems.value.length > 0) return;
+
+  if (evt.added) {
+    const newItem = evt.added.element;
+    if (isLibraryCloneDragElement(newItem)) {
+      store.addItem(newItem.libraryId, undefined, props.item.instanceId, 'hanging');
+    } else if (isInventoryInstanceDragElement(newItem)) {
+      store.moveItemToContainerSlot(newItem.instanceId, props.item.instanceId, 'hanging');
+    }
+  }
+};
+
 
 const onDragStart = (e: DragEvent, item: InventoryItem) => {
   setupDragData(e, 'inventory-item', item.instanceId);
@@ -165,6 +188,7 @@ const handleDelete = () => {
         <span v-if="item.type === 'container'" class="container-badge">
           <span v-if="childItems.length === 0">(空)</span>
           <span v-else-if="proxyTargetItem">({{ proxyTargetItem.name }})</span>
+          <span v-if="hasHangingSlot && hangingItems.length > 0" class="hanging-badge">+悬挂</span>
           <span v-else>(内含 {{ childItems.length }} 项)</span>
         </span>
       </div>
@@ -222,6 +246,35 @@ const handleDelete = () => {
           </div>
         </template>
       </draggable>
+
+      <div v-if="hasHangingSlot" class="hanging-slot-shell">
+        <div class="hanging-slot-label">
+          <span class="hanging-dot"></span>
+          <span>悬挂栏</span>
+          <small>额外 1 格</small>
+        </div>
+        <draggable
+          v-model="hangingItems"
+          :group="{ name: 'inventory', put: ['library', 'inventory', 'equipment'] }"
+          item-key="instanceId"
+          class="hanging-drag-area"
+          @change="onDropIntoHangingSlot"
+          ghost-class="ghost"
+        >
+          <template #item="{ element }">
+            <InventoryItemRow
+              :item="element"
+              @dragstart="onDragStart($event, element)"
+            />
+          </template>
+
+          <template #header>
+            <div v-if="hangingItems.length === 0" class="hanging-empty-slot">
+              <span>挂一件物品</span>
+            </div>
+          </template>
+        </draggable>
+      </div>
     </div>
 
   </div>
@@ -375,6 +428,59 @@ const handleDelete = () => {
 }
 
 .nested-drag-area { min-height: 10px; }
+
+.hanging-slot-shell {
+  margin: 6px 8px 8px 30px;
+  border: 1px dashed #b8c2cc;
+  border-left: 3px solid #8e9aaf;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(142, 154, 175, 0.08), rgba(255,255,255,0.9));
+  overflow: hidden;
+}
+
+.hanging-slot-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  color: #5f6c7b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(142, 154, 175, 0.08);
+
+  small {
+    margin-left: auto;
+    color: #9aa5b1;
+    font-weight: 500;
+  }
+}
+
+.hanging-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8e9aaf;
+  box-shadow: 0 0 0 3px rgba(142, 154, 175, 0.14);
+}
+
+.hanging-drag-area { min-height: 30px; }
+
+.hanging-empty-slot {
+  margin: 6px;
+  padding: 8px;
+  color: #98a2ad;
+  font-size: 0.78rem;
+  text-align: center;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.65);
+}
+
+.hanging-badge {
+  margin-left: 5px;
+  color: #5f6c7b;
+  font-style: normal;
+  font-weight: 600;
+}
 
 .empty-slot {
   padding: 12px;

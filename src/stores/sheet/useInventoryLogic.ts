@@ -7,8 +7,14 @@ import { createItemFromLibrary } from '../../utils/itemFactory';
 import { CURRENCY_RATES } from '../../data/rules/currency';
 import { getLibraryItemById } from '../../data/libraries/itemLibrary';
 
-const STACKABLE_ITEM_IDS = new Set(['arrows', 'crossbow_bolts', 'dart']);
-const AMMO_BUNDLE_QUANTITY = 20;
+const STACKABLE_ITEM_IDS = new Set([
+  'arrows',
+  'crossbow_bolts',
+  'blowgun_needles',
+  'sling_bullets',
+  'iron_spikes_10',
+  'dart'
+]);
 
 type ContainerInventoryItem = InventoryItem & { data: ContainerData };
 
@@ -77,12 +83,19 @@ export function useInventoryLogic(
     return character.value.inventory.filter((item) => !item.parentId);
   });
 
-  const getContainerContents = computed<(containerId: string) => InventoryItem[]>(() => {
-    return (containerId: string): InventoryItem[] => {
-      if (!character.value) return [];
-      return character.value.inventory.filter((item) => item.parentId === containerId);
-    };
-  });
+const getContainerContents = computed<(containerId: string) => InventoryItem[]>(() => {
+  return (containerId: string): InventoryItem[] => {
+    if (!character.value) return [];
+    return character.value.inventory.filter((item) => item.parentId === containerId && item.containerSlot !== 'hanging');
+  };
+});
+
+const getContainerHangingItem = computed<(containerId: string) => InventoryItem | undefined>(() => {
+  return (containerId: string): InventoryItem | undefined => {
+    if (!character.value) return undefined;
+    return character.value.inventory.find((item) => item.parentId === containerId && item.containerSlot === 'hanging');
+  };
+});
 
   const initWalletIfMissing = (): void => {
     // 钱包字段已由 migration 统一补齐，此处保留空实现以兼容现有调用。
@@ -148,12 +161,13 @@ export function useInventoryLogic(
     save();
   };
 
-  const createNewItem = (libraryId: string, quantity: number, parentId?: string, index?: number): void => {
+  const createNewItem = (libraryId: string, quantity: number, parentId?: string, index?: number, containerSlot?: InventoryItem['containerSlot']): InventoryItem | undefined => {
     const newItem = createItemFromLibrary(libraryId);
-    if (!newItem || !character.value) return;
+    if (!newItem || !character.value) return undefined;
 
     newItem.quantity = quantity;
     newItem.parentId = parentId;
+    newItem.containerSlot = containerSlot;
 
     if (typeof index === 'number') {
       character.value.inventory.splice(index, 0, newItem);
@@ -162,28 +176,28 @@ export function useInventoryLogic(
     }
 
     save();
+    return newItem;
   };
 
-  const addOrMerge = (libraryId: string, quantity: number, targetParentId?: string): void => {
-    if (!character.value) return;
+  const addOrMerge = (libraryId: string, quantity: number, targetParentId?: string, targetContainerSlot?: InventoryItem['containerSlot']): InventoryItem | undefined => {
+    if (!character.value) return undefined;
 
     const canStack = STACKABLE_ITEM_IDS.has(libraryId);
     if (!canStack) {
-      createNewItem(libraryId, quantity, targetParentId);
-      return;
+      return createNewItem(libraryId, quantity, targetParentId, undefined, targetContainerSlot);
     }
 
     const existingItem = character.value.inventory.find(
-      (item) => item.templateId === libraryId && item.parentId === targetParentId
+      (item) => item.templateId === libraryId && item.parentId === targetParentId && item.containerSlot === targetContainerSlot
     );
 
     if (!existingItem) {
-      createNewItem(libraryId, quantity, targetParentId);
-      return;
+      return createNewItem(libraryId, quantity, targetParentId, undefined, targetContainerSlot);
     }
 
     existingItem.quantity += quantity;
     save();
+    return existingItem;
   };
 
   const addPack = (packId: string, index?: number, parentId?: string): void => {
@@ -196,6 +210,7 @@ export function useInventoryLogic(
       const containerItem = createItemFromLibrary(packDefinition.containerId);
       if (containerItem) {
         containerItem.parentId = parentId;
+        containerItem.name = `${containerItem.name}（${packDefinition.name}）`;
 
         if (typeof index === 'number') {
           character.value.inventory.splice(index, 0, containerItem);
@@ -208,46 +223,90 @@ export function useInventoryLogic(
     }
 
     packDefinition.contents.forEach((content) => {
-      addOrMerge(content.id, content.quantity, targetContainerId);
+      if (packDefinition.containerId && content.id === packDefinition.containerId) {
+        return;
+      }
+
+      const contentSlot =
+        packDefinition.containerId === 'backpack' && content.id === 'hempen_rope_50ft' && targetContainerId
+          ? 'hanging'
+          : undefined;
+
+      addOrMerge(content.id, content.quantity, targetContainerId, contentSlot);
     });
 
     save();
   };
 
-  const addItem = (libraryId: string, index?: number, parentId?: string): void => {
+  const addByAcquisitionRule = (
+    libraryId: string,
+    index?: number,
+    parentId?: string,
+    containerSlot?: InventoryItem['containerSlot']
+  ): boolean => {
+    const definition = getLibraryItemById(libraryId);
+    const creates = definition?.acquisitionRule?.creates;
+    if (!character.value || !creates?.length) {
+      return false;
+    }
+
+    const createdContainersByTemplateId = new Map<string, InventoryItem>();
+    let reordered = false;
+
+    creates.forEach((create, createIndex) => {
+      const targetContainer = create.containerId
+        ? createdContainersByTemplateId.get(create.containerId)
+        : undefined;
+      const targetParentId = targetContainer?.instanceId ?? (create.containerId ? undefined : parentId);
+      const targetContainerSlot = create.containerId
+        ? create.containerSlot
+        : (createIndex === 0 ? containerSlot : create.containerSlot);
+      const targetIndex = createIndex === 0 ? index : undefined;
+      const created = addOrMerge(create.itemId, create.quantity, targetParentId, targetContainerSlot);
+
+      if (created?.type === 'container') {
+        createdContainersByTemplateId.set(create.itemId, created);
+      }
+
+      if (targetIndex !== undefined && created && character.value) {
+        const currentIndex = character.value.inventory.indexOf(created);
+        if (currentIndex >= 0 && currentIndex !== targetIndex) {
+          character.value.inventory.splice(currentIndex, 1);
+          character.value.inventory.splice(targetIndex, 0, created);
+          reordered = true;
+        }
+      }
+    });
+
+    if (reordered) {
+      save();
+    }
+
+    return true;
+  };
+
+  const addItem = (libraryId: string, index?: number, parentId?: string, containerSlot?: InventoryItem['containerSlot']): void => {
     if (!character.value) return;
+
+    if (containerSlot === 'hanging' && parentId && getContainerHangingItem.value(parentId)) {
+      return;
+    }
 
     if (getLibraryItemById(libraryId)?.type === 'pack') {
       addPack(libraryId, index, parentId);
       return;
     }
 
-    if (libraryId === 'arrows' || libraryId === 'crossbow_bolts') {
-      let targetContainerId = parentId;
-
-      if (!targetContainerId) {
-        const existingQuiver = character.value.inventory.find((item) => item.templateId === 'quiver');
-        if (existingQuiver) {
-          targetContainerId = existingQuiver.instanceId;
-        } else {
-          const newQuiver = createItemFromLibrary('quiver');
-          if (newQuiver) {
-            character.value.inventory.push(newQuiver);
-            targetContainerId = newQuiver.instanceId;
-          }
-        }
-      }
-
-      addOrMerge(libraryId, AMMO_BUNDLE_QUANTITY, targetContainerId);
+    if (addByAcquisitionRule(libraryId, index, parentId, containerSlot)) {
       return;
     }
 
     if (libraryId === 'dart' && typeof index === 'undefined') {
-      addOrMerge(libraryId, 1, parentId);
+      addOrMerge(libraryId, 1, parentId, containerSlot);
       return;
     }
 
-    addOrMerge(libraryId, 1, parentId);
+    addOrMerge(libraryId, 1, parentId, containerSlot);
   };
 
   const removeItem = (instanceId: string): void => {
@@ -322,7 +381,21 @@ export function useInventoryLogic(
     if (!item) return;
 
     item.parentId = containerId;
+    item.containerSlot = undefined;
     reinsertItem(item, targetIndex);
+    save();
+  };
+
+  const moveItemToContainerSlot = (itemId: string, containerId: string, containerSlot: InventoryItem['containerSlot']): void => {
+    if (!character.value || itemId === containerId) return;
+    if (containerSlot === 'hanging' && getContainerHangingItem.value(containerId)) return;
+
+    const item = character.value.inventory.find((entry) => entry.instanceId === itemId);
+    if (!item) return;
+
+    item.parentId = containerId;
+    item.containerSlot = containerSlot;
+    reinsertItem(item);
     save();
   };
 
@@ -333,6 +406,7 @@ export function useInventoryLogic(
     if (!item) return;
 
     item.parentId = undefined;
+    item.containerSlot = undefined;
     reinsertItem(item, targetIndex);
     save();
   };
@@ -354,6 +428,7 @@ export function useInventoryLogic(
     carryingCapacity,
     rootInventory,
     getContainerContents,
+    getContainerHangingItem,
     initWalletIfMissing,
     modifyCurrency,
     updateWallet,
@@ -365,6 +440,7 @@ export function useInventoryLogic(
     updateEquippedList,
     updateItemQuantity,
     moveItemToContainer,
+    moveItemToContainerSlot,
     moveItemToRoot,
     reorderItem,
   };

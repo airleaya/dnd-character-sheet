@@ -21,12 +21,54 @@ describe('structured item library adapter', () => {
     expect(getLibraryItemById('eberron_dragonshard')?.displayCategory).toBe('特殊材料');
   });
 
+  it('computes pack weight from resolved pack contents', () => {
+    expect(getLibraryItemById('burglars_pack')?.weight).toBe(47.5);
+    expect(getLibraryItemById('explorers_pack')?.weight).toBe(59);
+    expect(getLibraryItemById('diplomats_pack')?.weight).toBe(36);
+  });
+
+  it('applies reviewed multiplicity and acquisition metadata without adding magic behavior', () => {
+    const arrows = getLibraryItemById('arrows');
+    const bolts = getLibraryItemById('crossbow_bolts');
+    const ballBearings = getLibraryItemById('ball_bearings');
+    const spikes = getLibraryItemById('iron_spikes_10');
+
+    expect(arrows?.weight).toBe(1);
+    expect(arrows?.cost).toEqual({ value: 1, unit: 'gp' });
+    expect(arrows?.multiplicity?.mode).toBe('split_custom_rule');
+    expect(arrows?.acquisitionRule?.creates).toEqual([
+      { itemId: 'quiver', quantity: 1 },
+      { itemId: 'arrows', quantity: 20, containerId: 'quiver' }
+    ]);
+    expect(arrows?.description).toContain('在本软件中获取该物品时');
+
+    expect(bolts?.weight).toBe(1.5);
+    expect(bolts?.acquisitionRule?.creates?.[0].itemId).toBe('crossbow_bolt_case');
+    expect(ballBearings?.multiplicity?.mode).toBe('bundle');
+    expect(ballBearings?.acquisitionRule?.creates?.[0].itemId).toBe('pouch');
+    expect(spikes?.weight).toBe(5);
+    expect(spikes?.multiplicity?.mode).toBe('split_grouped');
+  });
+
   it('keeps table descriptions available for the UI renderer', () => {
     const burglarsPack = getLibraryItemById('burglars_pack');
     const alchemistsSupplies = getLibraryItemById('alchemists_supplies');
 
     expect(burglarsPack?.descriptionBlocks?.some((block) => block.type === 'table')).toBe(true);
     expect(alchemistsSupplies?.descriptionBlocks?.some((block) => block.type === 'table')).toBe(true);
+  });
+
+  it('prefixes descriptions with source provenance and preserves traced source details', () => {
+    const acid = getLibraryItemById('acid_vial');
+    const alchemistsSupplies = getLibraryItemById('alchemists_supplies');
+    const almsBox = getLibraryItemById('alms_box');
+
+    expect(acid?.description).toContain('这是来自PHB玩家手册的消耗品物品。');
+    expect(acid?.description).toContain('强酸');
+    expect(alchemistsSupplies?.description).toContain('这是来自PHB玩家手册的工匠工具物品。');
+    expect(alchemistsSupplies?.descriptionBlocks?.some((block) => block.type === 'table')).toBe(true);
+    expect(almsBox?.description).toContain('这是来自PHB玩家手册的冒险装备物品。');
+    expect(almsBox?.description).toContain('原文未提供独立规则描述');
   });
 
   it('migrates old item ids without dropping unknown custom inventory', () => {

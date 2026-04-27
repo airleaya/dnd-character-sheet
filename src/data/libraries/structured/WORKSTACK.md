@@ -1,5 +1,81 @@
 # Structured Item Library Work Stack
 
+## 2026-04-28 复数子个体物品审定
+
+- [x] 在结构化类型中预留 `multiplicity`，用于记录来源数量、单位、审定模式、来源文本和审定备注。
+- [x] 在结构化类型中预留 `acquisitionRule`，用于记录未来获取规则的可见文本和生成清单。
+- [x] 在运行时 `ItemDefinition` 中暴露相同静态字段，并由 `itemLibrary.ts` adapter 透传。
+- [x] `itemFactory` 暂不把 `multiplicity` / `acquisitionRule` 复制进库存实例 `data`，避免提前引入运行时状态。
+- [x] 生成 `pluralItemReview.md`，覆盖强审定候选、连续长度候选、容量/使用次数候选、套组候选和套组补充条目候选。
+- [x] 增加 `tests/pluralItemReview.test.ts`，确认审定表存在、四个选项完整、关键候选被记录。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\pluralItemReview.test.ts tests\itemLibraryAudit.test.ts tests\itemLibraryAdapter.test.ts`
+- [x] 用户审定已结束，可明确执行项已迁移到正式结构化数据。
+- [x] 拆分单体数据：`arrows`、`crossbow_bolts`、`blowgun_needles`、`sling_bullets`、`iron_spikes_10`。
+- [x] 不拆数据但建立获取规则：`ball_bearings`、`caltrops`。
+- [x] 建立通用 `acquisitionRule` 执行器，替换箭/弩矢硬编码获取逻辑。
+- [x] 运行时描述追加“在本软件中获取该物品时：...”。
+- [x] 生成迁移报告：`src/data/libraries/structured/pluralItemMigrationReport.md`。
+- [x] 按用户复核意见修正拆分物品口径：物品库保留组重量/组价格，行囊实例使用单体重量。
+- [x] `itemFactory` 负责把拆分物品的库重量换算成库存单体重量。
+- [x] 套组重量计算和深度审计同步使用拆分物品的库存单体重量口径。
+- [x] 迁移验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\itemLibraryAdapter.test.ts tests\useInventoryLogic.test.ts tests\pluralItemReview.test.ts tests\itemLibraryAudit.test.ts`
+  - `npm run audit:item-library`
+- [x] 口径修正验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests\itemLibraryAdapter.test.ts tests\useInventoryLogic.test.ts tests\itemLibraryAudit.test.ts`
+  - `npm run audit:item-library`
+
+## 2026-04-28 物品查看悬浮框边缘保护
+
+- [x] 物品库/法术库悬浮框在组件内部测量真实宽高。
+- [x] 物品库/法术库悬浮框复用 `getTooltipViewportPosition` 进行视口边缘保护。
+- [x] 库存物品悬浮框同步接入同一套视口边缘保护。
+- [x] 保持原有悬浮框续命交互、描述块和表格渲染路径不变。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests/globalTooltip.ui.test.ts tests/useInventoryLogic.test.ts tests/itemLibraryAdapter.test.ts`
+
+## 2026-04-27 描述溯源增强
+
+- [x] 运行时物品描述统一加入来源前缀：`这是来自xx的xx物品。`
+- [x] 运行时描述保留结构化源条目的具体描述或规则文本。
+- [x] 套组补全条目不再只保留“来自xx套组的xx物品”占位文本，改为说明其来自套组清单、原文未提供独立规则描述，以及当前补全数据依据。
+- [x] `descriptionBlocks` 改为先输出来源与细节段落，再追加套组内容、工具 DC、财宝信息、龙晶材料信息等表格。
+- [x] 深度审计新增描述来源前缀与原文细节迁移检查。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run test -- tests/itemLibraryAdapter.test.ts tests/itemLibraryAudit.test.ts`
+  - `npm run test -- tests/useInventoryLogic.test.ts tests/itemLibraryAdapter.test.ts tests/itemLibraryAudit.test.ts`
+  - `npm run audit:item-library`
+
+## 2026-04-27 UI 与库存规则迭代记录
+
+- [x] 物品库菜单改为一级菜单与当前二级菜单双层吸附。
+- [x] 武器条目展示属性徽章，并加入 `简近 / 简远 / 军近 / 军远` 筛选。
+- [x] 护甲二级菜单加入 `轻甲 / 中甲 / 重甲` 筛选。
+- [x] 背包实例加入唯一 `悬挂栏`，用于表示背包外附加空间。
+- [x] 套组物品放入套组提供的容器，并将该容器重命名为 `容器名（套组名）`。
+- [x] 套组重量由内容自引用计算，并在物品库条目中标注。
+- [x] 箭袋恢复穿透规则：只计自重，单一弹药内容时在箭袋行暴露数量控制。
+- [x] 记录纪律：后续所有物品库与库存规则改动必须同步更新清单和工作记录。
+
+## 2026-04-27 正式接入审计闭环
+
+- [x] 建立逐项迁移审计报告：`src/data/libraries/itemMigrationAuditReport.ts`。
+- [x] 建立深度审计报告与断言入口：`src/data/libraries/itemLibraryDeepAudit.ts`。
+- [x] 建立固定审计命令：`npm run audit:item-library`。
+- [x] 修正二级目录中文显示标签，避免暴露 `lifestyle_expense`、`food_drink_lodging`、`service`、`spellcasting_service`、`trade_good`、`trinket` 等内部 id。
+- [x] 扩展旧物品 id 迁移表，覆盖旧套组、旧工具、旧弹药、旧容器与旧消耗品常见路径。
+- [x] 验证旧库存迁移：可映射条目迁移到新 id，无法映射的自定义物品保留并附带 `migrationAudit`。
+- [x] 验证命令：
+  - `npm run typecheck`
+  - `npm run audit:item-library`
+  - `npm run test -- tests/itemLibraryAdapter.test.ts tests/itemMagicDefinition.test.ts tests/characterMigration.test.ts tests/useInventoryLogic.test.ts tests/itemLibraryAudit.test.ts tests/itemLibraryMigration.test.ts`
+
 This is a local temporary work stack for structuring the intake item library.
 
 ## Scope

@@ -64,6 +64,28 @@ export interface ItemMagicDefinition {
   isCursed?: boolean;
 }
 
+export type ItemMultiplicityMode = 'bundle' | 'split' | 'split_grouped' | 'split_custom_rule';
+
+export interface ItemMultiplicity {
+  sourceQuantity: number;
+  unitName: string;
+  mode: ItemMultiplicityMode;
+  sourceText: string;
+  reviewNote?: string;
+}
+
+export interface ItemAcquisitionRuleCreate {
+  itemId: string;
+  quantity: number;
+  containerId?: string;
+  containerSlot?: 'main' | 'hanging';
+}
+
+export interface ItemAcquisitionRule {
+  text: string;
+  creates?: ItemAcquisitionRuleCreate[];
+}
+
 export type ItemDescriptionBlock =
   | { type: 'paragraph'; text: string }
   | { type: 'list'; items: string[] }
@@ -109,6 +131,8 @@ export interface ItemDefinition {
   description: string;   
   descriptionBlocks?: ItemDescriptionBlock[];
   magic?: ItemMagicDefinition;
+  multiplicity?: ItemMultiplicity;
+  acquisitionRule?: ItemAcquisitionRule;
   audit?: ItemLibraryAudit;
   tags?: string[];
   /** @deprecated Keep legacy library data readable; new rarity belongs in magic.rarity. */
