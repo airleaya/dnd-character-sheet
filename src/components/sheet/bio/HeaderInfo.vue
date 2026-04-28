@@ -9,7 +9,6 @@ import ClassSelector from './../bio/ClassSelector.vue';
 import XpProgressBar from './XpProgressBar.vue';
 import AlignmentPicker from './AlignmentPicker.vue';
 import type { CharacterProfile } from '../../../types/Character';
-import { ATTR_MAP } from '../../../data/rules/dndRules';
 import { useTooltipStore, type TooltipData } from '../../../stores/tooltip';
 
 const store = useActiveSheetStore();
@@ -30,26 +29,12 @@ const update = <K extends keyof CharacterProfile>(field: K, val: CharacterProfil
 
 const emptyText = '暂无';
 
-const proficientSkillLabels = computed(() => store.skills
-  .filter((skill) => skill.profLevel)
-  .map((skill) => skill.expertise ? `${skill.label}（专精）` : skill.label));
-
-const proficientSaveLabels = computed(() => {
-  if (!character.value) return [];
-
-  return Object.entries(character.value.savingThrows)
-    .filter(([, isProficient]) => isProficient)
-    .map(([key]) => `${ATTR_MAP[key] ?? key}豁免`);
-});
-
 const formatToolProficiency = (tool: string) =>
   store.isToolExpertise(tool) ? `${tool}（专精）` : tool;
 
 const buildProficiencyTooltip = (): TooltipData => ({
   title: '熟练项',
   sections: [
-    { label: '技能', items: proficientSkillLabels.value.length ? proficientSkillLabels.value : [emptyText] },
-    { label: '豁免', items: proficientSaveLabels.value.length ? proficientSaveLabels.value : [emptyText] },
     { label: '护甲', items: character.value?.proficiencies.armor.length ? character.value.proficiencies.armor : [emptyText] },
     { label: '武器', items: character.value?.proficiencies.weapons.length ? character.value.proficiencies.weapons : [emptyText] },
     {

@@ -1,6 +1,27 @@
 # UPDATE_LOG
 
 ## [0.12.3] - 2026-04-28
+- 类型：Bugfix / 规则 / 角色卡 / UI / 测试
+- 条目：修复万事通先攻与等级判定
+- 负责人：雪莺栖 / Codex
+- 关联文件：
+  - `src/utils/classFeatures.ts`
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/components/sheet/bio/HeaderInfo.vue`
+  - `tests/useBioLogic.test.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/headerInfoProficiencyTooltip.ui.test.ts`
+- 已完成变化：
+  - 新增统一职业特性判断工具，单主职且职业记录缺省等级时，会以角色总等级作为该职业有效等级。
+  - 万事通现在会影响先攻检定，先攻获得向下取整的一半熟练加值。
+  - 吟游诗人职业显式降回 1 级时，万事通会立即失效。
+  - 熟练项按钮的悬停悬浮窗不再展示技能与豁免，只展示护甲、武器、工具和语言。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests\useBioLogic.test.ts tests\useCombatLogic.test.ts tests\headerInfoProficiencyTooltip.ui.test.ts` 通过，3 个测试文件，20 个用例。
+
+## [0.12.3] - 2026-04-28
 - 类型：UI / 库存 / 负重反馈 / 测试
 - 条目：动态负重数值上色
 - 负责人：雪莺栖 / Codex

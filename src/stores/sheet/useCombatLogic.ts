@@ -5,6 +5,7 @@ import type { ArmorData, InventoryItem, WeaponData } from '../../types/Item';
 import type { AbilityKey } from '../../types/Library';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { ATTR_MAP } from '../../data/rules/dndRules';
+import { getJackOfAllTradesBonus } from '../../utils/classFeatures';
 
 export type AttackSourceType = 'unarmed' | 'weapon';
 export type AttackMode = 'base' | 'ranged' | 'thrown' | 'offhand' | 'versatile';
@@ -127,7 +128,8 @@ export function useCombatLogic(
 ) {
   const initiative = computed(() => {
     if (!character.value) return '+0';
-    return formatSigned(abilityModifier(character.value.stats.dex));
+    const jackOfAllTradesBonus = getJackOfAllTradesBonus(character.value, proficiencyBonus.value);
+    return formatSigned(abilityModifier(character.value.stats.dex) + jackOfAllTradesBonus);
   });
 
   const armorClass = computed(() => {

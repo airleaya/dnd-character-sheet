@@ -243,4 +243,30 @@ describe('useCombatLogic', () => {
       offhandDamagePenalty: true,
     });
   });
+
+  it('adds jack of all trades to initiative for eligible bards', () => {
+    const character = ref(createDefaultCharacter('combat-jack-initiative'));
+    character.value.profile.level = 5;
+    character.value.profile.classes = [{ classId: 'b', subclassId: null, level: 2 }];
+    character.value.stats.dex = 14;
+
+    const logic = useCombatLogic(character, vi.fn(), ref(3));
+
+    expect(logic.initiative.value).toBe('+3');
+
+    character.value.profile.classes[0]!.level = 1;
+
+    expect(logic.initiative.value).toBe('+2');
+  });
+
+  it('adds jack of all trades to initiative for single-class bards without class level data', () => {
+    const character = ref(createDefaultCharacter('combat-jack-initiative-main'));
+    character.value.profile.level = 2;
+    character.value.profile.classes = [{ classId: 'b', subclassId: null }];
+    character.value.stats.dex = 14;
+
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+
+    expect(logic.initiative.value).toBe('+3');
+  });
 });

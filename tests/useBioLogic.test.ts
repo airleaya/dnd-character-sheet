@@ -77,6 +77,40 @@ describe('useBioLogic jack of all trades', () => {
     expect(stealth?.mod).toBe('+3');
   });
 
+  it('treats a single bard class without an explicit class level as the character level', () => {
+    const character = ref(createDefaultCharacter('jack-bio-main-no-level'));
+    character.value.profile.level = 2;
+    character.value.profile.classes = [{ classId: 'b', subclassId: null }];
+    character.value.stats.dex = 14;
+
+    const logic = useBioLogic(character, vi.fn());
+    const stealth = logic.skills.value.find((skill) => skill.key === 'stealth');
+
+    expect(logic.hasJackOfAllTrades.value).toBe(true);
+    expect(stealth?.jackOfAllTrades).toBe(true);
+    expect(stealth?.mod).toBe('+3');
+  });
+
+  it('removes jack of all trades when the explicit bard level drops below 2', () => {
+    const character = ref(createDefaultCharacter('jack-bio-level-drop'));
+    character.value.profile.level = 5;
+    character.value.profile.classes = [{ classId: 'b', subclassId: null, level: 2 }];
+    character.value.stats.dex = 14;
+
+    const logic = useBioLogic(character, vi.fn());
+    const activeStealth = logic.skills.value.find((skill) => skill.key === 'stealth');
+
+    expect(logic.hasJackOfAllTrades.value).toBe(true);
+    expect(activeStealth?.mod).toBe('+3');
+
+    character.value.profile.classes[0]!.level = 1;
+    const inactiveStealth = logic.skills.value.find((skill) => skill.key === 'stealth');
+
+    expect(logic.hasJackOfAllTrades.value).toBe(false);
+    expect(inactiveStealth?.jackOfAllTrades).toBe(false);
+    expect(inactiveStealth?.mod).toBe('+2');
+  });
+
   it('does not apply jack of all trades to proficient or expert skills', () => {
     const character = ref(createDefaultCharacter('jack-bio-2'));
     character.value.profile.level = 5;

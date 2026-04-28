@@ -9,6 +9,7 @@ import type {
 } from '../../types/Character';
 import { SKILL_DEFINITIONS, XP_TABLE } from '../../data/rules/dndRules';
 import { ALIGNMENT_MIGRATION_MAP } from '../../data/rules/alignment';
+import { characterHasJackOfAllTrades, getJackOfAllTradesBonus } from '../../utils/classFeatures';
 
 type SkillDefinitionKey = keyof typeof SKILL_DEFINITIONS;
 type SkillSummary = {
@@ -33,8 +34,6 @@ const getAllocatedClassLevels = (classes: CharacterClassRecord[]): number => {
   return classes.reduce((sum, classRecord) => sum + (classRecord.level ?? 1), 0);
 };
 
-const BARD_CLASS_ID = 'b';
-
 export function useBioLogic(character: Ref<Character | null>, save: () => void) {
   const proficiencyBonus = computed<number>(() => {
     if (!character.value) return 2;
@@ -44,9 +43,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
   const hasJackOfAllTrades = computed<boolean>(() => {
     if (!character.value) return false;
 
-    return character.value.profile.classes.some((classRecord) =>
-      classRecord.classId === BARD_CLASS_ID && (classRecord.level ?? 1) >= 2
-    );
+    return characterHasJackOfAllTrades(character.value);
   });
 
   const skills = computed<SkillSummary[]>(() => {
@@ -54,7 +51,7 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
 
     const currentCharacter = character.value;
     const pb = proficiencyBonus.value;
-    const jackOfAllTradesBonus = Math.floor(pb / 2);
+    const jackOfAllTradesBonus = getJackOfAllTradesBonus(currentCharacter, pb);
 
     return (Object.entries(SKILL_DEFINITIONS) as [
       SkillDefinitionKey,
