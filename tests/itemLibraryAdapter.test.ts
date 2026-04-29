@@ -4,11 +4,53 @@ import { normalizeCharacterData, type LegacyCharacterData } from '../src/utils/c
 
 describe('structured item library adapter', () => {
   it('uses the audited structured mundane library as the runtime source', () => {
-    expect(ITEM_LIBRARY_AUDIT_REPORT.total).toBe(489);
+    expect(ITEM_LIBRARY_AUDIT_REPORT.total).toBe(498);
     expect(ITEM_LIBRARY_AUDIT_REPORT.sourceMismatched).toBe(0);
     expect(ITEM_LIBRARY_AUDIT_REPORT.duplicateIds).toBe(0);
     expect(ITEM_LIBRARY_AUDIT_REPORT.magicItems).toBe(0);
     expect(ITEM_LIBRARY.every((item) => item.magic?.isMagic === false)).toBe(true);
+  });
+
+  it('adds blank templates for every runtime item type', () => {
+    const templates = [
+      ['blank_template_weapon', '武器模板', 'weapon'],
+      ['blank_template_armor', '护甲模板', 'armor'],
+      ['blank_template_gear', '冒险装备模板', 'gear'],
+      ['blank_template_tool', '工具模板', 'tool'],
+      ['blank_template_consumable', '消耗品模板', 'consumable'],
+      ['blank_template_treasure', '财宝模板', 'treasure'],
+      ['blank_template_container', '容器模板', 'container'],
+      ['blank_template_pack', '套组模板', 'pack'],
+      ['blank_template_misc', '其他模板', 'misc'],
+    ] as const;
+
+    templates.forEach(([id, name, type]) => {
+      const template = getLibraryItemById(id);
+      expect(template).toMatchObject({
+        id,
+        name,
+        type,
+        weight: 0,
+        description: '',
+        cost: { value: 0, unit: 'gp' },
+        magic: { isMagic: false },
+        tags: expect.arrayContaining(['blank_template']),
+      });
+    });
+
+    expect(getLibraryItemById('blank_template_weapon')).toMatchObject({
+      damage: '',
+      damageType: 'damage_none',
+      properties: [],
+    });
+    expect(getLibraryItemById('blank_template_armor')).toMatchObject({
+      ac: 0,
+      dexBonusMax: 0,
+      strReq: 0,
+    });
+    expect(getLibraryItemById('blank_template_pack')).toMatchObject({
+      contents: [],
+    });
   });
 
   it('adapts representative item categories', () => {

@@ -228,8 +228,8 @@ describe('InventoryItemRow container content preview', () => {
     const nameStyle = wrapper.find('.name-text').attributes('style') ?? '';
 
     expect(wrapper.find('.name-text').text()).toBe('匕首+0');
-    expect(rowStyle).toContain('background-color: rgb(240, 231, 255)');
-    expect(nameStyle).toContain('color: rgb(139, 30, 63)');
+    expect(rowStyle).toContain('background-color: rgb(220, 194, 255)');
+    expect(nameStyle).toContain('color: rgb(79, 11, 34)');
   });
 
   it('shows selected enchantment trait names on magic inventory rows', () => {

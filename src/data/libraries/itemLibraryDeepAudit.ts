@@ -1,4 +1,10 @@
-import { ITEM_LIBRARY, ITEM_LIBRARY_AUDIT_REPORT, ITEM_LIBRARY_BY_ID } from './itemLibrary';
+import {
+  BLANK_ITEM_TEMPLATE_COUNT,
+  ITEM_LIBRARY,
+  ITEM_LIBRARY_AUDIT_REPORT,
+  ITEM_LIBRARY_BY_ID,
+  isBlankItemTemplate,
+} from './itemLibrary';
 import { STRUCTURED_MUNDANE_ITEM_LIBRARY } from './structured';
 import type { StructuredBaseItem } from './structured/types';
 import type { LibraryItem, PackDefinition } from '../../types/Library';
@@ -86,6 +92,10 @@ const buildDescriptionTraceAudit = (items: LibraryItem[]) => {
   const tracedDescriptionMissing: string[] = [];
 
   for (const item of items) {
+    if (isBlankItemTemplate(item)) {
+      continue;
+    }
+
     const structuredItem = STRUCTURED_ITEM_BY_ID.get(item.id);
 
     if (!item.description.startsWith('这是来自')) {
@@ -151,7 +161,10 @@ export const buildItemLibraryDeepAuditReport = (): ItemLibraryDeepAuditReport =>
       missingRequiredFields.push(item.id || item.name || 'unknown item');
     }
 
-    if (!hasPriceRule(item) || typeof item.weight !== 'number' || !hasDescription(item)) {
+    if (
+      !isBlankItemTemplate(item) &&
+      (!hasPriceRule(item) || typeof item.weight !== 'number' || !hasDescription(item))
+    ) {
       missingRequiredFields.push(item.id);
     }
 
@@ -213,7 +226,7 @@ export const buildItemLibraryDeepAuditReport = (): ItemLibraryDeepAuditReport =>
 export const ITEM_LIBRARY_DEEP_AUDIT_REPORT = buildItemLibraryDeepAuditReport();
 
 export const assertItemLibraryDeepAudit = (): void => {
-  if (ITEM_LIBRARY_AUDIT_REPORT.total !== 489) {
+  if (ITEM_LIBRARY_AUDIT_REPORT.total !== 489 + BLANK_ITEM_TEMPLATE_COUNT) {
     throw new Error(`物品库总数异常：${ITEM_LIBRARY_AUDIT_REPORT.total}`);
   }
 

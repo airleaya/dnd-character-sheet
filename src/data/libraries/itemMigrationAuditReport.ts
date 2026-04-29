@@ -1,5 +1,5 @@
 import { STRUCTURED_MUNDANE_ITEM_LIBRARY } from './structured';
-import { ITEM_LIBRARY, ITEM_LIBRARY_BY_ID } from './itemLibrary';
+import { BLANK_ITEM_TEMPLATE_COUNT, ITEM_LIBRARY, ITEM_LIBRARY_BY_ID } from './itemLibrary';
 
 export type ItemMigrationAuditStatus = 'passed' | 'failed';
 
@@ -78,6 +78,6 @@ export const ITEM_MIGRATION_AUDIT_MARKDOWN = [
   ).map((row) => `| ${row} |`)
 ].join('\n');
 
-if (ITEM_LIBRARY.length !== STRUCTURED_MUNDANE_ITEM_LIBRARY.length) {
+if (ITEM_LIBRARY.length !== STRUCTURED_MUNDANE_ITEM_LIBRARY.length + BLANK_ITEM_TEMPLATE_COUNT) {
   throw new Error('Item migration audit report count does not match runtime library count.');
 }

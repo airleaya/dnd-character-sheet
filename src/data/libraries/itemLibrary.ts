@@ -434,6 +434,92 @@ const toRuntimeItem = (item: StructuredMundaneItem): LibraryItem => {
   } as GearDefinition;
 };
 
+export const BLANK_ITEM_TEMPLATE_TAG = 'blank_template';
+
+const blankBase = (
+  id: string,
+  name: string,
+  type: ItemType,
+  displaySubcategory: string
+): ItemDefinition => ({
+  id,
+  name,
+  englishName: '',
+  type,
+  source: 'BUILTIN_TEMPLATE',
+  category: 'template',
+  subcategory: type,
+  displayCategory: '空白模板',
+  displaySubcategory,
+  cost: { value: 0, unit: 'gp' },
+  weight: 0,
+  description: '',
+  descriptionBlocks: [],
+  magic: { isMagic: false },
+  tags: [BLANK_ITEM_TEMPLATE_TAG],
+});
+
+export const BLANK_ITEM_TEMPLATES: LibraryItem[] = [
+  {
+    ...blankBase('blank_template_weapon', '武器模板', 'weapon', '武器'),
+    category: 'simple_melee',
+    damage: '',
+    damageType: 'damage_none',
+    properties: [],
+    range: '',
+    versatileDamage: '',
+    specialEffect: '',
+    requiredAmmoType: 'none',
+  } as WeaponDefinition,
+  {
+    ...blankBase('blank_template_armor', '护甲模板', 'armor', '护甲'),
+    armorType: 'light',
+    ac: 0,
+    dexBonusMax: 0,
+    strReq: 0,
+    stealthDis: false,
+    donTime: '',
+    doffTime: '',
+  } as ArmorDefinition,
+  {
+    ...blankBase('blank_template_gear', '冒险装备模板', 'gear', '冒险装备'),
+  } as GearDefinition,
+  {
+    ...blankBase('blank_template_tool', '工具模板', 'tool', '工具'),
+    baseAbility: undefined,
+  } as ToolDefinition,
+  {
+    ...blankBase('blank_template_consumable', '消耗品模板', 'consumable', '消耗品'),
+    activation: '',
+    effectDescription: '',
+    isAmmunition: false,
+    ammoType: 'none',
+    maxCharges: 0,
+  } as ConsumableDefinition,
+  {
+    ...blankBase('blank_template_treasure', '财宝模板', 'treasure', '财宝'),
+  } as TreasureDefinition,
+  {
+    ...blankBase('blank_template_container', '容器模板', 'container', '容器'),
+    capacityWeight: 0,
+    capacityVolume: '',
+    maxItems: 0,
+    ignoreContentWeight: false,
+  } as ContainerDefinition,
+  {
+    ...blankBase('blank_template_pack', '套组模板', 'pack', '套组'),
+    containerId: '',
+    contents: [],
+  } as PackDefinition,
+  {
+    ...blankBase('blank_template_misc', '其他模板', 'misc', '其他'),
+  } as ItemDefinition,
+];
+
+export const BLANK_ITEM_TEMPLATE_COUNT = BLANK_ITEM_TEMPLATES.length;
+export const isBlankItemTemplate = (item: LibraryItem): boolean =>
+  item.tags?.includes(BLANK_ITEM_TEMPLATE_TAG) ?? false;
+
 const validateRuntimeLibrary = (items: LibraryItem[]) => {
   const issues: string[] = [];
   const ids = new Set<string>();
@@ -452,7 +538,7 @@ const validateRuntimeLibrary = (items: LibraryItem[]) => {
       issues.push(`Audit mismatch: ${item.id}`);
     }
 
-    if (!item.description && !item.descriptionBlocks?.length) {
+    if (!isBlankItemTemplate(item) && !item.description && !item.descriptionBlocks?.length) {
       issues.push(`Missing description: ${item.id}`);
     }
 
@@ -478,7 +564,10 @@ const validateRuntimeLibrary = (items: LibraryItem[]) => {
   }
 };
 
-export const ITEM_LIBRARY: LibraryItem[] = STRUCTURED_MUNDANE_ITEM_LIBRARY.map(toRuntimeItem);
+export const ITEM_LIBRARY: LibraryItem[] = [
+  ...BLANK_ITEM_TEMPLATES,
+  ...STRUCTURED_MUNDANE_ITEM_LIBRARY.map(toRuntimeItem),
+];
 
 validateRuntimeLibrary(ITEM_LIBRARY);
 

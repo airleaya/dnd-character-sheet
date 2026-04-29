@@ -1,5 +1,32 @@
 # UPDATE_LOG
 
+## [0.13.9] - 2026-04-29
+- 类型：功能增强 / 物品库 / Forge / 测试
+- 条目：为每个物品类别添加空白模板
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/data/libraries/itemLibraryDeepAudit.ts`
+  - `src/data/libraries/itemMigrationAuditReport.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+  - `tests/itemLibraryAudit.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.8` 自增长到 `0.13.9`。
+  - 物品库新增 9 个空白模板：武器模板、护甲模板、冒险装备模板、工具模板、消耗品模板、财宝模板、容器模板、套组模板、其他模板。
+  - 空白模板统一带 `blank_template` 标签，出现在物品库与 Forge 模板下拉搜索中，可作为自定义物品起点。
+  - 空白模板的描述、英文名、文本规则等保持空置；重量、价值、AC、容量、充能等数值必填项填 `0`。
+  - 物品库深度审计与迁移审计调整为识别内置空白模板，仍保持原 489 条结构化来源物品的审计闭环。
+- 验证结果：
+  - `npm run test -- tests/itemLibraryAdapter.test.ts tests/itemLibraryAudit.test.ts` 通过：2 个测试文件，13 个用例。
+  - `npm run audit:item-library` 通过：2 个测试文件，5 个用例。
+  - `npm run test` 通过：30 个测试文件，133 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.9` 安装包与便携版。
+
 ## [0.13.8] - 2026-04-29
 - 类型：UI 微调 / 附魔系统 / 工程记录
 - 条目：默认魔法视觉颜色加深
