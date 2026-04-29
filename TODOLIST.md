@@ -3,7 +3,7 @@
 > 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.8` to `0.14.9`; this round reworks the GM maker item area into a grouped data pack content view with drag sorting and existing DIY/enchant editor reuse.
 > 2026-04-29 maker content UI update:
-> The maker now displays data pack items grouped by normal menu fields, supports item/group drag ordering, routes DIY item edits through the existing item window, routes enchant edits through the existing enchant window, and renames visible ????? labels to ?????.
+> The maker now displays data pack items grouped by normal menu fields, supports item/group drag ordering, routes DIY item edits through the existing item window, routes enchant edits through the existing enchant window, and renames visible 铁匠铺 labels to 铁匠台.
 
 > 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.7` to `0.14.8`; this round routes right-sidebar forge/enchant drops into the GM data pack maker.

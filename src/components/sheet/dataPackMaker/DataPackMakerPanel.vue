@@ -561,8 +561,8 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
             @dragleave.prevent.stop="onWorkbenchDragLeave('forge')"
             @drop.prevent.stop="onItemDrop($event, 'forge')"
           >
-            <strong>???</strong>
-            <span>??????????????????? DIY ?????</span>
+            <strong>铁匠台</strong>
+            <span>拖拽物品到这里，复制到当前数据包并唤起 DIY 物品窗口。</span>
           </div>
           <div
             class="drop-card purple"
@@ -573,30 +573,30 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
             @dragleave.prevent.stop="onWorkbenchDragLeave('enchant')"
             @drop.prevent.stop="onItemDrop($event, 'enchant')"
           >
-            <strong>???</strong>
-            <span>????????????????????????</span>
+            <strong>附魔台</strong>
+            <span>拖拽物品到这里，复制到当前数据包并唤起附魔窗口。</span>
           </div>
         </div>
         <div class="workbench-hint">
-          <strong>????</strong>
-          <span>??????????DIY ???????????????????/?????</span>
+          <strong>编辑方式</strong>
+          <span>点击内容区物品上的“DIY 编辑”或“附魔”按钮，会打开已有的物品/附魔窗口。</span>
         </div>
       </aside>
 
       <main class="content-panel">
         <div class="editor-top">
           <div>
-            <h2>??????</h2>
-            <p class="hint">?????????????????????????????????????????</p>
+            <h2>数据包内容物</h2>
+            <p class="hint">按普通一二级分组展示；拖拽物品可排序或移动到其他分组，拖拽分组标题可调整分组顺序。</p>
           </div>
         </div>
 
-        <div v-if="contentGroups.length === 0" class="empty-panel compact">???????????????????</div>
+        <div v-if="contentGroups.length === 0" class="empty-panel compact">从右侧物品库拖拽物品到铁匠台或附魔台。</div>
         <section v-else class="content-groups">
           <article v-for="group in contentGroups" :key="group.category" class="content-category">
             <header class="content-category-title">
               <span>{{ group.category }}</span>
-              <small>{{ group.subgroups.reduce((sum, sub) => sum + sub.items.length, 0) }} ?</small>
+              <small>{{ group.subgroups.reduce((sum, sub) => sum + sub.items.length, 0) }} 件</small>
             </header>
 
             <div class="content-subgroups">
@@ -615,9 +615,9 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
                   @dragover.prevent
                   @drop.prevent.stop="moveContentGroupBefore(subgroup.key)"
                 >
-                  <span class="drag-handle">??</span>
+                  <span class="drag-handle">⋮⋮</span>
                   <strong>{{ subgroup.subcategory }}</strong>
-                  <small>{{ subgroup.items.length }} ?</small>
+                  <small>{{ subgroup.items.length }} 件</small>
                 </header>
 
                 <div class="content-items">
@@ -633,15 +633,15 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
                     @drop.prevent.stop="moveContentItemToGroup(subgroup.category, subgroup.subcategory, item.id)"
                     @click="selectedItemIndex = items.findIndex(entry => entry.id === item.id)"
                   >
-                    <span class="drag-handle">??</span>
+                    <span class="drag-handle">⋮⋮</span>
                     <div class="content-item-main">
                       <strong>{{ item.name }}</strong>
                       <small>{{ item.type }} / {{ item.source || pack.manifest.name }}</small>
                     </div>
                     <div class="content-item-actions">
-                      <button type="button" class="small" @click.stop="openForgeEditorForDraftItem(item)">DIY ??</button>
-                      <button type="button" class="small" @click.stop="openEnchantEditorForDraftItem(item)">??</button>
-                      <button type="button" class="danger small" @click.stop="removeDraftItem(item.id)">??</button>
+                      <button type="button" class="small" @click.stop="openForgeEditorForDraftItem(item)">DIY 编辑</button>
+                      <button type="button" class="small" @click.stop="openEnchantEditorForDraftItem(item)">附魔</button>
+                      <button type="button" class="danger small" @click.stop="removeDraftItem(item.id)">删除</button>
                     </div>
                   </article>
                 </div>

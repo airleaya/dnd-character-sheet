@@ -21,7 +21,7 @@
   - Data pack items are shown by normal first/second-level menu groups; item cards support drag sorting and dragging across groups updates their normal group fields.
   - Subgroup headers can be dragged to reorder grouped chunks in the data pack item order.
   - Item DIY editing and enchant editing now open the existing DIY item window and enchant window, then write the edited result back to the active data pack draft.
-  - Visible ????? labels were renamed to ?????.
+  - Visible 铁匠铺 labels were renamed to 铁匠台.
 - Verification:
   - `npm run typecheck` passed.
   - `npm run test -- tests/inventoryDropUtils.test.ts tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts` passed.
