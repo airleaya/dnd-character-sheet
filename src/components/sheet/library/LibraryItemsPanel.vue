@@ -99,6 +99,7 @@ const onDragEnd = () => {
   dataPackStore.recordMakerDragDiagnostic('library.dragend', 'info', 'Library item dragend fired; global payload cleanup scheduled', {
     makerOpen: dataPackStore.isMakerOpen,
   });
+  dataPackStore.resolveMakerWorkbenchDropFromDragEnd();
 };
 
 const weaponPropertyLabels: Record<WeaponPropertyKey, string> = {

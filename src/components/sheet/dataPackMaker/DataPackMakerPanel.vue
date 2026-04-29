@@ -57,6 +57,7 @@ const switchLibraryTab = (tab: 'items' | 'spells') => {
 };
 
 const importItemIntoWorkbench = async (runtimeItemId: string, target: 'forge' | 'enchant') => {
+  store.clearMakerWorkbenchDropCandidate();
   store.recordMakerDragDiagnostic('maker.import-start', 'info', 'Maker starts importing dropped item', {
     runtimeItemId,
     target,
@@ -108,6 +109,10 @@ const onWorkbenchDragOver = (event: DragEvent, target: 'forge' | 'enchant') => {
     event.dataTransfer.dropEffect = 'copy';
   }
   hoveringWorkbench.value = target;
+  const payload = getDragPayloadFromEvent(event);
+  if (payload?.type === 'library-item') {
+    store.armMakerWorkbenchDropCandidate(payload.id, target, 'maker-card');
+  }
   const now = Date.now();
   if (now - lastDragOverDiagnosticAt > 800) {
     lastDragOverDiagnosticAt = now;
@@ -169,6 +174,10 @@ const onDocumentDragOver = (event: DragEvent) => {
     event.dataTransfer.dropEffect = 'copy';
   }
   hoveringWorkbench.value = target;
+  const payload = getDragPayloadFromEvent(event);
+  if (payload?.type === 'library-item') {
+    store.armMakerWorkbenchDropCandidate(payload.id, target, 'maker-document');
+  }
   const now = Date.now();
   if (now - lastDragOverDiagnosticAt > 800) {
     lastDragOverDiagnosticAt = now;

@@ -47,6 +47,12 @@ export const useDataPackStore = defineStore('dataPack', () => {
     target: 'forge' | 'enchant';
     token: number;
   } | null>(null);
+  const makerWorkbenchDropCandidate = ref<{
+    runtimeItemId: string;
+    target: 'forge' | 'enchant';
+    updatedAt: number;
+    source: string;
+  } | null>(null);
   const makerDragDiagnostics = ref<MakerDragDiagnostic[]>([]);
   let makerDragDiagnosticSeq = 0;
 
@@ -384,6 +390,68 @@ export const useDataPackStore = defineStore('dataPack', () => {
     });
   };
 
+  const armMakerWorkbenchDropCandidate = (
+    runtimeItemId: string,
+    target: 'forge' | 'enchant',
+    source: string
+  ) => {
+    const previous = makerWorkbenchDropCandidate.value;
+    makerWorkbenchDropCandidate.value = {
+      runtimeItemId,
+      target,
+      updatedAt: Date.now(),
+      source,
+    };
+
+    if (
+      previous?.runtimeItemId !== runtimeItemId ||
+      previous?.target !== target ||
+      previous?.source !== source
+    ) {
+      recordMakerDragDiagnostic('store.arm-drop-candidate', 'info', 'Drop target armed for dragend fallback', {
+        runtimeItemId,
+        target,
+        source,
+      });
+    }
+  };
+
+  const clearMakerWorkbenchDropCandidate = () => {
+    makerWorkbenchDropCandidate.value = null;
+  };
+
+  const resolveMakerWorkbenchDropFromDragEnd = () => {
+    if (!isMakerOpen.value) return false;
+
+    const candidate = makerWorkbenchDropCandidate.value;
+    if (!candidate) {
+      recordMakerDragDiagnostic('store.dragend-fallback', 'warn', 'Drag ended, but no maker workbench candidate was armed');
+      return false;
+    }
+
+    const ageMs = Date.now() - candidate.updatedAt;
+    if (ageMs > 2000) {
+      recordMakerDragDiagnostic('store.dragend-fallback', 'warn', 'Drag ended after candidate expired', {
+        runtimeItemId: candidate.runtimeItemId,
+        target: candidate.target,
+        source: candidate.source,
+        ageMs,
+      });
+      makerWorkbenchDropCandidate.value = null;
+      return false;
+    }
+
+    recordMakerDragDiagnostic('store.dragend-fallback', 'ok', 'No drop event fired; using dragend fallback to activate maker', {
+      runtimeItemId: candidate.runtimeItemId,
+      target: candidate.target,
+      source: candidate.source,
+      ageMs,
+    });
+    makerWorkbenchDropCandidate.value = null;
+    requestMakerItemWorkbench(candidate.runtimeItemId, candidate.target);
+    return true;
+  };
+
   const ensureEditorMeta = () => {
     if (!activeDraftPack.value) return undefined;
     activeDraftPack.value.editorMeta ??= {};
@@ -623,6 +691,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     draftDirty,
     makerLibraryTab,
     makerItemWorkbenchRequest,
+    makerWorkbenchDropCandidate,
     makerDragDiagnostics,
     orderedDataPacks,
     enabledDataPacks,
@@ -644,6 +713,9 @@ export const useDataPackStore = defineStore('dataPack', () => {
     markDraftDirty,
     setMakerLibraryTab,
     requestMakerItemWorkbench,
+    armMakerWorkbenchDropCandidate,
+    clearMakerWorkbenchDropCandidate,
+    resolveMakerWorkbenchDropFromDragEnd,
     recordMakerDragDiagnostic,
     clearMakerDragDiagnostics,
     addMenuGroup,
