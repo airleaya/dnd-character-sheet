@@ -12,6 +12,7 @@ const selectedItemIndex = ref(0);
 const selectedSpellIndex = ref(0);
 const sourcePackId = ref('');
 const activeItemWorkbench = ref<'forge' | 'enchant'>('forge');
+const hoveringWorkbench = ref<'forge' | 'enchant' | null>(null);
 const newItemGroupName = ref('');
 const newItemSubgroupName = ref('');
 const newItemSubgroupParentId = ref('');
@@ -56,11 +57,36 @@ const switchLibraryTab = (tab: 'items' | 'spells') => {
 
 const parseDrop = (event: DragEvent) => {
   event.preventDefault();
-  const raw = event.dataTransfer?.getData('text/plain') || getGlobalDragPayload();
-  return raw ? parseDragPayload(raw) : null;
+  const nativeData = event.dataTransfer?.getData('text/plain');
+  const globalData = getGlobalDragPayload();
+  const nativePayload = nativeData ? parseDragPayload(nativeData) : null;
+  if (nativePayload) return nativePayload;
+  return globalData ? parseDragPayload(globalData) : null;
+};
+
+const onWorkbenchDragEnter = (target: 'forge' | 'enchant') => {
+  hoveringWorkbench.value = target;
+};
+
+const onWorkbenchDragOver = (event: DragEvent, target: 'forge' | 'enchant') => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'copy';
+  }
+  hoveringWorkbench.value = target;
+};
+
+const onWorkbenchDragLeave = (target: 'forge' | 'enchant') => {
+  if (hoveringWorkbench.value === target) {
+    hoveringWorkbench.value = null;
+  }
 };
 
 const onItemDrop = (event: DragEvent, target: 'forge' | 'enchant') => {
+  event.preventDefault();
+  event.stopPropagation();
+  hoveringWorkbench.value = null;
   const payload = parseDrop(event);
   if (payload?.type === 'library-item') {
     activeSection.value = 'items';
@@ -184,11 +210,25 @@ const saveLock = async () => {
     <div v-if="activeSection === 'items'" class="maker-grid">
       <aside class="list-panel">
         <div class="drop-grid">
-          <div class="drop-card" @dragover.prevent @drop="onItemDrop($event, 'forge')">
+          <div
+            class="drop-card"
+            :class="{ hovering: hoveringWorkbench === 'forge' }"
+            @dragenter.prevent.stop="onWorkbenchDragEnter('forge')"
+            @dragover.prevent.stop="onWorkbenchDragOver($event, 'forge')"
+            @dragleave.prevent.stop="onWorkbenchDragLeave('forge')"
+            @drop.prevent.stop="onItemDrop($event, 'forge')"
+          >
             <strong>铁匠铺</strong>
             <span>拖拽物品到这里，复制到当前数据包并进入下方编辑。</span>
           </div>
-          <div class="drop-card purple" @dragover.prevent @drop="onItemDrop($event, 'enchant')">
+          <div
+            class="drop-card purple"
+            :class="{ hovering: hoveringWorkbench === 'enchant' }"
+            @dragenter.prevent.stop="onWorkbenchDragEnter('enchant')"
+            @dragover.prevent.stop="onWorkbenchDragOver($event, 'enchant')"
+            @dragleave.prevent.stop="onWorkbenchDragLeave('enchant')"
+            @drop.prevent.stop="onItemDrop($event, 'enchant')"
+          >
             <strong>附魔台</strong>
             <span>拖拽物品到这里，复制到当前数据包；附魔细节沿用物品魔法字段。</span>
           </div>
@@ -412,8 +452,10 @@ button.small { padding: 4px 7px; font-size: 0.78rem; }
 .maker-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; }
 .list-panel, .editor-panel, .empty-panel { background: white; border: 1px solid #d8ded8; border-radius: 14px; padding: 14px; }
 .drop-grid { display: grid; gap: 10px; margin-bottom: 12px; }
-.drop-card { border: 2px dashed #b78945; background: #fff8e7; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 5px; color: #6a4a1f; }
+.drop-card { border: 2px dashed #b78945; background: #fff8e7; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 5px; color: #6a4a1f; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.drop-card.hovering { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(183, 137, 69, 0.22); background: #fff1c7; }
 .drop-card.purple { border-color: #9a79bd; background: #f2e9ff; color: #573777; }
+.drop-card.purple.hovering { box-shadow: 0 8px 20px rgba(154, 121, 189, 0.24); background: #eadbff; }
 .drop-card.blue { border-color: #5c8fbd; background: #eaf5ff; color: #2b5e89; margin-bottom: 12px; }
 .entry { width: 100%; margin-bottom: 6px; text-align: left; display: flex; flex-direction: column; gap: 3px; }
 .entry.active { background: #263126; color: white; }

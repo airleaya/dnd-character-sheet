@@ -1,5 +1,25 @@
 # UPDATE_LOG
 
+## [0.14.5] - 2026-04-29
+- 类型：Bugfix / 数据包制作器 / 拖拽 / 测试
+- 条目：制作器铁匠铺与附魔台拖拽接收修复
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/data/dataPacks/defaultDnd5ePack.ts`
+- 已完成变化：
+  - 项目版本号从 `0.14.4` 自增长到 `0.14.5`。
+  - 修复制作器内铁匠铺/附魔台无法稳定接收右侧栏物品拖拽的问题。
+  - Drop 逻辑改为优先尝试原生 `dataTransfer` payload，解析失败时回退到全局拖拽 payload，兼容 `vuedraggable` 与 Electron 原生拖拽差异。
+  - 铁匠铺/附魔台拖拽目标补齐 `dragenter`、`dragover`、`dragleave`、`drop` 接管和悬停反馈，并显式设置 `dropEffect: copy`。
+- 验证结果：
+  - `npm run test -- tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts tests/spellRitualBadges.ui.test.ts` 通过：4 个测试文件，14 个用例。
+  - `npm run typecheck` 通过。
+
 ## [0.14.4] - 2026-04-29
 - 类型：UI 优化 / 数据包制作器 / 分组 / 阶段四预备 / 测试
 - 条目：数据包制作器分组与拖拽入口增强
