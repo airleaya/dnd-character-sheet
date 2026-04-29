@@ -232,6 +232,38 @@ describe('InventoryItemRow container content preview', () => {
     expect(nameStyle).toContain('color: rgb(139, 30, 63)');
   });
 
+  it('shows selected enchantment trait names on magic inventory rows', () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('magic-trait-row');
+    const dagger = createGear('magic-trait-dagger', '影牙', '', 1);
+    dagger.parentId = undefined;
+    dagger.type = 'weapon';
+    dagger.templateId = 'dagger';
+    dagger.magic = {
+      isMagic: true,
+      selectedTraitIds: ['frost'],
+      customTraits: [
+        {
+          id: 'frost',
+          source: 'custom',
+          type: 'damage',
+          name: '寒霜',
+          description: '附着寒霜。',
+          activationMode: 'always',
+          participatesInDamage: true,
+          damageDice: '1d6',
+          damageType: 'cold',
+        },
+      ],
+    };
+    character.inventory = [dagger];
+    store.character = character;
+
+    const wrapper = mountRow(dagger);
+
+    expect(wrapper.find('.enchant-tag').text()).toBe('寒霜');
+  });
+
   it('uses the quantity control slot for attunement and enforces the three-item cap', async () => {
     const store = useActiveSheetStore();
     const character = createDefaultCharacter('attunement-row');

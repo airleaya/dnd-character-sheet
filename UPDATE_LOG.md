@@ -1,5 +1,38 @@
 # UPDATE_LOG
 
+## [0.13.5] - 2026-04-29
+- 类型：Bugfix / 附魔系统 / 行囊展示 / 测试
+- 条目：附魔词条物品级快照与行囊展示
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/utils/magicItems.ts`
+  - `src/composables/useEnchanting.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/utils/itemFactory.ts`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `tests/enchantingModal.ui.test.ts`
+  - `tests/inventoryItemRow.ui.test.ts`
+  - `tests/inventoryPanelLoadColor.ui.test.ts`
+  - `tests/useCombatLogic.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.4` 自增长到 `0.13.5`。
+  - 物品进入行囊时运行时 `data` 与描述块改为深拷贝，避免库存实例继续共享类型库对象引用。
+  - 附魔词条绑定到行囊物品时会写入 `item.magic.customTraits` 物品级快照；攻击计算、行囊展示和悬停窗均优先读取物品自身快照。
+  - 删除或修改角色级自定义词条库时，不再反向移除或改变已经附魔到物品上的词条。
+  - 行囊物品项新增附魔词条小标签，直接显示当前物品已绑定的词条名。
+  - 行囊悬停窗新增“附魔词条”区块，展示词条名、描述、触发/充能摘要、附带法术和伤害信息。
+- 验证结果：
+  - `npm run test -- tests/enchantingModal.ui.test.ts tests/inventoryItemRow.ui.test.ts tests/inventoryPanelLoadColor.ui.test.ts tests/useCombatLogic.test.ts` 通过：4 个测试文件，36 个用例。
+  - `npm run test` 通过：30 个测试文件，126 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.5` 安装包与便携版。
+
 ## [0.13.4] - 2026-04-29
 - 类型：UI 实装 / 附魔系统 / 测试
 - 条目：实装附魔制作界面

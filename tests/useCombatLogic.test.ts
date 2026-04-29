@@ -483,6 +483,7 @@ describe('useCombatLogic', () => {
       isMagic: true,
       magicBonus: 0,
       selectedTraitIds: ['flame-trait'],
+      customTraits: character.value.customMagicTraits.map(trait => ({ ...trait })),
     };
     character.value.inventory.push(dagger);
 

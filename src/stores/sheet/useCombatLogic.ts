@@ -370,7 +370,7 @@ export function useCombatLogic(
 
       const damageTypeLabel = resolveDamageTypeLabel(data.damageType || 'none');
       const magicBonus = getMagicBonus(item);
-      const magicTraits = resolveMagicTraitsForItem(item, char);
+      const magicTraits = resolveMagicTraitsForItem(item);
       const automaticTraitDamage = magicTraits
         .filter(
           trait =>

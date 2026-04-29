@@ -1,4 +1,3 @@
-import type { Character } from '../types/Character';
 import type { InventoryItem } from '../types/Item';
 import type { ItemMagicDefinition, ItemMagicTrait } from '../types/Library';
 import {
@@ -7,6 +6,7 @@ import {
   DEFAULT_MAGIC_NAME_COLOR,
   PRESET_MAGIC_TRAITS,
 } from '../data/rules/magicTraits';
+import { DAMAGE_TYPES } from '../data/rules/damageTypes';
 
 export const ensureMagicDefinition = (item: InventoryItem): ItemMagicDefinition => {
   if (!item.magic) {
@@ -26,6 +26,16 @@ export const ensureMagicDefinition = (item: InventoryItem): ItemMagicDefinition 
   if (!item.magic.selectedTraitIds) {
     item.magic.selectedTraitIds = [];
   }
+  if (!item.magic.customTraits) {
+    item.magic.customTraits = [];
+  }
+  item.magic.selectedTraitIds.forEach(traitId => {
+    if (item.magic!.customTraits!.some(trait => trait.id === traitId)) return;
+    const presetTrait = PRESET_MAGIC_TRAITS.find(trait => trait.id === traitId);
+    if (presetTrait) {
+      item.magic!.customTraits!.push(cloneMagicTrait(presetTrait));
+    }
+  });
   return item.magic;
 };
 
@@ -89,19 +99,81 @@ export const getMagicAttackStyle = (item: InventoryItem) => {
   };
 };
 
-export const resolveMagicTraitsForItem = (
-  item: InventoryItem,
-  character?: Pick<Character, 'customMagicTraits'>
-): ItemMagicTrait[] => {
+export const attachMagicTraitSnapshot = (item: InventoryItem, trait: ItemMagicTrait) => {
+  const magic = ensureMagicDefinition(item);
+  const selected = new Set(magic.selectedTraitIds ?? []);
+  selected.add(trait.id);
+  magic.selectedTraitIds = Array.from(selected);
+
+  const snapshot = cloneMagicTrait(trait);
+  const existingIndex = magic.customTraits?.findIndex(entry => entry.id === trait.id) ?? -1;
+  if (existingIndex >= 0) {
+    magic.customTraits![existingIndex] = snapshot;
+  } else {
+    magic.customTraits = [...(magic.customTraits ?? []), snapshot];
+  }
+};
+
+export const detachMagicTraitSnapshot = (item: InventoryItem, traitId: string) => {
+  const magic = ensureMagicDefinition(item);
+  magic.selectedTraitIds = (magic.selectedTraitIds ?? []).filter(id => id !== traitId);
+  magic.customTraits = (magic.customTraits ?? []).filter(trait => trait.id !== traitId);
+};
+
+export const resolveMagicTraitsForItem = (item: InventoryItem): ItemMagicTrait[] => {
+  if (!item.magic) return [];
+  if (!item.magic.customTraits) {
+    item.magic.customTraits = [];
+  }
   const selectedIds = item.magic?.selectedTraitIds ?? [];
   if (selectedIds.length === 0) return [];
 
+  selectedIds.forEach(traitId => {
+    if (item.magic!.customTraits!.some(trait => trait.id === traitId)) return;
+    const presetTrait = PRESET_MAGIC_TRAITS.find(trait => trait.id === traitId);
+    if (presetTrait) {
+      item.magic!.customTraits!.push(cloneMagicTrait(presetTrait));
+    }
+  });
+
   const traitMap = new Map<string, ItemMagicTrait>();
-  PRESET_MAGIC_TRAITS.forEach(trait => traitMap.set(trait.id, trait));
-  character?.customMagicTraits?.forEach(trait => traitMap.set(trait.id, trait));
   item.magic?.customTraits?.forEach(trait => traitMap.set(trait.id, trait));
 
   return selectedIds
     .map(id => traitMap.get(id))
     .filter((trait): trait is ItemMagicTrait => trait !== undefined);
+};
+
+const resolveDamageTypeLabel = (rawType?: string) => {
+  if (!rawType) return '';
+  const typeKey = rawType.toLowerCase();
+  const damageDef =
+    typeKey in DAMAGE_TYPES ? DAMAGE_TYPES[typeKey as keyof typeof DAMAGE_TYPES] : undefined;
+  return damageDef ? damageDef.label : rawType;
+};
+
+export const formatMagicTraitDamage = (trait: ItemMagicTrait): string => {
+  if (trait.type !== 'damage' || !trait.participatesInDamage) return '';
+
+  const dice = trait.damageDice?.trim() ?? '';
+  const bonus =
+    typeof trait.damageBonus === 'number' && Number.isFinite(trait.damageBonus)
+      ? trait.damageBonus
+      : 0;
+  const bonusText = bonus > 0 ? `+${bonus}` : bonus < 0 ? `${bonus}` : '';
+  const damageType = resolveDamageTypeLabel(trait.damageType);
+
+  return [dice, bonusText, damageType].filter(Boolean).join(' ').trim();
+};
+
+export const formatMagicTraitMeta = (trait: ItemMagicTrait): string => {
+  if (trait.type === 'spell') {
+    const chargeText = trait.charges ? ` · ${trait.charges.current}/${trait.charges.max} 充能` : '';
+    return `附带法术${chargeText}`;
+  }
+
+  const damage = formatMagicTraitDamage(trait);
+  const mode = trait.activationMode === 'charged' ? '消耗充能' : '默认作用';
+  const chargeText = trait.charges ? ` · ${trait.charges.current}/${trait.charges.max} 充能` : '';
+  return [mode, damage].filter(Boolean).join(' · ') + chargeText;
 };

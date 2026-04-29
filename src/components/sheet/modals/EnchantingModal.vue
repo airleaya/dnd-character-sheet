@@ -10,7 +10,7 @@ import {
   PRESET_MAGIC_TRAITS,
 } from '../../../data/rules/magicTraits';
 import { SPELL_LIBRARY, getSpellById } from '../../../data/spells';
-import { formatMagicItemName } from '../../../utils/magicItems';
+import { formatMagicItemName, resolveMagicTraitsForItem } from '../../../utils/magicItems';
 import type { ItemMagicTrait, ItemRarity } from '../../../types/Library';
 
 type EnchantTab = 'basic' | 'traits' | 'create' | 'manage';
@@ -72,8 +72,7 @@ const allTraits = computed<ItemMagicTrait[]>(() => [
 ]);
 
 const selectedTraits = computed<ItemMagicTrait[]>(() => {
-  const selected = new Set(targetItem.value?.magic?.selectedTraitIds ?? []);
-  return allTraits.value.filter(trait => selected.has(trait.id));
+  return targetItem.value ? resolveMagicTraitsForItem(targetItem.value) : [];
 });
 
 const filteredTraits = computed(() => {

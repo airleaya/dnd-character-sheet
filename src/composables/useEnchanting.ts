@@ -4,8 +4,12 @@ import { parseDragPayload } from '../utils/inventoryDropUtils';
 import { createRendererLogger } from '../utils/rendererLogger';
 import type { InventoryItem } from '../types/Item';
 import type { ItemMagicTrait } from '../types/Library';
-import { createEmptyCustomMagicTrait } from '../data/rules/magicTraits';
-import { ensureMagicDefinition } from '../utils/magicItems';
+import { createEmptyCustomMagicTrait, PRESET_MAGIC_TRAITS } from '../data/rules/magicTraits';
+import {
+  attachMagicTraitSnapshot,
+  detachMagicTraitSnapshot,
+  ensureMagicDefinition,
+} from '../utils/magicItems';
 import { generateUUID } from '../utils/idGenerator';
 
 type EnchantingEntrySource = 'button' | 'drop';
@@ -99,11 +103,14 @@ export function useEnchanting() {
     activeSheet.character.customMagicTraits = (activeSheet.character.customMagicTraits ?? []).filter(
       trait => trait.id !== traitId
     );
-    activeSheet.character.inventory.forEach(item => {
-      if (!item.magic?.selectedTraitIds) return;
-      item.magic.selectedTraitIds = item.magic.selectedTraitIds.filter(id => id !== traitId);
-    });
     activeSheet.save();
+  };
+
+  const findAvailableTrait = (traitId: string): ItemMagicTrait | undefined => {
+    return [
+      ...PRESET_MAGIC_TRAITS,
+      ...(activeSheet.character?.customMagicTraits ?? []),
+    ].find(trait => trait.id === traitId);
   };
 
   const toggleTraitSelection = (traitId: string) => {
@@ -112,11 +119,13 @@ export function useEnchanting() {
     const magic = ensureMagicDefinition(targetItem.value);
     const selected = new Set(magic.selectedTraitIds ?? []);
     if (selected.has(traitId)) {
-      selected.delete(traitId);
+      detachMagicTraitSnapshot(targetItem.value, traitId);
     } else {
-      selected.add(traitId);
+      const trait = findAvailableTrait(traitId);
+      if (trait) {
+        attachMagicTraitSnapshot(targetItem.value, trait);
+      }
     }
-    magic.selectedTraitIds = Array.from(selected);
   };
 
   return {

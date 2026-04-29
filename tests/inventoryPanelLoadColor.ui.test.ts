@@ -27,7 +27,6 @@ const mountInventoryPanel = () =>
           props: ['modelValue'],
           template: '<div><slot v-for="element in modelValue" name="item" :element="element" /></div>',
         },
-        InventoryItemRow: true,
         TrashPanel: true,
         teleport: true,
         transition: true,
@@ -71,5 +70,41 @@ describe('InventoryPanel carrying load color', () => {
     const wrapper = mountInventoryPanel();
 
     expect(wrapper.get('.carrying-load').classes()).toContain('load-red');
+  });
+
+  it('shows enchantment trait details in the inventory tooltip', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('tooltip-magic-traits');
+    const item = createGear(1);
+    item.name = '霜刃';
+    item.type = 'weapon';
+    item.magic = {
+      isMagic: true,
+      selectedTraitIds: ['frost'],
+      customTraits: [
+        {
+          id: 'frost',
+          source: 'custom',
+          type: 'damage',
+          name: '寒霜',
+          description: '命中时爆发寒气。',
+          activationMode: 'always',
+          participatesInDamage: true,
+          damageDice: '1d6',
+          damageBonus: 2,
+          damageType: 'cold',
+        },
+      ],
+    };
+    character.inventory = [item];
+    store.character = character;
+
+    const wrapper = mountInventoryPanel();
+    await wrapper.find('.item-row').trigger('mouseenter', { clientX: 20, clientY: 20 });
+
+    expect(wrapper.text()).toContain('附魔词条');
+    expect(wrapper.text()).toContain('寒霜');
+    expect(wrapper.text()).toContain('命中时爆发寒气。');
+    expect(wrapper.text()).toContain('伤害：1d6 +2 寒冷 (Cold)');
   });
 });

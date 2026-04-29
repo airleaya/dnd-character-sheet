@@ -7,6 +7,11 @@ import { cloneMagicDefinition } from './magicItems';
 
 const logger = createRendererLogger('utils/itemFactory');
 
+const clonePlain = <T>(value: T): T => {
+  if (value === undefined || value === null) return value;
+  return JSON.parse(JSON.stringify(value)) as T;
+};
+
 const inventoryUnitWeight = (def: NonNullable<ReturnType<typeof getLibraryItemById>>): number => {
   const multiplicity = def.multiplicity;
 
@@ -44,7 +49,7 @@ export function createItemFromLibrary(templateId: string): InventoryItem | null 
   void descriptionBlocks;
   void audit;
 
-  const instanceData: InventoryItem['data'] = { ...dataProps };
+  const instanceData: InventoryItem['data'] = clonePlain(dataProps) as InventoryItem['data'];
 
   if (def.type === 'consumable') {
     const consDef = def as ConsumableDefinition;
@@ -69,7 +74,7 @@ export function createItemFromLibrary(templateId: string): InventoryItem | null 
     quantity: 1,
     parentId: undefined,
     description: def.description,
-    descriptionBlocks: def.descriptionBlocks,
+    descriptionBlocks: clonePlain(def.descriptionBlocks),
     data: instanceData
   };
 }

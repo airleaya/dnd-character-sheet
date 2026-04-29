@@ -18,7 +18,14 @@ import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils
 import { formatCost } from '../../../utils/currencyUtils';
 import { formatContainerCapacity } from '../../../utils/containerCapacity';
 import { getCarryingLoadTone } from '../../../utils/carryingLoad';
-import { formatMagicItemName, getMagicInventoryStyle } from '../../../utils/magicItems';
+import {
+  formatMagicItemName,
+  formatMagicTraitDamage,
+  formatMagicTraitMeta,
+  getMagicInventoryStyle,
+  resolveMagicTraitsForItem,
+} from '../../../utils/magicItems';
+import { getSpellById } from '../../../data/spells';
 import type { ItemCost } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
 
@@ -205,6 +212,13 @@ const getBadges = (item: InventoryItem): InventoryTooltipBadge[] => {
   return badges;
 };
 
+const getMagicTraits = (item: InventoryItem) => resolveMagicTraitsForItem(item);
+
+const getMagicTraitSpellName = (spellId?: string) => {
+  if (!spellId) return '';
+  return getSpellById(spellId)?.name ?? spellId;
+};
+
 // 2. 显示悬浮窗
 const onShowTooltip = (item: InventoryItem, event: MouseEvent) => {
   hoveredItem.value = item;
@@ -351,6 +365,24 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
               </span>
             </div>
 
+            <div v-if="getMagicTraits(hoveredItem).length > 0" class="magic-traits-section">
+              <div class="magic-traits-title">附魔词条</div>
+              <div v-for="trait in getMagicTraits(hoveredItem)" :key="trait.id" class="magic-trait-card">
+                <div class="trait-head">
+                  <strong>{{ trait.name }}</strong>
+                  <span>{{ formatMagicTraitMeta(trait) }}</span>
+                </div>
+                <p v-if="trait.description">{{ trait.description }}</p>
+                <p v-if="trait.type === 'spell' && trait.spellId">
+                  法术：{{ getMagicTraitSpellName(trait.spellId) }}
+                </p>
+                <p v-if="trait.spellExtraDescription">{{ trait.spellExtraDescription }}</p>
+                <p v-if="formatMagicTraitDamage(trait)" class="trait-damage">
+                  伤害：{{ formatMagicTraitDamage(trait) }}
+                </p>
+              </div>
+            </div>
+
             <ItemDescriptionRenderer :description="hoveredItem.description" :blocks="hoveredItem.descriptionBlocks" />
             
             <div v-if="hoveredItem.type === 'container'" class="extra-info">
@@ -493,6 +525,53 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
   .badge.orange { color: #eb984e; background: rgba(235, 152, 78, 0.1); }
   .badge.cyan { color: #48c9b0; background: rgba(72, 201, 176, 0.1); }
   .badge.red { color: #ec7063; background: rgba(236, 112, 99, 0.1); }
+
+  .magic-traits-section {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+  }
+
+  .magic-traits-title {
+    color: #d7c1ff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .magic-trait-card {
+    border: 1px solid rgba(215, 193, 255, 0.24);
+    border-radius: 6px;
+    padding: 6px;
+    background: rgba(240, 231, 255, 0.08);
+
+    p {
+      margin: 4px 0 0;
+      color: #c9c1d8;
+      line-height: 1.35;
+    }
+  }
+
+  .trait-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+
+    strong {
+      color: #f0e7ff;
+    }
+
+    span {
+      color: #b7a2e6;
+      font-size: 0.68rem;
+    }
+  }
+
+  .trait-damage {
+    color: #ffbc8a !important;
+    font-weight: 800;
+  }
 }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.15s; }

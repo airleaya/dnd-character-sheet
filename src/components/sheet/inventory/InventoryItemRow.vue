@@ -16,6 +16,7 @@ import {
   getMagicInventoryStyle,
   requiresAttunement,
   isAttuned,
+  resolveMagicTraitsForItem,
 } from '../../../utils/magicItems';
 import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
 
@@ -100,6 +101,8 @@ const itemNameStyle = computed(() =>
 );
 const needsAttunement = computed(() => requiresAttunement(props.item));
 const attuned = computed(() => isAttuned(props.item));
+const magicTraits = computed(() => resolveMagicTraitsForItem(props.item));
+const visibleMagicTraits = computed(() => magicTraits.value.slice(0, 3));
 
 // 核心逻辑：通用容器代理
 // 如果任意容器内只有 1 种内容物，则“穿透”控制该内容物数量
@@ -238,6 +241,14 @@ const handleDelete = () => {
         <span v-if="item.type === 'container'" class="container-badge">
           <span class="container-capacity">容量：{{ containerCapacityLabel }}</span>
           <span>({{ containerPreviewLabel }})</span>
+        </span>
+        <span v-else-if="visibleMagicTraits.length" class="enchant-tags">
+          <span v-for="trait in visibleMagicTraits" :key="trait.id" class="enchant-tag">
+            {{ trait.name }}
+          </span>
+          <span v-if="magicTraits.length > visibleMagicTraits.length" class="enchant-more">
+            +{{ magicTraits.length - visibleMagicTraits.length }}
+          </span>
         </span>
       </div>
 
@@ -455,6 +466,32 @@ const handleDelete = () => {
     color: #5f6c7b;
     font-style: normal;
     font-weight: 600;
+  }
+
+  .enchant-tags {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    margin-left: 6px;
+    overflow: hidden;
+  }
+
+  .enchant-tag,
+  .enchant-more {
+    flex-shrink: 0;
+    border: 1px solid rgba(139, 30, 63, 0.18);
+    border-radius: 999px;
+    padding: 1px 6px;
+    background: rgba(240, 231, 255, 0.76);
+    color: #8b1e3f;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .enchant-more {
+    color: #6c4a7f;
   }
 }
 
