@@ -1,5 +1,6 @@
 import type { LibraryItem } from './Library';
 import type { SpellDefinition } from './Spell';
+import type { DataPackVisibilityMeta } from './DataPackVisibility';
 
 export type DataPackId = string;
 export type SpellGroupingMode = 'level' | 'school' | 'class' | 'custom';
@@ -23,6 +24,8 @@ export interface DataPackTraitDefinition {
   name: string;
   kind: DataPackTraitKind;
   description?: string;
+  visibility?: DataPackVisibilityMeta;
+  encryptionGroupId?: string;
   tags?: string[];
   effects?: DataPackTraitEffect[];
   payload?: Record<string, unknown>;
@@ -63,6 +66,7 @@ export interface DataPackEditorMeta {
     items?: DataPackMenuGroup[];
     spells?: DataPackMenuGroup[];
   };
+  unlockGroups?: DataPackUnlockGroup[];
   encryptionGroups?: DataPackEncryptionGroup[];
 }
 
@@ -77,6 +81,13 @@ export interface DataPackEncryptionGroup {
   name: string;
   description?: string;
   lockedByDefault?: boolean;
+}
+
+export interface DataPackUnlockGroup {
+  id: string;
+  passphrase: string;
+  hint?: string;
+  description?: string;
 }
 
 export interface DataPackSettings {

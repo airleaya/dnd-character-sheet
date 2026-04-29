@@ -24,6 +24,8 @@ const createForm = reactive({
   passwordHint: '',
   localOnly: false,
 });
+const unlockPassphrases = reactive<Record<string, string>>({});
+const unlockResults = ref<ReturnType<typeof store.unlockByPassphrase>>([]);
 
 onMounted(() => {
   store.init();
@@ -31,6 +33,11 @@ onMounted(() => {
 
 const packs = computed(() => store.orderedDataPacks);
 const isDefaultPack = (packId: string) => packId === DEFAULT_DATA_PACK_ID;
+const getVisibilitySummary = (packId: string) => store.getPackVisibilitySummary(packId);
+const unlockPack = (packId: string) => {
+  unlockResults.value = store.unlockByPassphrase(unlockPassphrases[packId] ?? '');
+  unlockPassphrases[packId] = '';
+};
 const createPack = async () => {
   await store.createDraftPack({
     schemaVersion: 1,
@@ -103,6 +110,25 @@ const createPack = async () => {
                 <span>法术 {{ pack.spells.length }}</span>
                 <span>词条 {{ pack.traits.length }}</span>
               </div>
+              <div v-if="getVisibilitySummary(pack.id)" class="visibility-line">
+                <span>
+                  公开 {{ (getVisibilitySummary(pack.id)?.publicItems ?? 0) + (getVisibilitySummary(pack.id)?.publicSpells ?? 0) + (getVisibilitySummary(pack.id)?.publicTraits ?? 0) }}
+                </span>
+                <span>
+                  已解锁 {{ (getVisibilitySummary(pack.id)?.unlockedItems ?? 0) + (getVisibilitySummary(pack.id)?.unlockedSpells ?? 0) + (getVisibilitySummary(pack.id)?.unlockedTraits ?? 0) }}
+                </span>
+                <span>
+                  未公开 {{ (getVisibilitySummary(pack.id)?.lockedItems ?? 0) + (getVisibilitySummary(pack.id)?.lockedSpells ?? 0) + (getVisibilitySummary(pack.id)?.lockedTraits ?? 0) }}
+                </span>
+              </div>
+              <form
+                v-if="!pack.builtin && (getVisibilitySummary(pack.id)?.unlockGroupCount ?? 0) > 0"
+                class="unlock-inline"
+                @submit.prevent="unlockPack(pack.id)"
+              >
+                <input v-model="unlockPassphrases[pack.id]" type="password" autocomplete="off" placeholder="输入 GM 口令" />
+                <button type="submit" :disabled="!unlockPassphrases[pack.id]?.trim()">解锁非公开内容</button>
+              </form>
             </div>
 
             <div class="pack-actions">
@@ -125,6 +151,12 @@ const createPack = async () => {
           </article>
 
           <div v-if="packs.length === 0" class="empty">暂无数据包</div>
+        </div>
+        <div v-if="unlockResults.length > 0" class="unlock-result-bar">
+          已解锁：
+          <span v-for="result in unlockResults" :key="result.packId">
+            {{ result.packName }}（物品 {{ result.unlockedItemCount }} / 法术 {{ result.unlockedSpellCount }} / 词条 {{ result.unlockedTraitCount }}）
+          </span>
         </div>
       </section>
     </div>
@@ -280,6 +312,50 @@ const createPack = async () => {
     padding: 3px 8px;
     font-size: 0.76rem;
   }
+}
+
+.visibility-line,
+.unlock-inline,
+.unlock-result-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 9px;
+  color: #aab7c4;
+  font-size: 0.78rem;
+}
+
+.visibility-line span {
+  border: 1px solid rgba(93, 173, 226, 0.18);
+  background: rgba(93, 173, 226, 0.08);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.unlock-inline input {
+  min-width: 170px;
+  border: 1px solid #39424c;
+  border-radius: 7px;
+  background: #151a20;
+  color: #fff;
+  padding: 7px 9px;
+}
+
+.unlock-inline button {
+  border: 1px solid rgba(93, 173, 226, 0.38);
+  background: rgba(93, 173, 226, 0.12);
+  color: #c8e6ff;
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.unlock-result-bar {
+  margin: 0 20px 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(130, 224, 170, 0.22);
+  border-radius: 10px;
+  background: rgba(130, 224, 170, 0.08);
 }
 
 .pack-actions {

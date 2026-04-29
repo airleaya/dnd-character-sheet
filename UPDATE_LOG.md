@@ -1,5 +1,41 @@
 # UPDATE_LOG
 
+## [0.14.13] - 2026-04-30
+- Type: Feature / Data Pack Unlock / Library Visibility / Tests / Logging
+- Item: Implement phase-four passphrase unlock visibility for third-party data packs.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/types/DataPack.ts`
+  - `src/types/DataPackVisibility.ts`
+  - `src/types/Library.ts`
+  - `src/types/Spell.ts`
+  - `src/utils/dataPackVisibility.ts`
+  - `src/stores/dataPackStore.ts`
+  - `src/App.vue`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `src/components/sheet/modals/DataPackUnlockModal.vue`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `tests/dataPackUtils.test.ts`
+  - `tests/dataPackStoreUnlock.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.12` to `0.14.13` because phase four now has actual passphrase-unlock behavior.
+  - Added `visibility.public` / `visibility.unlockGroupId` entry metadata and kept backward compatibility with existing `encryptionGroupId` and `editorMeta.encryptionGroups`.
+  - Data-pack runtime libraries now hide non-public items, spells, and traits until the matching passphrase unlocks the group for the current session.
+  - Data Pack Manager now includes per-pack passphrase entry, visibility counts, and a result summary without exposing passphrases or raw JSON.
+  - Added the global `Shift + K + L` unlock window; it reports which packs and how many items/spells/traits were unlocked.
+  - GM maker now has an "???????" switch so all enabled pack content remains visible in the right sidebar during data-pack editing.
+  - Logging is wired through `stores/dataPackStore`; unlock logs record matched pack ids and counts only, never the entered passphrase or raw pack content.
+  - This phase intentionally implements visibility/passphrase unlock rather than strong cryptographic encryption; direct `.dndpack.json` inspection can still reveal source data.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/dataPackUtils.test.ts tests/dataPackStoreUnlock.test.ts tests/dataPackMakerPanel.ui.test.ts` passed.
+  - `npm run test` passed: 35 files / 157 tests.
+  - `npm run build` passed and generated `0.14.13` installer/portable artifacts.
+
 ## [0.14.12] - 2026-04-29
 - Type: Feature / Data Pack Maker / Library UI / Tests / Logging
 - Item: Link maker workbench group assignments to data-pack metadata and expose newly enabled packs in the right sidebar.

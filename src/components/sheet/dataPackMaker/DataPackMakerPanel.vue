@@ -442,6 +442,14 @@ const saveDraftFromHeader = async () => {
         <p class="meta">ID: {{ pack.manifest.id }}（创建后不可修改） · 版本 {{ pack.manifest.version }}</p>
       </div>
       <div class="header-actions">
+        <label class="unlock-override">
+          <input
+            type="checkbox"
+            :checked="store.ignoreUnlockInMaker"
+            @change="store.setIgnoreUnlockInMaker(($event.target as HTMLInputElement).checked)"
+          />
+          编辑时忽视口令
+        </label>
         <button type="button" :class="{ active: activeSection === 'items' }" @click="switchLibraryTab('items')">物品制作</button>
         <button type="button" :class="{ active: activeSection === 'spells' }" @click="switchLibraryTab('spells')">法术制作</button>
         <button type="button" :disabled="isSavingDraft" @click="saveDraftFromHeader">
@@ -729,7 +737,19 @@ const saveDraftFromHeader = async () => {
   .eyebrow { margin: 0 0 4px; font-weight: 800; letter-spacing: 0.12em; color: #6a5632; }
   .meta { margin: 6px 0 0; color: #66706a; }
 }
-.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.unlock-override {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(90, 118, 96, 0.28);
+  background: rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #536052;
+  font-size: 0.78rem;
+}
 button { border: 1px solid #95a38d; background: #fffdf6; color: #263126; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
 button:disabled { cursor: not-allowed; opacity: 0.58; }
 button.active { background: #263126; color: white; }

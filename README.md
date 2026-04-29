@@ -19,7 +19,7 @@
 - 通过本地 JSON 文件保存角色数据，适合离线使用
 - 通过本地 JSONL 日志记录关键流程与错误，便于排查本机问题
 
-> 当前版本：`0.14.12`
+> 当前版本：`0.14.13`
 
 ---
 
@@ -34,6 +34,7 @@
 - **本地持久化**：角色以 `.json` 文件形式保存在 Electron `userData/dnd_5e_characters/characters/` 目录
 - **本地日志**：运行日志以 `.jsonl` 文件形式保存在 Electron `userData/logs/` 目录，默认保留 7 天
 - **本地数据包**：默认数据包保留在源码/打包资源中，第三方 `.dndpack.json` 保存在 Electron `userData/dnd_5e_characters/data-packs/imported/`，与角色卡共享 `dnd_5e_characters/` 公共父目录但位于不同子文件夹
+- **Data-pack passphrase unlock**: third-party packs can hide entries behind passphrase groups; users unlock them from Data Pack Manager or `Shift + K + L`. This is UI visibility gating, not strong cryptographic encryption.
 
 这意味着：
 

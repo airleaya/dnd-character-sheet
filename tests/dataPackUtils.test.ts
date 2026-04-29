@@ -6,6 +6,13 @@ import {
   toRuntimeDataPack,
   validateDataPackFile,
 } from '../src/utils/dataPackUtils';
+import {
+  filterRuntimePackByVisibility,
+  getNormalizedUnlockGroups,
+  isEntryPublic,
+  resolveUnlockGroupIdsByPassphrase,
+  summarizeDataPackVisibility,
+} from '../src/utils/dataPackVisibility';
 import { DEFAULT_DND5E_DATA_PACK } from '../src/data/dataPacks/defaultDnd5ePack';
 import type { DataPackFile } from '../src/types/DataPack';
 
@@ -109,6 +116,64 @@ describe('data pack utilities', () => {
     ).toEqual({
       enabledPackIds: ['dnd5e-default', 'homebrew'],
       packOrder: ['homebrew', 'dnd5e-default'],
+    });
+  });
+
+  it('treats missing visibility as public and legacy encryption groups as locked unlock groups', () => {
+    const runtimePack = toRuntimeDataPack({
+      ...minimalPack,
+      items: [
+        minimalPack.items![0]!,
+        {
+          ...minimalPack.items![0]!,
+          id: 'secret-sword',
+          name: 'Secret Sword',
+          encryptionGroupId: 'gm-only',
+        },
+      ],
+      spells: [
+        {
+          id: 'secret-spell',
+          name: 'Secret Spell',
+          source: 'homebrew',
+          encryptionGroupId: 'gm-only',
+          level: 1,
+          school: 'evocation',
+          ritual: false,
+          castingTime: '1 Action',
+          range: 'Self',
+          components: { v: true, s: false, m: null },
+          concentration: false,
+          duration: 'Instantaneous',
+          attackType: 'none',
+          description: '',
+          classes: [],
+        },
+      ],
+    }, true);
+
+    expect(isEntryPublic(runtimePack.items[0]!)).toBe(true);
+    expect(isEntryPublic(runtimePack.items[1]!)).toBe(false);
+    expect(getNormalizedUnlockGroups(runtimePack.editorMeta)).toEqual([
+      {
+        id: 'gm-only',
+        passphrase: 'GM 可见',
+        hint: undefined,
+        description: undefined,
+      },
+    ]);
+    expect(resolveUnlockGroupIdsByPassphrase(runtimePack, 'GM 可见')).toEqual(['gm-only']);
+    expect(filterRuntimePackByVisibility(runtimePack, new Set()).items.map(item => item.id)).toEqual([
+      'homebrew:longsword',
+    ]);
+    expect(filterRuntimePackByVisibility(runtimePack, new Set(['gm-only'])).items.map(item => item.id)).toContain(
+      'homebrew:secret-sword'
+    );
+    expect(summarizeDataPackVisibility(runtimePack, new Set())).toMatchObject({
+      publicItems: 1,
+      lockedItems: 1,
+      lockedSpells: 1,
+      unlockGroupCount: 1,
     });
   });
 });

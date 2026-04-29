@@ -1,7 +1,8 @@
 // src/types/Spell.ts
 
 import type { DamageTypeKey } from '../data/rules/damageTypes';
-import type { AbilityKey } from './Library'; // 复用 str, dex, int...
+import type { AbilityKey } from './Library';
+import type { DataPackVisibilityMeta } from './DataPackVisibility'; // 复用 str, dex, int...
 
 // ==========================================
 // 1. 枚举与辅助类型
@@ -48,6 +49,7 @@ export interface SpellDefinition {
   source?: string;        // 数据包或规则来源
   libraryCategory?: string;
   librarySubcategory?: string;
+  visibility?: DataPackVisibilityMeta;
   encryptionGroupId?: string;
   level: number;          // 0-9 (0=戏法)
   school: SpellSchool;

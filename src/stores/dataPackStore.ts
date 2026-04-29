@@ -15,6 +15,13 @@ import {
   normalizeDataPackSettings,
   stripRuntimePrefix,
 } from '../utils/dataPackUtils';
+import {
+  filterRuntimePackByVisibility,
+  getEntryUnlockGroupId,
+  isEntryPublic,
+  resolveUnlockGroupIdsByPassphrase,
+  summarizeDataPackVisibility,
+} from '../utils/dataPackVisibility';
 import { getRuntimeLibraryItemById, getRuntimeSpellById } from '../data/dataPacks/runtimeDataPacks';
 import { createRendererLogger } from '../utils/rendererLogger';
 import type { DataPackFile, DataPackManifest, DataPackMenuGroup, DataPackSettings, RuntimeDataPack } from '../types/DataPack';
@@ -54,6 +61,8 @@ export const useDataPackStore = defineStore('dataPack', () => {
   const isMakerOpen = ref(false);
   const activeDraftPack = ref<DataPackFile | null>(null);
   const draftDirty = ref(false);
+  const ignoreUnlockInMaker = ref(false);
+  const unlockedGroupIdsByPack = ref<Record<string, string[]>>({});
   const makerLibraryTab = ref<'items' | 'spells'>('items');
   const makerItemWorkbenchRequest = ref<{
     runtimeItemId: string;
@@ -121,11 +130,34 @@ export const useDataPackStore = defineStore('dataPack', () => {
     return [...ordered, ...appended];
   });
 
-  const enabledDataPacks = computed(() =>
+  const rawEnabledDataPacks = computed(() =>
     orderedDataPacks.value
       .filter(pack => settings.value.enabledPackIds.includes(pack.id))
       .map(pack => ({ ...pack, enabled: true }))
   );
+
+  const getUnlockedGroupIdSet = (packId: string): Set<string> =>
+    new Set(unlockedGroupIdsByPack.value[packId] ?? []);
+
+  const shouldIgnoreUnlockForRuntime = () => isMakerOpen.value && ignoreUnlockInMaker.value;
+
+  const enabledDataPacks = computed(() =>
+    rawEnabledDataPacks.value.map(pack =>
+      filterRuntimePackByVisibility(pack, getUnlockedGroupIdSet(pack.id), shouldIgnoreUnlockForRuntime())
+    )
+  );
+
+  const syncRuntimePacks = () => {
+    applyPackRuntime(orderedDataPacks.value.map(pack => {
+      const enabled = settings.value.enabledPackIds.includes(pack.id);
+      const visiblePack = filterRuntimePackByVisibility(
+        { ...pack, enabled },
+        getUnlockedGroupIdSet(pack.id),
+        shouldIgnoreUnlockForRuntime()
+      );
+      return { ...visiblePack, enabled };
+    }));
+  };
 
   const itemLibraryItems = computed(() =>
     enabledDataPacks.value.flatMap(pack => pack.items)
@@ -144,11 +176,16 @@ export const useDataPackStore = defineStore('dataPack', () => {
   const setState = (nextPacks: RuntimeDataPack[], nextSettings: DataPackSettings) => {
     const knownIds = nextPacks.map(pack => pack.id);
     settings.value = normalizeDataPackSettings(nextSettings, knownIds);
+    unlockedGroupIdsByPack.value = Object.fromEntries(
+      Object.entries(unlockedGroupIdsByPack.value)
+        .filter(([packId]) => knownIds.includes(packId))
+        .map(([packId, groupIds]) => [packId, groupIds.filter((id, index, list) => list.indexOf(id) === index)])
+    );
     packs.value = nextPacks.map(pack => ({
       ...pack,
       enabled: settings.value.enabledPackIds.includes(pack.id),
     }));
-    applyPackRuntime(packs.value);
+    syncRuntimePacks();
   };
 
   const init = async () => {
@@ -223,6 +260,80 @@ export const useDataPackStore = defineStore('dataPack', () => {
       packId,
       enabled: enabled.has(packId),
     });
+  };
+
+  const getPackVisibilitySummary = (packId: string) => {
+    const pack = packs.value.find(entry => entry.id === packId);
+    if (!pack) return undefined;
+    return summarizeDataPackVisibility(pack, getUnlockedGroupIdSet(pack.id), shouldIgnoreUnlockForRuntime());
+  };
+
+  const unlockByPassphrase = (passphrase: string) => {
+    const trimmed = passphrase.trim();
+    if (!trimmed) {
+      logger.warn('Ignored empty data pack unlock passphrase');
+      return [];
+    }
+
+    const results: Array<{
+      packId: string;
+      packName: string;
+      unlockedGroupCount: number;
+      unlockedItemCount: number;
+      unlockedSpellCount: number;
+      unlockedTraitCount: number;
+      alreadyUnlocked: boolean;
+    }> = [];
+
+    packs.value.forEach(pack => {
+      if (!settings.value.enabledPackIds.includes(pack.id)) return;
+      const matchedGroupIds = resolveUnlockGroupIdsByPassphrase(pack, trimmed);
+      if (matchedGroupIds.length === 0) return;
+
+      const before = getUnlockedGroupIdSet(pack.id);
+      const next = new Set(before);
+      matchedGroupIds.forEach(groupId => next.add(groupId));
+      unlockedGroupIdsByPack.value = {
+        ...unlockedGroupIdsByPack.value,
+        [pack.id]: Array.from(next),
+      };
+
+      const unlockedGroups = new Set(matchedGroupIds);
+      results.push({
+        packId: pack.id,
+        packName: pack.name,
+        unlockedGroupCount: matchedGroupIds.length,
+        unlockedItemCount: pack.items.filter(item =>
+          !isEntryPublic(item) && unlockedGroups.has(getEntryUnlockGroupId(item) ?? '')
+        ).length,
+        unlockedSpellCount: pack.spells.filter(spell =>
+          !isEntryPublic(spell) && unlockedGroups.has(getEntryUnlockGroupId(spell) ?? '')
+        ).length,
+        unlockedTraitCount: pack.traits.filter(trait =>
+          !isEntryPublic(trait) && unlockedGroups.has(getEntryUnlockGroupId(trait) ?? '')
+        ).length,
+        alreadyUnlocked: matchedGroupIds.every(groupId => before.has(groupId)),
+      });
+    });
+
+    syncRuntimePacks();
+    logger.info('Data pack passphrase unlock attempted', {
+      matchedPackCount: results.length,
+      unlockedPackIds: results.map(result => result.packId),
+      unlockedGroupCount: results.reduce((sum, result) => sum + result.unlockedGroupCount, 0),
+    });
+    if (results.length === 0) {
+      feedback.showToast('没有匹配的口令内容', 'warning', 3200);
+    } else {
+      feedback.showToast(`已解锁 ${results.length} 个数据包中的非公开内容`, 'success', 3200);
+    }
+    return results;
+  };
+
+  const setIgnoreUnlockInMaker = (enabled: boolean) => {
+    ignoreUnlockInMaker.value = enabled;
+    syncRuntimePacks();
+    logger.info('Data pack maker unlock filter override changed', { enabled });
   };
 
   const movePack = async (packId: string, direction: -1 | 1) => {
@@ -484,8 +595,10 @@ export const useDataPackStore = defineStore('dataPack', () => {
       wasDirty: draftDirty.value,
     });
     isMakerOpen.value = false;
+    ignoreUnlockInMaker.value = false;
     activeDraftPack.value = null;
     draftDirty.value = false;
+    syncRuntimePacks();
   };
 
   const markDraftDirty = () => {
@@ -724,6 +837,19 @@ export const useDataPackStore = defineStore('dataPack', () => {
       description: description.trim() || undefined,
       lockedByDefault: true,
     });
+    const editorMeta = ensureEditorMeta();
+    if (editorMeta) {
+      editorMeta.unlockGroups ??= [];
+      const group = groups[groups.length - 1];
+      if (group && !editorMeta.unlockGroups.some(entry => entry.id === group.id)) {
+        editorMeta.unlockGroups.push({
+          id: group.id,
+          passphrase: group.name,
+          description: group.description,
+          hint: group.description,
+        });
+      }
+    }
     draftDirty.value = true;
     logger.info('Data pack encryption group added', {
       packId: activeDraftPack.value?.manifest.id,
@@ -739,6 +865,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     const editorMeta = ensureEditorMeta();
     if (!editorMeta) return;
     editorMeta.encryptionGroups = groups.filter(group => group.id !== groupId);
+    editorMeta.unlockGroups = editorMeta.unlockGroups?.filter(group => group.id !== groupId);
     activeDraftPack.value.items?.forEach(item => {
       if (item.encryptionGroupId === groupId) item.encryptionGroupId = undefined;
     });
@@ -875,6 +1002,20 @@ export const useDataPackStore = defineStore('dataPack', () => {
         }
       });
     }
+    if (sourceMeta?.unlockGroups?.length) {
+      const editorMeta = ensureEditorMeta();
+      if (editorMeta) {
+        editorMeta.unlockGroups ??= [];
+        sourceMeta.unlockGroups.forEach(sourceGroup => {
+          if (!editorMeta.unlockGroups?.some(group => group.passphrase === sourceGroup.passphrase)) {
+            editorMeta.unlockGroups?.push({
+              ...clonePlain(sourceGroup),
+              id: makeUniqueLocalId(sourceGroup.id, editorMeta.unlockGroups.map(group => group.id)),
+            });
+          }
+        });
+      }
+    }
 
     draftDirty.value = true;
     logger.info('Data pack contents imported into draft', {
@@ -943,6 +1084,8 @@ export const useDataPackStore = defineStore('dataPack', () => {
     isMakerOpen,
     activeDraftPack,
     draftDirty,
+    ignoreUnlockInMaker,
+    unlockedGroupIdsByPack,
     makerLibraryTab,
     makerItemWorkbenchRequest,
     makerWorkbenchDropCandidate,
@@ -955,6 +1098,9 @@ export const useDataPackStore = defineStore('dataPack', () => {
     init,
     refresh,
     togglePackEnabled,
+    getPackVisibilitySummary,
+    unlockByPassphrase,
+    setIgnoreUnlockInMaker,
     movePack,
     importPack,
     exportPack,

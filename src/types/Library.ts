@@ -1,6 +1,7 @@
 // src/types/Library.ts
 
 import type { DamageTypeKey } from '../data/rules/damageTypes';
+import type { DataPackVisibilityMeta } from './DataPackVisibility';
 
 // ==========================================
 // 1. 基础枚举与类型
@@ -164,6 +165,7 @@ export interface ItemDefinition {
   subcategory?: string;
   displayCategory?: string;
   displaySubcategory?: string;
+  visibility?: DataPackVisibilityMeta;
   encryptionGroupId?: string;
   cost?: ItemCost;       
   weight: number;        
