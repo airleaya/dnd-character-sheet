@@ -25,6 +25,7 @@ const createForm = reactive({
   localOnly: false,
 });
 const unlockPassphrases = reactive<Record<string, string>>({});
+const exportResetProgress = reactive<Record<string, boolean>>({});
 const unlockResults = ref<ReturnType<typeof store.unlockByPassphrase>>([]);
 
 onMounted(() => {
@@ -34,8 +35,10 @@ onMounted(() => {
 const packs = computed(() => store.orderedDataPacks);
 const isDefaultPack = (packId: string) => packId === DEFAULT_DATA_PACK_ID;
 const getVisibilitySummary = (packId: string) => store.getPackVisibilitySummary(packId);
+const getPublicInfoSummary = (packId: string) => store.getPackPublicInfoSummary(packId);
 const getUnlockGroupStats = (packId: string) => store.getPackUnlockGroupStats(packId);
 const getVisibilityIssues = (packId: string) => store.getPackVisibilityIssues(packId);
+const getExportResetProgress = (packId: string) => exportResetProgress[packId] ?? true;
 const unlockPack = (packId: string) => {
   unlockResults.value = store.unlockByPassphrase(unlockPassphrases[packId] ?? '');
   unlockPassphrases[packId] = '';
@@ -43,6 +46,9 @@ const unlockPack = (packId: string) => {
 const relockPack = (packId: string) => {
   store.clearPackUnlocks(packId);
   unlockResults.value = [];
+};
+const exportPack = (packId: string) => {
+  store.exportPack(packId, { resetUnlockProgress: getExportResetProgress(packId) });
 };
 const createPack = async () => {
   await store.createDraftPack({
@@ -115,6 +121,9 @@ const createPack = async () => {
                 <span>物品 {{ pack.items.length }}</span>
                 <span>法术 {{ pack.spells.length }}</span>
                 <span>词条 {{ pack.traits.length }}</span>
+                <span v-if="getPublicInfoSummary(pack.id)">
+                  已公开信息 {{ getPublicInfoSummary(pack.id)?.publicCount ?? 0 }} / {{ getPublicInfoSummary(pack.id)?.totalCount ?? 0 }}
+                </span>
               </div>
               <div v-if="getVisibilitySummary(pack.id)" class="visibility-line">
                 <span>
@@ -127,13 +136,15 @@ const createPack = async () => {
                   未公开 {{ (getVisibilitySummary(pack.id)?.lockedItems ?? 0) + (getVisibilitySummary(pack.id)?.lockedSpells ?? 0) + (getVisibilitySummary(pack.id)?.lockedTraits ?? 0) }}
                 </span>
               </div>
-              <div v-if="getUnlockGroupStats(pack.id).length > 0" class="visibility-line subtle">
+              <div v-if="getUnlockGroupStats(pack.id).length > 0 || pack.editorMeta?.globalUnlockPassphrase || store.isPackAllPublic(pack.id)" class="visibility-line subtle">
                 <span>
                   口令组 {{ getUnlockGroupStats(pack.id).length }}
                 </span>
                 <span>
                   组内内容 {{ getUnlockGroupStats(pack.id).reduce((sum, stat) => sum + stat.totalCount, 0) }}
                 </span>
+                <span v-if="pack.editorMeta?.globalUnlockPassphrase">全局口令已配置</span>
+                <span v-if="store.isPackAllPublic(pack.id)">本包已全公开</span>
               </div>
               <div v-if="getVisibilityIssues(pack.id).length > 0" class="visibility-warning">
                 <strong>口令分组校验警告：{{ getVisibilityIssues(pack.id).length }}</strong>
@@ -142,14 +153,14 @@ const createPack = async () => {
                 </span>
               </div>
               <form
-                v-if="!pack.builtin && (getVisibilitySummary(pack.id)?.unlockGroupCount ?? 0) > 0"
+                v-if="!pack.builtin && store.hasPackUnlockEntry(pack.id)"
                 class="unlock-inline"
                 @submit.prevent="unlockPack(pack.id)"
               >
-                <input v-model="unlockPassphrases[pack.id]" type="password" autocomplete="off" placeholder="输入 GM 口令" />
+                <input v-model="unlockPassphrases[pack.id]" type="password" autocomplete="off" placeholder="输入 GM 口令 / 全局口令" />
                 <button type="submit" :disabled="!unlockPassphrases[pack.id]?.trim()">解锁非公开内容</button>
                 <button
-                  v-if="store.getUnlockedGroupCount(pack.id) > 0"
+                  v-if="store.getUnlockedGroupCount(pack.id) > 0 || store.isPackAllPublic(pack.id)"
                   type="button"
                   class="secondary"
                   @click="relockPack(pack.id)"
@@ -168,7 +179,15 @@ const createPack = async () => {
                 />
                 <span>{{ store.settings.enabledPackIds.includes(pack.id) ? '启用' : '禁用' }}</span>
               </label>
-              <button type="button" @click="store.exportPack(pack.id)">导出</button>
+              <label v-if="!pack.builtin" class="export-option">
+                <input
+                  type="checkbox"
+                  :checked="getExportResetProgress(pack.id)"
+                  @change="exportResetProgress[pack.id] = ($event.target as HTMLInputElement).checked"
+                />
+                导出时重置口令进度
+              </label>
+              <button type="button" @click="exportPack(pack.id)">导出</button>
               <button type="button" :disabled="pack.builtin || index === 0 || packs[index - 1]?.builtin" @click="store.movePack(pack.id, -1)">上移</button>
               <button type="button" :disabled="pack.builtin || index === packs.length - 1 || packs[index + 1]?.builtin" @click="store.movePack(pack.id, 1)">下移</button>
               <button type="button" :disabled="pack.builtin" @click="store.openReservedEditor(pack)">编辑</button>
@@ -183,7 +202,7 @@ const createPack = async () => {
         <div v-if="unlockResults.length > 0" class="unlock-result-bar">
           已解锁：
           <span v-for="result in unlockResults" :key="result.packId">
-            {{ result.packName }}（物品 {{ result.unlockedItemCount }} / 法术 {{ result.unlockedSpellCount }} / 词条 {{ result.unlockedTraitCount }}）
+            {{ result.packName }}{{ result.globalUnlock ? '（全局公开）' : '' }}（物品 {{ result.unlockedItemCount }} / 法术 {{ result.unlockedSpellCount }} / 词条 {{ result.unlockedTraitCount }}）
           </span>
         </div>
       </section>
@@ -415,6 +434,14 @@ const createPack = async () => {
   align-items: flex-end;
   flex-direction: column;
   gap: 7px;
+}
+
+.export-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #aeb9c5;
+  font-size: 0.74rem;
 }
 
 .pack-actions .danger {

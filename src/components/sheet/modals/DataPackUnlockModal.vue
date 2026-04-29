@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useDataPackStore } from '../../../stores/dataPackStore';
 
 const props = defineProps<{
@@ -14,6 +14,9 @@ const store = useDataPackStore();
 const passphrase = ref('');
 const results = ref<ReturnType<typeof store.unlockByPassphrase>>([]);
 const clearResult = ref<{ clearedPackCount: number; clearedGroupCount: number } | null>(null);
+const hasAnyUnlockProgress = computed(() =>
+  store.orderedDataPacks.some(pack => store.getUnlockedGroupCount(pack.id) > 0 || store.isPackAllPublic(pack.id))
+);
 
 const submit = () => {
   results.value = store.unlockByPassphrase(passphrase.value);
@@ -35,7 +38,7 @@ const clearAll = () => {
           <div>
             <p class="eyebrow">数据包</p>
             <h2>口令解锁</h2>
-            <p>输入 GM 提供的口令后，对应数据包中的非公开物品、法术或词条会在本次运行中可见。</p>
+            <p>输入 GM 提供的口令后，对应数据包中的非公开物品、法术或词条会持续可见；全局口令会让该包全部公开。</p>
           </div>
           <button type="button" class="close-btn" @click="emit('close')">×</button>
         </header>
@@ -46,8 +49,8 @@ const clearAll = () => {
             <input v-model="passphrase" type="password" autocomplete="off" placeholder="输入口令" />
           </label>
           <button type="submit" :disabled="!passphrase.trim()">解锁</button>
-          <button type="button" class="clear-btn" :disabled="Object.keys(store.unlockedGroupIdsByPack).length === 0" @click="clearAll">
-            清空本次解锁
+          <button type="button" class="clear-btn" :disabled="!hasAnyUnlockProgress" @click="clearAll">
+            清空口令进度
           </button>
         </form>
 
@@ -57,7 +60,7 @@ const clearAll = () => {
             <strong>{{ result.packName }}</strong>
             <span>
               {{ result.alreadyUnlocked ? '已解锁过' : '新增解锁' }}
-              {{ result.unlockedGroupCount }} 组：
+              {{ result.globalUnlock ? '全局公开' : `${result.unlockedGroupCount} 组` }}：
               物品 {{ result.unlockedItemCount }}，
               法术 {{ result.unlockedSpellCount }}，
               词条 {{ result.unlockedTraitCount }}
@@ -68,7 +71,7 @@ const clearAll = () => {
         <div v-else-if="clearResult" class="result-list">
           <article class="result-card warning">
             <strong>已重新锁定</strong>
-            <span>清空 {{ clearResult.clearedPackCount }} 个数据包、{{ clearResult.clearedGroupCount }} 个口令组的本次解锁状态。</span>
+            <span>清空 {{ clearResult.clearedPackCount }} 个数据包、{{ clearResult.clearedGroupCount }} 个口令组的解锁状态。</span>
           </article>
         </div>
 

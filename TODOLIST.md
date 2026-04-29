@@ -1,4 +1,9 @@
-﻿# TODOLIST
+# TODOLIST
+
+> 2026-04-30 version iteration update:
+> Current baseline grows from `0.14.16` to `0.14.17`; this round adds persistent data-pack unlock progress, global passphrases, public/total information counts, and export reset controls.
+> 2026-04-30 data-pack unlock persistence update:
+> Data Pack Manager now shows ?????/???? for items+spells+traits; PL passphrase unlocks are stored in the local third-party pack file, global passphrases mark the whole pack visible, and exports default to stripping local unlock progress unless the exporter chooses to keep it.
 
 > 2026-04-30 version iteration update:
 > Current baseline grows from `0.14.15` to `0.14.16`; this round closes phase-four passphrase workflow with group statistics and metadata warnings.

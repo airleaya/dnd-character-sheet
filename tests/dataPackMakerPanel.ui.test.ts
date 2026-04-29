@@ -165,4 +165,17 @@ describe('DataPackMakerPanel', () => {
       visibility: { public: true },
     });
   });
+
+  it('stores a global unlock passphrase without exposing pack contents', () => {
+    const store = useDataPackStore();
+    store.activeDraftPack = createDraftPack();
+
+    store.updateDraftGlobalUnlockPassphrase('open-all');
+
+    expect(store.activeDraftPack.editorMeta?.globalUnlockPassphrase).toBe('open-all');
+    expect(store.draftDirty).toBe(true);
+
+    store.updateDraftGlobalUnlockPassphrase('   ');
+    expect(store.activeDraftPack.editorMeta?.globalUnlockPassphrase).toBeUndefined();
+  });
 });

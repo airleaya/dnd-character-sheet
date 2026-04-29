@@ -20,13 +20,23 @@ import {
   filterRuntimePackByVisibility,
   getEntryUnlockGroupId,
   isEntryPublic,
+  isGlobalUnlockPassphrase,
   resolveUnlockGroupIdsByPassphrase,
+  summarizePublicInfo,
   summarizeUnlockGroupStats,
   summarizeDataPackVisibility,
 } from '../utils/dataPackVisibility';
 import { getRuntimeLibraryItemById, getRuntimeSpellById } from '../data/dataPacks/runtimeDataPacks';
 import { createRendererLogger } from '../utils/rendererLogger';
-import type { DataPackFile, DataPackManifest, DataPackMenuGroup, DataPackSettings, RuntimeDataPack } from '../types/DataPack';
+import type {
+  DataPackExportOptions,
+  DataPackFile,
+  DataPackManifest,
+  DataPackMenuGroup,
+  DataPackSettings,
+  DataPackUnlockProgress,
+  RuntimeDataPack,
+} from '../types/DataPack';
 import type { LibraryItem } from '../types/Library';
 import type { SpellDefinition } from '../types/Spell';
 
@@ -138,14 +148,29 @@ export const useDataPackStore = defineStore('dataPack', () => {
       .map(pack => ({ ...pack, enabled: true }))
   );
 
-  const getUnlockedGroupIdSet = (packId: string): Set<string> =>
-    new Set(unlockedGroupIdsByPack.value[packId] ?? []);
+  const getStoredUnlockProgress = (pack: RuntimeDataPack | undefined): DataPackUnlockProgress | undefined =>
+    pack?.editorMeta?.unlockProgress;
+
+  const getUnlockedGroupIdSet = (packId: string): Set<string> => {
+    const pack = packs.value.find(entry => entry.id === packId);
+    return new Set([
+      ...(getStoredUnlockProgress(pack)?.unlockedGroupIds ?? []),
+      ...(unlockedGroupIdsByPack.value[packId] ?? []),
+    ]);
+  };
+
+  const isPackFullyPublic = (packId: string): boolean =>
+    getStoredUnlockProgress(packs.value.find(entry => entry.id === packId))?.allPublic === true;
 
   const shouldIgnoreUnlockForRuntime = () => isMakerOpen.value && ignoreUnlockInMaker.value;
 
   const enabledDataPacks = computed(() =>
     rawEnabledDataPacks.value.map(pack =>
-      filterRuntimePackByVisibility(pack, getUnlockedGroupIdSet(pack.id), shouldIgnoreUnlockForRuntime())
+      filterRuntimePackByVisibility(
+        pack,
+        getUnlockedGroupIdSet(pack.id),
+        shouldIgnoreUnlockForRuntime() || isPackFullyPublic(pack.id)
+      )
     )
   );
 
@@ -155,7 +180,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
       const visiblePack = filterRuntimePackByVisibility(
         { ...pack, enabled },
         getUnlockedGroupIdSet(pack.id),
-        shouldIgnoreUnlockForRuntime()
+        shouldIgnoreUnlockForRuntime() || isPackFullyPublic(pack.id)
       );
       return { ...visiblePack, enabled };
     }));
@@ -267,7 +292,26 @@ export const useDataPackStore = defineStore('dataPack', () => {
   const getPackVisibilitySummary = (packId: string) => {
     const pack = packs.value.find(entry => entry.id === packId);
     if (!pack) return undefined;
-    return summarizeDataPackVisibility(pack, getUnlockedGroupIdSet(pack.id), shouldIgnoreUnlockForRuntime());
+    return summarizeDataPackVisibility(
+      pack,
+      getUnlockedGroupIdSet(pack.id),
+      shouldIgnoreUnlockForRuntime() || isPackFullyPublic(pack.id)
+    );
+  };
+
+  const getPackPublicInfoSummary = (packId: string) => {
+    const pack = packs.value.find(entry => entry.id === packId);
+    if (!pack) return undefined;
+    return summarizePublicInfo(
+      pack,
+      getUnlockedGroupIdSet(pack.id),
+      shouldIgnoreUnlockForRuntime() || isPackFullyPublic(pack.id)
+    );
+  };
+
+  const hasPackUnlockEntry = (packId: string) => {
+    const pack = packs.value.find(entry => entry.id === packId);
+    return Boolean(pack?.editorMeta?.globalUnlockPassphrase?.trim() || getPackUnlockGroupStats(packId).length > 0);
   };
 
   const getPackUnlockGroupStats = (packId: string) => {
@@ -312,6 +356,47 @@ export const useDataPackStore = defineStore('dataPack', () => {
     return issues;
   };
 
+  const normalizeUnlockProgress = (progress?: DataPackUnlockProgress): DataPackUnlockProgress | undefined => {
+    const unlockedGroupIds = Array.isArray(progress?.unlockedGroupIds)
+      ? progress.unlockedGroupIds.filter((id, index, list) => Boolean(id) && list.indexOf(id) === index)
+      : [];
+    const allPublic = progress?.allPublic === true;
+    if (!allPublic && unlockedGroupIds.length === 0) return undefined;
+    return {
+      allPublic,
+      unlockedGroupIds,
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  const applyPackUnlockProgress = (packId: string, progress?: DataPackUnlockProgress) => {
+    const normalized = normalizeUnlockProgress(progress);
+    packs.value = packs.value.map(pack => {
+      if (pack.id !== packId) return pack;
+      const editorMeta = { ...(pack.editorMeta ?? {}) };
+      editorMeta.unlockProgress = normalized;
+      return { ...pack, editorMeta };
+    });
+  };
+
+  const persistPackUnlockProgress = (packId: string, progress?: DataPackUnlockProgress) => {
+    if (packId === DEFAULT_DATA_PACK_ID) return;
+    const normalized = normalizeUnlockProgress(progress);
+    if (!window.electronAPI?.updateDataPackUnlockProgress) {
+      logger.warn('Data pack unlock progress API unavailable; progress kept in memory only', { packId });
+      return;
+    }
+    void window.electronAPI.updateDataPackUnlockProgress(packId, normalized).then(result => {
+      if (!result.success) {
+        logger.warn('Failed to persist data pack unlock progress', { packId, error: result.error });
+        feedback.showToast(`口令进度保存失败：${result.error}`, 'warning', 4200);
+      }
+    }).catch(error => {
+      logger.error('Failed to persist data pack unlock progress', error, { packId });
+      feedback.showToast('口令进度保存失败，本次解锁仅在当前运行中有效', 'warning', 4200);
+    });
+  };
+
   const unlockByPassphrase = (passphrase: string) => {
     const trimmed = passphrase.trim();
     if (!trimmed) {
@@ -327,36 +412,45 @@ export const useDataPackStore = defineStore('dataPack', () => {
       unlockedSpellCount: number;
       unlockedTraitCount: number;
       alreadyUnlocked: boolean;
+      globalUnlock: boolean;
     }> = [];
 
     packs.value.forEach(pack => {
       if (!settings.value.enabledPackIds.includes(pack.id)) return;
-      const matchedGroupIds = resolveUnlockGroupIdsByPassphrase(pack, trimmed);
-      if (matchedGroupIds.length === 0) return;
+      const globalUnlock = isGlobalUnlockPassphrase(pack, trimmed);
+      const matchedGroupIds = globalUnlock
+        ? []
+        : resolveUnlockGroupIdsByPassphrase(pack, trimmed);
+      if (!globalUnlock && matchedGroupIds.length === 0) return;
 
       const before = getUnlockedGroupIdSet(pack.id);
+      const wasFullyPublic = isPackFullyPublic(pack.id);
       const next = new Set(before);
       matchedGroupIds.forEach(groupId => next.add(groupId));
-      unlockedGroupIdsByPack.value = {
-        ...unlockedGroupIdsByPack.value,
-        [pack.id]: Array.from(next),
-      };
 
-      const unlockedGroups = new Set(matchedGroupIds);
+      const progress = normalizeUnlockProgress({
+        allPublic: wasFullyPublic || globalUnlock,
+        unlockedGroupIds: Array.from(next),
+      });
+      applyPackUnlockProgress(pack.id, progress);
+      persistPackUnlockProgress(pack.id, progress);
+
+      const unlockedGroups = globalUnlock ? undefined : new Set(matchedGroupIds);
       results.push({
         packId: pack.id,
         packName: pack.name,
-        unlockedGroupCount: matchedGroupIds.length,
+        unlockedGroupCount: globalUnlock ? getPackUnlockGroupStats(pack.id).length : matchedGroupIds.length,
         unlockedItemCount: pack.items.filter(item =>
-          !isEntryPublic(item) && unlockedGroups.has(getEntryUnlockGroupId(item) ?? '')
+          !isEntryPublic(item) && (globalUnlock || unlockedGroups?.has(getEntryUnlockGroupId(item) ?? ''))
         ).length,
         unlockedSpellCount: pack.spells.filter(spell =>
-          !isEntryPublic(spell) && unlockedGroups.has(getEntryUnlockGroupId(spell) ?? '')
+          !isEntryPublic(spell) && (globalUnlock || unlockedGroups?.has(getEntryUnlockGroupId(spell) ?? ''))
         ).length,
         unlockedTraitCount: pack.traits.filter(trait =>
-          !isEntryPublic(trait) && unlockedGroups.has(getEntryUnlockGroupId(trait) ?? '')
+          !isEntryPublic(trait) && (globalUnlock || unlockedGroups?.has(getEntryUnlockGroupId(trait) ?? ''))
         ).length,
-        alreadyUnlocked: matchedGroupIds.every(groupId => before.has(groupId)),
+        alreadyUnlocked: globalUnlock ? wasFullyPublic : matchedGroupIds.every(groupId => before.has(groupId)),
+        globalUnlock,
       });
     });
 
@@ -365,6 +459,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
       matchedPackCount: results.length,
       unlockedPackIds: results.map(result => result.packId),
       unlockedGroupCount: results.reduce((sum, result) => sum + result.unlockedGroupCount, 0),
+      globalUnlockPackCount: results.filter(result => result.globalUnlock).length,
     });
     if (results.length === 0) {
       feedback.showToast('没有匹配的口令内容', 'warning', 3200);
@@ -375,37 +470,54 @@ export const useDataPackStore = defineStore('dataPack', () => {
   };
 
   const clearPackUnlocks = (packId: string) => {
-    const existing = unlockedGroupIdsByPack.value[packId] ?? [];
-    if (existing.length === 0) return 0;
+    const existing = Array.from(getUnlockedGroupIdSet(packId));
+    const wasFullyPublic = isPackFullyPublic(packId);
+    if (existing.length === 0 && !wasFullyPublic) return 0;
     const next = { ...unlockedGroupIdsByPack.value };
     delete next[packId];
     unlockedGroupIdsByPack.value = next;
+    applyPackUnlockProgress(packId, undefined);
+    persistPackUnlockProgress(packId, undefined);
     syncRuntimePacks();
     logger.info('Data pack runtime unlocks cleared', {
       packId,
       clearedGroupCount: existing.length,
+      clearedAllPublic: wasFullyPublic,
     });
     feedback.showToast('已重新锁定该数据包的非公开内容', 'success', 2800);
-    return existing.length;
+    return existing.length + (wasFullyPublic ? 1 : 0);
   };
 
   const clearAllUnlocks = () => {
-    const clearedPackCount = Object.keys(unlockedGroupIdsByPack.value).length;
-    const clearedGroupCount = Object.values(unlockedGroupIdsByPack.value)
-      .reduce((sum, groupIds) => sum + groupIds.length, 0);
-    if (clearedGroupCount === 0) return { clearedPackCount: 0, clearedGroupCount: 0 };
+    const packIdsWithProgress = packs.value
+      .filter(pack => getUnlockedGroupIdSet(pack.id).size > 0 || isPackFullyPublic(pack.id))
+      .map(pack => pack.id);
+    const clearedPackCount = packIdsWithProgress.length;
+    const clearedGroupCount = packIdsWithProgress
+      .reduce((sum, packId) => sum + getUnlockedGroupIdSet(packId).size, 0);
+    const clearedAllPublicCount = packIdsWithProgress.filter(packId => isPackFullyPublic(packId)).length;
+    if (clearedGroupCount === 0 && clearedAllPublicCount === 0) {
+      return { clearedPackCount: 0, clearedGroupCount: 0 };
+    }
     unlockedGroupIdsByPack.value = {};
+    packIdsWithProgress.forEach(packId => {
+      applyPackUnlockProgress(packId, undefined);
+      persistPackUnlockProgress(packId, undefined);
+    });
     syncRuntimePacks();
     logger.info('All data pack runtime unlocks cleared', {
       clearedPackCount,
       clearedGroupCount,
+      clearedAllPublicCount,
     });
     feedback.showToast('已清空本次运行的全部数据包解锁状态', 'success', 3200);
     return { clearedPackCount, clearedGroupCount };
   };
 
   const getUnlockedGroupCount = (packId: string) =>
-    unlockedGroupIdsByPack.value[packId]?.length ?? 0;
+    getUnlockedGroupIdSet(packId).size;
+
+  const isPackAllPublic = (packId: string) => isPackFullyPublic(packId);
 
   const setIgnoreUnlockInMaker = (enabled: boolean) => {
     ignoreUnlockInMaker.value = enabled;
@@ -452,18 +564,23 @@ export const useDataPackStore = defineStore('dataPack', () => {
     }
   };
 
-  const exportPack = async (packId: string) => {
+  const exportPack = async (packId: string, options: DataPackExportOptions = {}) => {
     if (!window.electronAPI?.exportDataPack) {
       logger.warn('Export data pack API unavailable', { packId });
       return;
     }
-    const result = await window.electronAPI.exportDataPack(packId);
+    const resetUnlockProgress = options.resetUnlockProgress !== false;
+    const result = await window.electronAPI.exportDataPack(packId, { resetUnlockProgress });
     if (!result.success) {
       logger.warn('Failed to export data pack', { packId, error: result.error });
       feedback.showToast(`导出失败：${result.error}`, 'danger', 4200);
       return;
     }
-    logger.info('Data pack exported', { packId, builtin: packId === DEFAULT_DATA_PACK_ID });
+    logger.info('Data pack exported', {
+      packId,
+      builtin: packId === DEFAULT_DATA_PACK_ID,
+      resetUnlockProgress,
+    });
     feedback.showToast(packId === DEFAULT_DATA_PACK_ID ? '已导出默认数据包副本' : '已导出数据包', 'success');
   };
 
@@ -784,6 +901,18 @@ export const useDataPackStore = defineStore('dataPack', () => {
     if (!editorMeta) return [];
     editorMeta.encryptionGroups ??= [];
     return editorMeta.encryptionGroups;
+  };
+
+  const updateDraftGlobalUnlockPassphrase = (value: string) => {
+    const editorMeta = ensureEditorMeta();
+    if (!editorMeta) return;
+    const trimmed = value.trim();
+    editorMeta.globalUnlockPassphrase = trimmed || undefined;
+    draftDirty.value = true;
+    logger.info('Data pack global unlock passphrase updated', {
+      packId: activeDraftPack.value?.manifest.id,
+      enabled: Boolean(trimmed),
+    });
   };
 
   const syncEntryUnlockVisibility = (
@@ -1258,14 +1387,17 @@ export const useDataPackStore = defineStore('dataPack', () => {
     refresh,
     togglePackEnabled,
     getPackVisibilitySummary,
+    getPackPublicInfoSummary,
     getPackUnlockGroupStats,
     getPackVisibilityIssues,
     getDraftUnlockGroupStats,
     getDraftVisibilityIssues,
+    hasPackUnlockEntry,
     unlockByPassphrase,
     clearPackUnlocks,
     clearAllUnlocks,
     getUnlockedGroupCount,
+    isPackAllPublic,
     setIgnoreUnlockInMaker,
     movePack,
     importPack,
@@ -1290,6 +1422,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     ensureMenuGroupForAssignment,
     ensureItemAssignmentGroups,
     addEncryptionGroup,
+    updateDraftGlobalUnlockPassphrase,
     updateEncryptionGroup,
     removeEncryptionGroup,
     assignDraftSpellUnlockGroup,

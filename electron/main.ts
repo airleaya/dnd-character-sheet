@@ -3,7 +3,15 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import type { Character } from '../src/types/Character'
-import type { DataPackFile, DataPackImportResult, DataPackSaveMode, DataPackSettings, DataPackState } from '../src/types/DataPack'
+import type {
+  DataPackExportOptions,
+  DataPackFile,
+  DataPackImportResult,
+  DataPackSaveMode,
+  DataPackSettings,
+  DataPackState,
+  DataPackUnlockProgress,
+} from '../src/types/DataPack'
 import type { IpcFailureResult, IpcResult, IpcVoidResult } from '../src/types/electron'
 import { normalizeLogEntry } from '../src/utils/logging'
 import {
@@ -12,6 +20,7 @@ import {
   buildExportableDefaultDataPack,
   createDefaultDataPackSettings,
   normalizeDataPackSettings,
+  stripDataPackUnlockProgress,
   toRuntimeDataPack,
   validateDataPackFile,
 } from '../src/utils/dataPackUtils'
@@ -245,7 +254,41 @@ const readDataPackState = (): DataPackState => {
   return { packs, settings };
 };
 
-const getExportableDataPack = (packId: string): DataPackFile => {
+const normalizeUnlockProgressForStorage = (progress?: DataPackUnlockProgress): DataPackUnlockProgress | undefined => {
+  if (!progress) return undefined;
+  const unlockedGroupIds = Array.isArray(progress.unlockedGroupIds)
+    ? progress.unlockedGroupIds.filter((id, index, list) => typeof id === 'string' && id && list.indexOf(id) === index)
+    : [];
+  const allPublic = progress.allPublic === true;
+  if (!allPublic && unlockedGroupIds.length === 0) return undefined;
+  return {
+    allPublic,
+    unlockedGroupIds,
+    updatedAt: typeof progress.updatedAt === 'string' ? progress.updatedAt : new Date().toISOString(),
+  };
+};
+
+const updateDataPackUnlockProgress = (packId: string, progress?: DataPackUnlockProgress): void => {
+  if (packId === DEFAULT_DATA_PACK_ID) throw new Error('默认数据包不能写入口令进度');
+  const filePath = ensureEditableDataPackInCurrentStorage(packId);
+  if (!filePath) throw new Error(`未找到数据包：${packId}`);
+  const dataPack = validateDataPackFile(readJsonFile(filePath));
+  dataPack.editorMeta ??= {};
+  const normalized = normalizeUnlockProgressForStorage(progress);
+  if (normalized) {
+    dataPack.editorMeta.unlockProgress = normalized;
+  } else {
+    dataPack.editorMeta.unlockProgress = undefined;
+  }
+  fs.writeFileSync(filePath, JSON.stringify(dataPack, null, 2), 'utf-8');
+  logger.info('Data pack unlock progress updated', {
+    packId,
+    unlockedGroupCount: normalized?.unlockedGroupIds?.length ?? 0,
+    allPublic: normalized?.allPublic === true,
+  });
+};
+
+const getExportableDataPack = (packId: string, options: DataPackExportOptions = {}): DataPackFile => {
   if (packId === DEFAULT_DATA_PACK_ID) {
     return buildExportableDefaultDataPack({
       ...DEFAULT_DND5E_DATA_PACK,
@@ -259,7 +302,7 @@ const getExportableDataPack = (packId: string): DataPackFile => {
 
   const imported = readImportedDataPackFiles().find(file => file.manifest.id === packId);
   if (!imported) throw new Error(`未找到数据包：${packId}`);
-  return imported;
+  return options.resetUnlockProgress === false ? imported : stripDataPackUnlockProgress(imported);
 };
 
 const readEditableDataPackFile = (packId: string): DataPackFile => {
@@ -442,11 +485,11 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle('export-data-pack', async (_event, packId: string): Promise<IpcVoidResult> => {
+  ipcMain.handle('export-data-pack', async (_event, packId: string, options?: DataPackExportOptions): Promise<IpcVoidResult> => {
     try {
       if (!win) return { success: true, data: null };
 
-      const dataPack = getExportableDataPack(packId);
+      const dataPack = getExportableDataPack(packId, options);
       const result = await dialog.showSaveDialog(win, {
         title: '导出数据包',
         defaultPath: safeDataPackFileName(dataPack.manifest.id),
@@ -461,6 +504,7 @@ app.whenReady().then(() => {
       logger.info('Data pack exported', {
         ...summarizeDataPackFile(dataPack),
         fileName: path.basename(result.filePath),
+        resetUnlockProgress: options?.resetUnlockProgress !== false,
       });
       return { success: true, data: null };
     } catch (e) {
@@ -508,6 +552,20 @@ app.whenReady().then(() => {
       return { success: true, data: normalized };
     } catch (e) {
       logger.error('Failed to update data pack settings', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('update-data-pack-unlock-progress', async (
+    _event,
+    packId: string,
+    progress?: DataPackUnlockProgress
+  ): Promise<IpcVoidResult> => {
+    try {
+      updateDataPackUnlockProgress(packId, progress);
+      return { success: true, data: null };
+    } catch (e) {
+      logger.error('Failed to update data pack unlock progress', e, { packId });
       return createErrorResult(e);
     }
   });

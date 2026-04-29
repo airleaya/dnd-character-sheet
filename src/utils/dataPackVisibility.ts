@@ -19,6 +19,8 @@ export type DataPackVisibilitySummary = {
   lockedTraits: number;
   unlockedTraits: number;
   unlockGroupCount: number;
+  totalCount: number;
+  visibleCount: number;
 };
 export type DataPackUnlockGroupStats = {
   groupId: string;
@@ -36,6 +38,11 @@ export type DataPackVisibilityIssue = {
   entryId?: string;
   groupId?: string;
   count?: number;
+};
+
+export type DataPackPublicInfoSummary = {
+  publicCount: number;
+  totalCount: number;
 };
 
 const clonePlain = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -117,6 +124,11 @@ export const summarizeDataPackVisibility = (
   const itemCounts = countEntries(pack.items, unlockedGroupIds, ignoreUnlock);
   const spellCounts = countEntries(pack.spells, unlockedGroupIds, ignoreUnlock);
   const traitCounts = countEntries(pack.traits, unlockedGroupIds, ignoreUnlock);
+  const totalCount = pack.items.length + pack.spells.length + pack.traits.length;
+  const visibleCount =
+    itemCounts.publicCount + itemCounts.unlockedCount +
+    spellCounts.publicCount + spellCounts.unlockedCount +
+    traitCounts.publicCount + traitCounts.unlockedCount;
 
   return {
     publicItems: itemCounts.publicCount,
@@ -129,6 +141,8 @@ export const summarizeDataPackVisibility = (
     lockedTraits: traitCounts.lockedCount,
     unlockedTraits: traitCounts.unlockedCount,
     unlockGroupCount: getNormalizedUnlockGroups(pack.editorMeta).length,
+    totalCount,
+    visibleCount,
   };
 };
 
@@ -154,6 +168,27 @@ export const resolveUnlockGroupIdsByPassphrase = (
   return getNormalizedUnlockGroups(pack.editorMeta)
     .filter(group => group.passphrase === normalized)
     .map(group => group.id);
+};
+
+export const isGlobalUnlockPassphrase = (
+  pack: Pick<RuntimeDataPack, 'editorMeta'>,
+  passphrase: string
+): boolean => {
+  const normalized = passphrase.trim();
+  const globalPassphrase = pack.editorMeta?.globalUnlockPassphrase?.trim();
+  return Boolean(normalized && globalPassphrase && normalized === globalPassphrase);
+};
+
+export const summarizePublicInfo = (
+  pack: RuntimeDataPack,
+  unlockedGroupIds: ReadonlySet<string>,
+  ignoreUnlock = false
+): DataPackPublicInfoSummary => {
+  const summary = summarizeDataPackVisibility(pack, unlockedGroupIds, ignoreUnlock);
+  return {
+    publicCount: summary.visibleCount,
+    totalCount: summary.totalCount,
+  };
 };
 
 export const summarizeUnlockGroupStats = (

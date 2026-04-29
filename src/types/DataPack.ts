@@ -62,6 +62,8 @@ export interface DataPackEditLock {
 
 export interface DataPackEditorMeta {
   editLock?: DataPackEditLock;
+  globalUnlockPassphrase?: string;
+  unlockProgress?: DataPackUnlockProgress;
   menuGroups?: {
     items?: DataPackMenuGroup[];
     spells?: DataPackMenuGroup[];
@@ -88,6 +90,16 @@ export interface DataPackUnlockGroup {
   passphrase: string;
   hint?: string;
   description?: string;
+}
+
+export interface DataPackUnlockProgress {
+  unlockedGroupIds?: string[];
+  allPublic?: boolean;
+  updatedAt?: string;
+}
+
+export interface DataPackExportOptions {
+  resetUnlockProgress?: boolean;
 }
 
 export interface DataPackSettings {

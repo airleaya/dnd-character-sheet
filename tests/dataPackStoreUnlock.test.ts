@@ -20,6 +20,7 @@ const createPack = (): RuntimeDataPack => ({
   },
   editorMeta: {
     encryptionGroups: [{ id: 'dragon-door', name: 'dragon', lockedByDefault: true }],
+    globalUnlockPassphrase: 'open-all',
   },
   itemMenuName: 'Campaign Pack',
   spellMenuName: 'Campaign Pack',
@@ -55,6 +56,7 @@ describe('data pack passphrase unlock store', () => {
     Object.defineProperty(window, 'electronAPI', {
       value: {
         writeLog: vi.fn(async () => ({ success: true, data: null })),
+        updateDataPackUnlockProgress: vi.fn(async () => ({ success: true, data: null })),
       },
       configurable: true,
     });
@@ -78,9 +80,36 @@ describe('data pack passphrase unlock store', () => {
         unlockedItemCount: 1,
         unlockedSpellCount: 0,
         unlockedTraitCount: 0,
+        globalUnlock: false,
       },
     ]);
     expect(store.itemLibraryItems.map(item => item.id)).toEqual(['campaign:torch', 'campaign:secret-blade']);
+    expect(window.electronAPI.updateDataPackUnlockProgress).toHaveBeenCalledWith('campaign', expect.objectContaining({
+      unlockedGroupIds: ['dragon-door'],
+      allPublic: false,
+    }));
+  });
+
+  it('persists global passphrase unlocks as all-public progress', () => {
+    const store = useDataPackStore();
+    store.packs = [createPack()];
+    store.settings = { enabledPackIds: ['campaign'], packOrder: ['campaign'] };
+
+    const results = store.unlockByPassphrase('open-all');
+
+    expect(results).toMatchObject([
+      {
+        packId: 'campaign',
+        globalUnlock: true,
+        unlockedItemCount: 1,
+      },
+    ]);
+    expect(store.isPackAllPublic('campaign')).toBe(true);
+    expect(store.getPackPublicInfoSummary('campaign')).toEqual({ publicCount: 2, totalCount: 2 });
+    expect(store.itemLibraryItems.map(item => item.id)).toEqual(['campaign:torch', 'campaign:secret-blade']);
+    expect(window.electronAPI.updateDataPackUnlockProgress).toHaveBeenCalledWith('campaign', expect.objectContaining({
+      allPublic: true,
+    }));
   });
 
   it('shows all content while the maker ignore-passphrase switch is enabled', () => {
@@ -96,7 +125,7 @@ describe('data pack passphrase unlock store', () => {
     expect(store.itemLibraryItems.map(item => item.id)).toEqual(['campaign:torch', 'campaign:secret-blade']);
   });
 
-  it('can relock one pack or clear all runtime unlocks without changing pack data', () => {
+  it('can relock one pack or clear all persisted unlocks without changing pack data', () => {
     const store = useDataPackStore();
     store.packs = [createPack()];
     store.settings = { enabledPackIds: ['campaign'], packOrder: ['campaign'] };

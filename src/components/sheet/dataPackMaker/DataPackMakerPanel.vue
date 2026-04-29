@@ -48,6 +48,7 @@ const importablePacks = computed(() =>
 const itemMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.items ?? []);
 const spellMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.spells ?? []);
 const encryptionGroups = computed(() => pack.value?.editorMeta?.encryptionGroups ?? []);
+const globalUnlockPassphrase = computed(() => pack.value?.editorMeta?.globalUnlockPassphrase ?? '');
 const unlockGroupStats = computed(() => store.getDraftUnlockGroupStats());
 const visibilityIssues = computed(() => store.getDraftVisibilityIssues());
 const getUnlockGroupStat = (groupId: string) =>
@@ -714,7 +715,15 @@ const saveDraftFromHeader = async () => {
 
       <section class="group-card encrypted">
         <h2>口令分组</h2>
-        <p class="hint">口令本身就是分组名。加入该分组的物品、法术或词条默认非公开；PL 输入匹配口令后，本次运行中显示该组内容。当前不做强密码学加密。</p>
+        <p class="hint">口令本身就是分组名。加入该分组的物品、法术或词条默认非公开；PL 输入匹配口令后会持续显示该组内容。当前不做强密码学加密。</p>
+        <label class="global-passphrase">
+          全局口令（可选，输入后该数据包全部公开）
+          <input
+            :value="globalUnlockPassphrase"
+            placeholder="留空则不启用全局口令"
+            @change="store.updateDraftGlobalUnlockPassphrase(($event.target as HTMLInputElement).value)"
+          />
+        </label>
         <div class="inline-form">
           <input v-model="newEncryptionGroupName" placeholder="口令 / 分组名" />
           <input v-model="newEncryptionGroupDescription" placeholder="描述（可选）" />
@@ -821,6 +830,7 @@ textarea { min-height: 96px; resize: vertical; }
 .groups-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .group-card { background: white; border: 1px solid #d8ded8; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .group-card.encrypted { grid-column: 1 / -1; border-color: #c7b4df; background: #fcf8ff; }
+.global-passphrase { max-width: 360px; }
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .inline-form input, .inline-form select { min-width: 180px; }
 .managed-group { border: 1px solid #e3e8e3; border-radius: 10px; padding: 9px; display: grid; grid-template-columns: 1fr auto; gap: 5px 8px; align-items: center; }

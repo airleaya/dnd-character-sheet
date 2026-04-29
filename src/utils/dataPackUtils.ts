@@ -171,6 +171,17 @@ export const buildExportableDefaultDataPack = (pack: RuntimeDataPack): DataPackF
   traits: pack.traits,
 });
 
+export const stripDataPackUnlockProgress = (pack: DataPackFile): DataPackFile => {
+  if (!pack.editorMeta?.unlockProgress) return pack;
+  return {
+    ...pack,
+    editorMeta: {
+      ...pack.editorMeta,
+      unlockProgress: undefined,
+    },
+  };
+};
+
 export const stripRuntimePrefix = (runtimeId: string): string => {
   const separatorIndex = runtimeId.indexOf(':');
   return separatorIndex >= 0 ? runtimeId.slice(separatorIndex + 1) : runtimeId;

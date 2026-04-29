@@ -1,5 +1,13 @@
 import type { Character } from './Character';
-import type { DataPackFile, DataPackImportResult, DataPackSaveMode, DataPackSettings, DataPackState } from './DataPack';
+import type {
+  DataPackExportOptions,
+  DataPackFile,
+  DataPackImportResult,
+  DataPackSaveMode,
+  DataPackSettings,
+  DataPackState,
+  DataPackUnlockProgress,
+} from './DataPack';
 import type { LogWriteInput } from './logging';
 
 export type IpcSuccessResult<T> = {
@@ -28,9 +36,10 @@ export interface ElectronApi {
   writeLog: (entry: LogWriteInput) => Promise<IpcVoidResult>;
   readDataPackState?: () => Promise<IpcResult<DataPackState>>;
   importDataPack?: () => Promise<IpcResult<DataPackImportResult | null>>;
-  exportDataPack?: (packId: string) => Promise<IpcVoidResult>;
+  exportDataPack?: (packId: string, options?: DataPackExportOptions) => Promise<IpcVoidResult>;
   deleteDataPack?: (packId: string) => Promise<IpcVoidResult>;
   updateDataPackSettings?: (settings: DataPackSettings) => Promise<IpcResult<DataPackSettings>>;
+  updateDataPackUnlockProgress?: (packId: string, progress?: DataPackUnlockProgress) => Promise<IpcVoidResult>;
   readEditableDataPack?: (packId: string) => Promise<IpcResult<DataPackFile>>;
   saveEditableDataPack?: (packFile: DataPackFile, mode: DataPackSaveMode) => Promise<IpcResult<DataPackFile>>;
   getLocalEditorIdHash?: () => Promise<IpcResult<string>>;

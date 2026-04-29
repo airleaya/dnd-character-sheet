@@ -3,6 +3,7 @@ import {
   DEFAULT_DATA_PACK_EXPORT_ID,
   buildExportableDefaultDataPack,
   normalizeDataPackSettings,
+  stripDataPackUnlockProgress,
   toRuntimeDataPack,
   validateDataPackFile,
 } from '../src/utils/dataPackUtils';
@@ -10,6 +11,7 @@ import {
   filterRuntimePackByVisibility,
   collectVisibilityIssues,
   getNormalizedUnlockGroups,
+  isGlobalUnlockPassphrase,
   isEntryPublic,
   resolveUnlockGroupIdsByPassphrase,
   summarizeUnlockGroupStats,
@@ -121,6 +123,23 @@ describe('data pack utilities', () => {
     });
   });
 
+  it('can remove local unlock progress from exported third-party packs', () => {
+    const exported = stripDataPackUnlockProgress({
+      ...minimalPack,
+      editorMeta: {
+        ...minimalPack.editorMeta,
+        unlockProgress: {
+          allPublic: true,
+          unlockedGroupIds: ['gm-only'],
+          updatedAt: '2026-04-30T00:00:00.000Z',
+        },
+      },
+    });
+
+    expect(exported.editorMeta?.unlockProgress).toBeUndefined();
+    expect(exported.editorMeta?.encryptionGroups?.[0]?.id).toBe('gm-only');
+  });
+
   it('treats missing visibility as public and legacy encryption groups as locked unlock groups', () => {
     const runtimePack = toRuntimeDataPack({
       ...minimalPack,
@@ -165,6 +184,10 @@ describe('data pack utilities', () => {
       },
     ]);
     expect(resolveUnlockGroupIdsByPassphrase(runtimePack, 'GM 可见')).toEqual(['gm-only']);
+    expect(isGlobalUnlockPassphrase({
+      ...runtimePack,
+      editorMeta: { ...runtimePack.editorMeta, globalUnlockPassphrase: 'open-all' },
+    }, 'open-all')).toBe(true);
     expect(filterRuntimePackByVisibility(runtimePack, new Set()).items.map(item => item.id)).toEqual([
       'homebrew:longsword',
     ]);
@@ -176,6 +199,14 @@ describe('data pack utilities', () => {
       lockedItems: 1,
       lockedSpells: 1,
       unlockGroupCount: 1,
+      visibleCount: 2,
+      totalCount: 4,
+    });
+    expect(summarizeDataPackVisibility(runtimePack, new Set(), true)).toMatchObject({
+      lockedItems: 0,
+      lockedSpells: 0,
+      visibleCount: 4,
+      totalCount: 4,
     });
     expect(summarizeUnlockGroupStats(runtimePack)).toEqual([
       {

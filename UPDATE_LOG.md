@@ -1,5 +1,41 @@
 # UPDATE_LOG
 
+## [0.14.17] - 2026-04-30
+- Type: Feature / Data Pack Unlock / Persistence / Export Options / UI / Tests / Logging
+- Item: Persist passphrase unlock progress and add global passphrase visibility controls.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/types/DataPack.ts`
+  - `src/types/electron.ts`
+  - `src/utils/dataPackVisibility.ts`
+  - `src/utils/dataPackUtils.ts`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `src/components/sheet/modals/DataPackUnlockModal.vue`
+  - `tests/dataPackUtils.test.ts`
+  - `tests/dataPackStoreUnlock.test.ts`
+  - `tests/dataPackMakerPanel.ui.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.16` to `0.14.17` because this round adds data-pack unlock persistence and export behavior, not just bug fixes.
+  - Data Pack Manager now shows `????? / ????` across items, spells, and traits.
+  - Added optional global passphrase metadata; entering it makes the whole local third-party pack visible through local unlock progress.
+  - Normal passphrase groups now persist unlocked group ids in the local third-party data-pack file, so unlocked content survives app restarts until relocked.
+  - Added an Electron IPC path for updating unlock progress without accepting arbitrary file paths; logs record pack ids/counts only and never record passphrases or raw pack JSON.
+  - Export now defaults to stripping local unlock progress so distributed packs return to non-public state; exporters can opt to keep local progress.
+  - Maker UI can set or clear the global passphrase without exposing raw JSON.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/dataPackUtils.test.ts tests/dataPackStoreUnlock.test.ts tests/dataPackMakerPanel.ui.test.ts` passed during focused verification.
+  - `npm run test` passed: 35 files / 163 tests.
+  - `npm run build` passed and generated `0.14.17` installer/portable artifacts.
+
 ## [0.14.16] - 2026-04-30
 - Type: Feature / Data Pack Unlock / Diagnostics / Maker UI / Tests / Logging
 - Item: Close phase-four passphrase workflow with group statistics and visibility metadata warnings.
