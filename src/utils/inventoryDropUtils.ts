@@ -60,11 +60,32 @@ export const isInventoryInstanceDragElement = (
 
 // 传递数据的全局变量
 let _globalDragPayload: string | null = null;
+let _clearGlobalDragPayloadTimer: ReturnType<typeof setTimeout> | null = null;
 // 获取数据接口
 export const getGlobalDragPayload = () => {
   return _globalDragPayload;
 };
-export const clearGlobalDragPayload = () => {
+export const clearGlobalDragPayload = (delayMs = 1200) => {
+  if (_clearGlobalDragPayloadTimer) {
+    clearTimeout(_clearGlobalDragPayloadTimer);
+    _clearGlobalDragPayloadTimer = null;
+  }
+
+  if (delayMs <= 0) {
+    _globalDragPayload = null;
+    return;
+  }
+
+  _clearGlobalDragPayloadTimer = setTimeout(() => {
+    _globalDragPayload = null;
+    _clearGlobalDragPayloadTimer = null;
+  }, delayMs);
+};
+export const clearGlobalDragPayloadNow = () => {
+  if (_clearGlobalDragPayloadTimer) {
+    clearTimeout(_clearGlobalDragPayloadTimer);
+    _clearGlobalDragPayloadTimer = null;
+  }
   _globalDragPayload = null;
 };
 
@@ -108,6 +129,27 @@ export const parseDragPayload = (raw: string): DragPayload | null => {
   } catch {
     return null;
   }
+};
+
+export const getDragPayloadFromEvent = (event: DragEvent): DragPayload | null => {
+  const transfer = event.dataTransfer;
+  const nativePayloads = transfer
+    ? [
+        transfer.getData('application/x-dnd-drag-payload'),
+        transfer.getData('application/json'),
+        transfer.getData('text/plain'),
+        transfer.getData('Text'),
+      ]
+    : [];
+
+  for (const raw of nativePayloads) {
+    if (!raw) continue;
+    const payload = parseDragPayload(raw);
+    if (payload) return payload;
+  }
+
+  const globalData = getGlobalDragPayload();
+  return globalData ? parseDragPayload(globalData) : null;
 };
 
 
@@ -209,12 +251,19 @@ export const setupDragData = (
   // ✨ 同步写入 (关键修正)
   // 必须在当前 tick 完成，否则原生 drop 区域读取不到数据
   const jsonStr = JSON.stringify(payload);  
-  // 同时写入全局变量中
-    _globalDragPayload = jsonStr;
+  if (_clearGlobalDragPayloadTimer) {
+    clearTimeout(_clearGlobalDragPayloadTimer);
+    _clearGlobalDragPayloadTimer = null;
+  }
+  _globalDragPayload = jsonStr;
 
+  e.dataTransfer.setData('application/x-dnd-drag-payload', jsonStr);
+  e.dataTransfer.setData('application/json', jsonStr);
   e.dataTransfer.setData('text/plain', jsonStr);
+  e.dataTransfer.setData('Text', jsonStr);
   e.dataTransfer.effectAllowed = 'copyMove';
 
+  // 同时写入全局变量中
   // ⚠️ 关键：不要调用 stopPropagation()
   // 让事件继续冒泡，vuedraggable (Sortable.js) 监听的是容器层的事件，
   // 只有冒泡上去，它才能检测到拖拽并启动排序逻辑。

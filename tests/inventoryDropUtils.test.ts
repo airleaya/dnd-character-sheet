@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { parseDragPayload } from '../src/utils/inventoryDropUtils';
+import {
+  clearGlobalDragPayload,
+  clearGlobalDragPayloadNow,
+  getDragPayloadFromEvent,
+  parseDragPayload,
+  setupDragData,
+} from '../src/utils/inventoryDropUtils';
 
 describe('inventoryDropUtils.parseDragPayload', () => {
   it('parses explicit library item payloads', () => {
@@ -26,5 +32,36 @@ describe('inventoryDropUtils.parseDragPayload', () => {
   it('ignores unsupported payloads safely', () => {
     expect(parseDragPayload(JSON.stringify({ libraryId: 42 }))).toBeNull();
     expect(parseDragPayload('not-json')).toBeNull();
+  });
+
+  it('reads custom native drag payload types before falling back', () => {
+    const event = {
+      dataTransfer: {
+        getData: (type: string) =>
+          type === 'application/x-dnd-drag-payload'
+            ? JSON.stringify({ type: 'library-item', id: 'native-item' })
+            : '',
+      },
+    } as DragEvent;
+
+    expect(getDragPayloadFromEvent(event)).toEqual({ type: 'library-item', id: 'native-item' });
+  });
+
+  it('keeps global drag payload available when dragend fires before native drop', () => {
+    const data: Record<string, string> = {};
+    setupDragData({
+      dataTransfer: {
+        setData: (type: string, value: string) => {
+          data[type] = value;
+        },
+        effectAllowed: 'none',
+      },
+    } as unknown as DragEvent, 'library-item', 'global-item');
+
+    clearGlobalDragPayload();
+    const event = { dataTransfer: { getData: () => '' } } as unknown as DragEvent;
+    expect(getDragPayloadFromEvent(event)).toEqual({ type: 'library-item', id: 'global-item' });
+    expect(data['application/x-dnd-drag-payload']).toBe(JSON.stringify({ type: 'library-item', id: 'global-item' }));
+    clearGlobalDragPayloadNow();
   });
 });

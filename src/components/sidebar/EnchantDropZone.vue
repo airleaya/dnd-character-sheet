@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useEnchanting } from '../../composables/useEnchanting';
-import { getGlobalDragPayload } from '../../utils/inventoryDropUtils';
+import { getDragPayloadFromEvent } from '../../utils/inventoryDropUtils';
 
 const { openEnchantingWithDropData } = useEnchanting();
 const isHovering = ref(false);
@@ -23,9 +23,9 @@ const onDragLeave = () => {
 
 const onDrop = (event: DragEvent) => {
   isHovering.value = false;
-  const data = getGlobalDragPayload() || event.dataTransfer?.getData('text/plain');
-  if (!data) return;
-  openEnchantingWithDropData(data);
+  const payload = getDragPayloadFromEvent(event);
+  if (!payload) return;
+  openEnchantingWithDropData(JSON.stringify(payload));
 };
 </script>
 

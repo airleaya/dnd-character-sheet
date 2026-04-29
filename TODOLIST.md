@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-29 version iteration update:
+> Current baseline grows from `0.14.6` to `0.14.7`; this round hardens item drop activation after the first maker drop fix was still insufficient.
+> 2026-04-29 drag activation hardening:
+> Drag payloads now survive Sortable/native drag ordering by using multiple native payload types, delayed global payload cleanup, shared drop payload resolution, and maker document-level capture fallback for forge/enchant workbench targets.
+
+> 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.5` to `0.14.6`; this round fixes maker item drop editor activation in `0.14.6`.
 > 2026-04-29 maker editor activation fix:
 > The maker now accepts right-library `vuedraggable` clone payloads and selects the copied item by id after drop, so dropping into the forge/enchant workbench immediately opens the matching edit step.

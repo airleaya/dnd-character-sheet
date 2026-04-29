@@ -5,7 +5,7 @@ import type { RuntimeDataPack } from '../../types/DataPack';
 export const DEFAULT_DND5E_DATA_PACK: RuntimeDataPack = {
   id: 'dnd5e-default',
   name: 'DND 5E默认数据',
-  version: '0.14.6',
+  version: '0.14.7',
   builtin: true,
   enabled: true,
   sourceKind: 'builtin',
@@ -13,7 +13,7 @@ export const DEFAULT_DND5E_DATA_PACK: RuntimeDataPack = {
     schemaVersion: 1,
     id: 'dnd5e-default',
     name: 'DND 5E默认数据',
-    version: '0.14.6',
+    version: '0.14.7',
     author: 'letsDND',
     description: '内置 DND 5E 默认物品与法术数据',
   },

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useDataPackStore } from '../../../stores/dataPackStore';
-import { getGlobalDragPayload, parseDragPayload } from '../../../utils/inventoryDropUtils';
+import { getDragPayloadFromEvent } from '../../../utils/inventoryDropUtils';
 import type { DataPackTraitDefinition } from '../../../types/DataPack';
 import type { LibraryItem } from '../../../types/Library';
 import type { SpellDefinition } from '../../../types/Spell';
@@ -55,15 +55,6 @@ const switchLibraryTab = (tab: 'items' | 'spells') => {
   store.setMakerLibraryTab(tab);
 };
 
-const parseDrop = (event: DragEvent) => {
-  event.preventDefault();
-  const nativeData = event.dataTransfer?.getData('text/plain');
-  const globalData = getGlobalDragPayload();
-  const nativePayload = nativeData ? parseDragPayload(nativeData) : null;
-  if (nativePayload) return nativePayload;
-  return globalData ? parseDragPayload(globalData) : null;
-};
-
 const onWorkbenchDragEnter = (target: 'forge' | 'enchant') => {
   hoveringWorkbench.value = target;
 };
@@ -83,11 +74,15 @@ const onWorkbenchDragLeave = (target: 'forge' | 'enchant') => {
   }
 };
 
-const onItemDrop = async (event: DragEvent, target: 'forge' | 'enchant') => {
+type MakerDragEvent = DragEvent & {
+  __makerWorkbenchDropHandled?: boolean;
+};
+
+const activateItemWorkbenchFromDrop = async (event: DragEvent, target: 'forge' | 'enchant') => {
   event.preventDefault();
   event.stopPropagation();
   hoveringWorkbench.value = null;
-  const payload = parseDrop(event);
+  const payload = getDragPayloadFromEvent(event);
   if (payload?.type === 'library-item') {
     activeSection.value = 'items';
     activeItemWorkbench.value = target;
@@ -99,6 +94,47 @@ const onItemDrop = async (event: DragEvent, target: 'forge' | 'enchant') => {
     selectedItemIndex.value = importedIndex >= 0 ? importedIndex : Math.max(0, items.value.length - 1);
   }
 };
+
+const onItemDrop = async (event: MakerDragEvent, target: 'forge' | 'enchant') => {
+  event.__makerWorkbenchDropHandled = true;
+  await activateItemWorkbenchFromDrop(event, target);
+};
+
+const getWorkbenchTargetFromEvent = (event: DragEvent): 'forge' | 'enchant' | null => {
+  const target = event.target instanceof Element
+    ? event.target.closest<HTMLElement>('[data-maker-workbench]')
+    : null;
+  const workbench = target?.dataset.makerWorkbench;
+  return workbench === 'forge' || workbench === 'enchant' ? workbench : null;
+};
+
+const onDocumentDragOver = (event: DragEvent) => {
+  const target = getWorkbenchTargetFromEvent(event);
+  if (!target) return;
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'copy';
+  }
+  hoveringWorkbench.value = target;
+};
+
+const onDocumentDrop = (event: MakerDragEvent) => {
+  if (event.__makerWorkbenchDropHandled) return;
+  const target = getWorkbenchTargetFromEvent(event);
+  if (!target) return;
+  event.__makerWorkbenchDropHandled = true;
+  void activateItemWorkbenchFromDrop(event, target);
+};
+
+onMounted(() => {
+  document.addEventListener('dragover', onDocumentDragOver, true);
+  document.addEventListener('drop', onDocumentDrop, true);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('dragover', onDocumentDragOver, true);
+  document.removeEventListener('drop', onDocumentDrop, true);
+});
 
 const onNativeSpellDrop = (event: DragEvent) => {
   event.preventDefault();
@@ -216,6 +252,7 @@ const saveLock = async () => {
         <div class="drop-grid">
           <div
             class="drop-card"
+            data-maker-workbench="forge"
             :class="{ hovering: hoveringWorkbench === 'forge' }"
             @dragenter.prevent.stop="onWorkbenchDragEnter('forge')"
             @dragover.prevent.stop="onWorkbenchDragOver($event, 'forge')"
@@ -227,6 +264,7 @@ const saveLock = async () => {
           </div>
           <div
             class="drop-card purple"
+            data-maker-workbench="enchant"
             :class="{ hovering: hoveringWorkbench === 'enchant' }"
             @dragenter.prevent.stop="onWorkbenchDragEnter('enchant')"
             @dragover.prevent.stop="onWorkbenchDragOver($event, 'enchant')"

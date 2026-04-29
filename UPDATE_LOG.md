@@ -1,5 +1,31 @@
 # UPDATE_LOG
 
+## [0.14.7] - 2026-04-29
+- Type: Bugfix / Drag-and-drop / Data Pack Maker / Forge-Enchant Entry / Tests
+- Item: Harden item drag drop activation after the first 0.14.6 fix was still insufficient.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/utils/inventoryDropUtils.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sidebar/ForgeDropZone.vue`
+  - `src/components/sidebar/EnchantDropZone.vue`
+  - `src/data/dataPacks/defaultDnd5ePack.ts`
+  - `tests/inventoryDropUtils.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.6` to `0.14.7`.
+  - Follow-up root cause: only normalizing `{ libraryId }` was not enough when Sortable/native drag order clears or overwrites transfer data before the workbench receives `drop`.
+  - Drag payloads are now written to multiple native dataTransfer formats plus the global payload cache; dragend now delays global cleanup briefly so late `drop` handlers can still resolve the item.
+  - Added `getDragPayloadFromEvent` as the shared resolver for maker, forge, and enchant drop zones, with native payload parsing plus global fallback.
+  - Maker workbench now has document-level capture handlers and explicit `data-maker-workbench` targets, so dropping on child text or when component-level handlers are bypassed still activates the correct forge/enchant edit step.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/inventoryDropUtils.test.ts tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts` passed: 4 test files, 18 tests.
+  - `npm run build` passed and generated `0.14.7` installer/portable artifacts.
+
 ## [0.14.6] - 2026-04-29
 - Type: Bugfix / Data Pack Maker / Drag-and-drop / Tests
 - Item: Fix maker item drop so the edit step activates after dropping.
