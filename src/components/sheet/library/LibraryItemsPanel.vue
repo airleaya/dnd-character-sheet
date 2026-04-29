@@ -2,6 +2,7 @@
 import { computed, ref, toRef } from 'vue';
 import draggable from 'vuedraggable';
 import { ITEM_LIBRARY } from '../../../data/libraries/itemLibrary';
+import { getItemLibraryDataPackGroups } from '../../../data/dataPacks/runtimeDataPacks';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
 import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
@@ -13,6 +14,7 @@ import type {
   WeaponDefinition,
   WeaponPropertyKey
 } from '../../../types/Library';
+import type { DataPackItemCategoryGroup, DataPackItemSubGroup } from '../../../types/DataPack';
 import type { LibraryCloneDragElement } from '../../../utils/inventoryDropUtils';
 
 const props = defineProps<{
@@ -25,54 +27,23 @@ const emit = defineEmits<{
   (e: 'leave-item'): void;
 }>();
 
-interface SubGroup {
-  title: string;
-  items: LibraryItem[];
-}
-
-interface MainGroup {
-  id: string;
-  label: string;
-  subGroups: SubGroup[];
-}
-
 const queryRef = toRef(props, 'searchQuery');
 const { filteredList } = useLibraryFilter(ITEM_LIBRARY, queryRef);
 
-const libraryTree = computed<MainGroup[]>(() => {
-  const categoryMap = new Map<string, Map<string, LibraryItem[]>>();
+const libraryTree = computed(() =>
+  getItemLibraryDataPackGroups(new Set(filteredList.value.map(item => item.id)))
+);
 
-  for (const item of filteredList.value) {
-    const category = item.displayCategory ?? item.type;
-    const subcategory = item.displaySubcategory ?? item.type;
-
-    if (!categoryMap.has(category)) {
-      categoryMap.set(category, new Map());
-    }
-
-    const subgroups = categoryMap.get(category)!;
-    if (!subgroups.has(subcategory)) {
-      subgroups.set(subcategory, []);
-    }
-
-    subgroups.get(subcategory)!.push(item);
-  }
-
-  return Array.from(categoryMap.entries()).map(([label, subgroups]) => ({
-    id: label,
-    label,
-    subGroups: Array.from(subgroups.entries()).map(([title, items]) => ({ title, items }))
-  }));
-});
-
-const expandedState = ref<Record<string, boolean>>({});
+const expandedState = ref<Record<string, boolean>>({ 'dnd5e-default': true });
 const weaponCategoryFilter = ref<WeaponCategory | null>(null);
 const armorTypeFilter = ref<ArmorType | null>(null);
 
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
-const isWeaponSubGroup = (group: MainGroup, sub: SubGroup) => group.label === '装备' && sub.title === '武器';
-const isArmorSubGroup = (group: MainGroup, sub: SubGroup) => group.label === '装备' && sub.title === '护甲';
+const isWeaponSubGroup = (category: DataPackItemCategoryGroup, sub: DataPackItemSubGroup) =>
+  category.label === '装备' && sub.title === '武器';
+const isArmorSubGroup = (category: DataPackItemCategoryGroup, sub: DataPackItemSubGroup) =>
+  category.label === '装备' && sub.title === '护甲';
 
 const weaponCategoryOptions: Array<{ value: WeaponCategory; label: string }> = [
   { value: 'simple_melee', label: '简近' },
@@ -98,12 +69,12 @@ const toggleArmorTypeFilter = (type: ArmorType) => {
 const isArmorItem = (item: LibraryItem): item is ArmorDefinition =>
   item.type === 'armor' && 'armorType' in item;
 
-const filteredSubItems = (group: MainGroup, sub: SubGroup) => {
-  if (isWeaponSubGroup(group, sub) && weaponCategoryFilter.value) {
+const filteredSubItems = (category: DataPackItemCategoryGroup, sub: DataPackItemSubGroup) => {
+  if (isWeaponSubGroup(category, sub) && weaponCategoryFilter.value) {
     return sub.items.filter((item) => item.type === 'weapon' && item.category === weaponCategoryFilter.value);
   }
 
-  if (isArmorSubGroup(group, sub) && armorTypeFilter.value) {
+  if (isArmorSubGroup(category, sub) && armorTypeFilter.value) {
     return sub.items.filter((item) => isArmorItem(item) && item.armorType === armorTypeFilter.value);
   }
 
@@ -160,71 +131,78 @@ const getBadges = (item: LibraryItem) => {
 
 <template>
   <div class="items-panel">
-    <div v-for="group in libraryTree" :key="group.id" class="main-group">
-      <div class="main-group-header" @click="toggleExpand(group.id)" :class="{ 'is-open': isVisible(group.id) }">
-        <div class="header-content"><span class="arrow-icon">▶</span>{{ group.label }}</div>
+    <div v-for="pack in libraryTree" :key="pack.packId" class="main-group">
+      <div class="main-group-header" @click="toggleExpand(pack.packId)" :class="{ 'is-open': isVisible(pack.packId) }">
+        <div class="header-content"><span class="arrow-icon">▶</span>{{ pack.label }}</div>
       </div>
-      <div v-show="isVisible(group.id)">
-        <div v-for="sub in group.subGroups" :key="sub.title" class="sub-group">
-          <div class="sticky-sub-header" @click="toggleExpand(`${group.id}_${sub.title}`)" :class="{ 'is-open': isVisible(`${group.id}_${sub.title}`) }">
-            <div class="header-left"><span class="arrow-icon">▶</span>{{ sub.title }}</div>
-            <div v-if="isWeaponSubGroup(group, sub)" class="weapon-filter" @click.stop>
-              <button
-                v-for="option in weaponCategoryOptions"
-                :key="option.value"
-                type="button"
-                class="weapon-filter-button"
-                :class="{ active: weaponCategoryFilter === option.value }"
-                @click="toggleWeaponCategoryFilter(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-            <div v-if="isArmorSubGroup(group, sub)" class="weapon-filter" @click.stop>
-              <button
-                v-for="option in armorTypeOptions"
-                :key="option.value"
-                type="button"
-                class="weapon-filter-button"
-                :class="{ active: armorTypeFilter === option.value }"
-                @click="toggleArmorTypeFilter(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-            <span class="count">{{ filteredSubItems(group, sub).length }}</span>
+      <div v-show="isVisible(pack.packId)">
+        <div v-for="category in pack.categoryGroups" :key="category.id" class="category-group">
+          <div class="category-header" @click="toggleExpand(category.id)" :class="{ 'is-open': isVisible(category.id) }">
+            <div class="header-left"><span class="arrow-icon">▶</span>{{ category.label }}</div>
           </div>
-          <div v-show="isVisible(`${group.id}_${sub.title}`)">
-            <draggable
-              :list="filteredSubItems(group, sub)"
-              :group="{ name: 'library', pull: 'clone', put: false }"
-              :clone="cloneItem"
-              item-key="id"
-              class="item-list"
-            >
-              <template #item="{ element }">
-                <div
-                  class="library-item"
-                  draggable="true"
-                  @mouseenter="emit('hover-item', element, $event)"
-                  @mousemove="emit('move-item', $event)"
-                  @mouseleave="emit('leave-item')"
-                  @dragstart="onNativeDragStart($event, element)"
-                  @dragend="onDragEnd"
-                >
-                  <div class="item-row">
-                    <span class="item-name">
-                      {{ element.name }}
-                      <small v-if="element.englishName">{{ element.englishName }}</small>
-                    </span>
-                    <span class="item-cost">{{ formatCost(element.cost) }}</span>
-                  </div>
-                  <div class="badges-row" v-if="getBadges(element).length > 0">
-                    <span v-for="(b, i) in getBadges(element)" :key="i" class="badge" :class="b.color">{{ b.text }}</span>
-                  </div>
+          <div v-show="isVisible(category.id)">
+            <div v-for="sub in category.subGroups" :key="sub.title" class="sub-group">
+              <div class="sticky-sub-header" @click="toggleExpand(`${category.id}_${sub.title}`)" :class="{ 'is-open': isVisible(`${category.id}_${sub.title}`) }">
+                <div class="header-left"><span class="arrow-icon">▶</span>{{ sub.title }}</div>
+                <div v-if="isWeaponSubGroup(category, sub)" class="weapon-filter" @click.stop>
+                  <button
+                    v-for="option in weaponCategoryOptions"
+                    :key="option.value"
+                    type="button"
+                    class="weapon-filter-button"
+                    :class="{ active: weaponCategoryFilter === option.value }"
+                    @click="toggleWeaponCategoryFilter(option.value)"
+                  >
+                    {{ option.label }}
+                  </button>
                 </div>
-              </template>
-            </draggable>
+                <div v-if="isArmorSubGroup(category, sub)" class="weapon-filter" @click.stop>
+                  <button
+                    v-for="option in armorTypeOptions"
+                    :key="option.value"
+                    type="button"
+                    class="weapon-filter-button"
+                    :class="{ active: armorTypeFilter === option.value }"
+                    @click="toggleArmorTypeFilter(option.value)"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+                <span class="count">{{ filteredSubItems(category, sub).length }}</span>
+              </div>
+              <div v-show="isVisible(`${category.id}_${sub.title}`)">
+                <draggable
+                  :list="filteredSubItems(category, sub)"
+                  :group="{ name: 'library', pull: 'clone', put: false }"
+                  :clone="cloneItem"
+                  item-key="id"
+                  class="item-list"
+                >
+                  <template #item="{ element }">
+                    <div
+                      class="library-item"
+                      draggable="true"
+                      @mouseenter="emit('hover-item', element, $event)"
+                      @mousemove="emit('move-item', $event)"
+                      @mouseleave="emit('leave-item')"
+                      @dragstart="onNativeDragStart($event, element)"
+                      @dragend="onDragEnd"
+                    >
+                      <div class="item-row">
+                        <span class="item-name">
+                          {{ element.name }}
+                          <small v-if="element.englishName">{{ element.englishName }}</small>
+                        </span>
+                        <span class="item-cost">{{ formatCost(element.cost) }}</span>
+                      </div>
+                      <div class="badges-row" v-if="getBadges(element).length > 0">
+                        <span v-for="(b, i) in getBadges(element)" :key="i" class="badge" :class="b.color">{{ b.text }}</span>
+                      </div>
+                    </div>
+                  </template>
+                </draggable>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -249,13 +227,22 @@ const getBadges = (item: LibraryItem) => {
 }
 
 .sticky-sub-header {
-  position: sticky; top: var(--main-group-sticky-height); z-index: 15; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 24px;
+  position: sticky; top: calc(var(--main-group-sticky-height) + 34px); z-index: 15; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 34px;
   font-size: 0.85rem; font-weight: bold; color: #aaa; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background-color 0.2s;
   &:hover { background-color: #2a2a2a; color: #fff; }
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
   &.is-open { color: #eee; background-color: #282828; .arrow-icon { transform: rotate(90deg); } }
   .count { font-size: 0.7rem; color: #666; background: #1a1a1a; padding: 1px 6px; border-radius: 8px; }
+}
+
+.category-header {
+  position: sticky; top: var(--main-group-sticky-height); z-index: 17; background-color: #242424; border-left: 4px solid #3d3d3d; padding: 9px 12px 9px 22px;
+  font-size: 0.88rem; font-weight: 800; color: #c8c8c8; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;
+  &:hover { background-color: #2c2c2c; color: #fff; }
+  .header-left { display: flex; align-items: center; gap: 6px; }
+  .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
+  &.is-open { color: #d8c36a; border-left-color: #d8c36a; .arrow-icon { transform: rotate(90deg); } }
 }
 
 .weapon-filter { display: flex; gap: 4px; margin-left: auto; margin-right: 8px; }

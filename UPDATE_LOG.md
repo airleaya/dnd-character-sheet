@@ -1,21 +1,33 @@
 # UPDATE_LOG
 
 ## [0.14.1] - 2026-04-29
-- 类型：规划 / 数据包系统 / 工程记录
-- 条目：数据包系统四阶段工作栈
+- 类型：功能迭代 / 数据包系统 / 物品库 / 法术库 / 测试
+- 条目：数据包系统阶段一
 - 负责人：雪荔枝 / Codex
 - 关联文件：
   - `package.json`
   - `package-lock.json`
   - `README.md`
   - `TODOLIST.md`
+  - `src/types/DataPack.ts`
+  - `src/data/dataPacks/defaultDnd5ePack.ts`
+  - `src/data/dataPacks/runtimeDataPacks.ts`
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/sheet/library/LibrarySpellsPanel.vue`
+  - `tests/dataPackRuntime.test.ts`
 - 已完成变化：
   - 项目版本号从 `0.13.11` 进入 `0.14.1`。
   - 将数据包系统拆分为四阶段工作栈：数据包读取与目录改造、导入/启用/运行时合并、GM 数据包制作器、分级加密与解锁。
-  - 明确阶段一目标为先建立类型、默认数据包封装、物品库三级目录和法术库数据包来源层，不立即实现导入/导出和加密。
-  - 明确法术库后续需要支持按环级、学派、职业三种方式分类。
+  - 新增运行时数据包类型与内置注册表，默认数据包内部 id 为 `dnd5e-default`。
+  - 将默认物品库挂载到 `DND-5E物品仓库`，物品库 UI 改为“数据包 / 分类 / 子分类”三级目录。
+  - 将默认法术库挂载到 `DND 5E法术全书`，法术库 UI 改为“数据包 / 分类方式 / 分类项”目录。
+  - 法术库同时提供 `按环级`、`按学派`、`按职业` 三条并列分类分支；没有职业字段或职业列表为空的法术归入 `无职业数据`。
+  - 保持既有 `ITEM_LIBRARY`、`SPELL_LIBRARY`、物品审计与法术拖拽 API 兼容，本阶段不实现外部导入/导出、启用/禁用或加密。
 - 验证结果：
-  - 仅文档与版本记录调整，未运行代码验证。
+  - `npm run test -- tests/dataPackRuntime.test.ts tests/spellRitualBadges.ui.test.ts tests/itemLibraryAudit.test.ts` 通过：3 个测试文件，10 个用例。
+  - `npm run test` 通过：31 个测试文件，140 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.14.1` 安装包与便携版。
 
 ## [0.13.11] - 2026-04-29
 - 类型：行为优化 / 行囊 / 附魔 UI / 测试

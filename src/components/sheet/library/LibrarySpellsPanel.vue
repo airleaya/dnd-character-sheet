@@ -6,6 +6,7 @@ import { useActiveSheetStore } from '../../../stores/activeSheet';
 import type { SpellDefinition } from '../../../types/Spell';
 // 数据源
 import { SPELL_LIBRARY } from '../../../data/spells/index';
+import { getSpellLibraryDataPackGroups } from '../../../data/dataPacks/runtimeDataPacks';
 
 const props = defineProps<{
   searchQuery: string;
@@ -25,33 +26,16 @@ const isKnown = (spellId: string) => store.allKnownSpells.some(s => s.id === spe
 const queryRef = toRef(props, 'searchQuery');
 const { filteredList: spells } = useLibraryFilter(SPELL_LIBRARY, queryRef);
 
-// 2. 分组逻辑 (戏法 - 9环)
-interface SubGroup { title: string; items: SpellDefinition[]; }
-interface MainGroup { id: string; label: string; subGroups: SubGroup[]; }
-
-const spellLibraryTree = computed<MainGroup[]>(() => {
-  const groups: SubGroup[] = [];
-  
-  // 戏法 (Level 0)
-  const cantrips = spells.value.filter(s => s.level === 0);
-  if (cantrips.length > 0) groups.push({ title: '🔮 戏法 (Cantrips)', items: cantrips });
-
-  // 1-9 环
-  for (let i = 1; i <= 9; i++) {
-    const levelSpells = spells.value.filter(s => s.level === i);
-    if (levelSpells.length > 0) {
-      groups.push({ title: `${i} 环法术`, items: levelSpells });
-    }
-  }
-
-  return [
-    { id: 'spells_root', label: '📜 法术全书', subGroups: groups }
-  ].filter(main => main.subGroups.length > 0);
-});
+const spellLibraryTree = computed(() =>
+  getSpellLibraryDataPackGroups(new Set(spells.value.map(spell => spell.id)))
+);
 
 // 3. 展开/折叠状态
 const expandedState = ref<Record<string, boolean>>({
-  'spells_root': true
+  'dnd5e-default': true,
+  'dnd5e-default_level': true,
+  'dnd5e-default_school': true,
+  'dnd5e-default_class': true,
 });
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
@@ -96,52 +80,59 @@ const getSpellBadges = (spell: SpellDefinition) => {
 
 <template>
   <div class="spells-panel">
-    <div v-for="group in spellLibraryTree" :key="group.id" class="main-group">
-      <div class="main-group-header" @click="toggleExpand(group.id)" :class="{ 'is-open': isVisible(group.id) }">
-        <div class="header-content"><span class="arrow-icon">▶</span>{{ group.label }}</div>
+    <div v-for="pack in spellLibraryTree" :key="pack.packId" class="main-group">
+      <div class="main-group-header" @click="toggleExpand(pack.packId)" :class="{ 'is-open': isVisible(pack.packId) }">
+        <div class="header-content"><span class="arrow-icon">▶</span>{{ pack.label }}</div>
       </div>
-      <div v-show="isVisible(group.id)">
-        <div v-for="sub in group.subGroups" :key="sub.title" class="sub-group">
-          <div class="sticky-sub-header" @click="toggleExpand(`${group.id}_${sub.title}`)" :class="{ 'is-open': isVisible(`${group.id}_${sub.title}`) }">
-            <div class="header-left"><span class="arrow-icon">▶</span>{{ sub.title }}</div>
-            <span class="count">{{ sub.items.length }}</span>
+      <div v-show="isVisible(pack.packId)">
+        <div v-for="branch in pack.branches" :key="branch.mode" class="branch-group">
+          <div class="branch-header" @click="toggleExpand(`${pack.packId}_${branch.mode}`)" :class="{ 'is-open': isVisible(`${pack.packId}_${branch.mode}`) }">
+            <div class="header-left"><span class="arrow-icon">▶</span>{{ branch.label }}</div>
           </div>
-          <div v-show="isVisible(`${group.id}_${sub.title}`)">
-            <draggable 
-              :list="sub.items" 
-              :group="{ name: 'spells', pull: 'clone', put: false }" 
-              :clone="cloneSpell" 
-              item-key="id" 
-              @start="handleDragStart"
-              class="item-list"
-            >
-              <template #item="{ element }">
-                <div class="library-item spell-item"
-                :class="{ 'is-learned': isKnown(element.id) }"
-                @mouseenter="emit('hover-item', element, $event)" 
-                @mousemove="emit('move-item', $event)" 
-                @mouseleave="emit('leave-item')">
-                  <div class="item-row">
-                    <span class="item-name">
-                      {{ element.name }}
-                      <span v-if="isKnown(element.id)" class="learned-mark">✓</span>
-                    </span>
-                    <span class="item-cost level-tag">{{ element.level === 0 ? '戏法' : `${element.level}环` }}</span>
-                  </div>
-                  <div class="badges-row">
-                    <span
-                      v-for="(b, i) in getSpellBadges(element)"
-                      :key="i"
-                      class="badge"
-                      :class="b.color"
-                      :title="b.title"
-                    >
-                      {{ b.text }}
-                    </span>
-                  </div>
-                </div>
-              </template>
-            </draggable>
+          <div v-show="isVisible(`${pack.packId}_${branch.mode}`)">
+            <div v-for="sub in branch.groups" :key="sub.title" class="sub-group">
+              <div class="sticky-sub-header" @click="toggleExpand(`${pack.packId}_${branch.mode}_${sub.title}`)" :class="{ 'is-open': isVisible(`${pack.packId}_${branch.mode}_${sub.title}`) }">
+                <div class="header-left"><span class="arrow-icon">▶</span>{{ sub.title }}</div>
+                <span class="count">{{ sub.spells.length }}</span>
+              </div>
+              <div v-show="isVisible(`${pack.packId}_${branch.mode}_${sub.title}`)">
+                <draggable
+                  :list="sub.spells"
+                  :group="{ name: 'spells', pull: 'clone', put: false }"
+                  :clone="cloneSpell"
+                  item-key="id"
+                  @start="handleDragStart"
+                  class="item-list"
+                >
+                  <template #item="{ element }">
+                    <div class="library-item spell-item"
+                    :class="{ 'is-learned': isKnown(element.id) }"
+                    @mouseenter="emit('hover-item', element, $event)"
+                    @mousemove="emit('move-item', $event)"
+                    @mouseleave="emit('leave-item')">
+                      <div class="item-row">
+                        <span class="item-name">
+                          {{ element.name }}
+                          <span v-if="isKnown(element.id)" class="learned-mark">✓</span>
+                        </span>
+                        <span class="item-cost level-tag">{{ element.level === 0 ? '戏法' : `${element.level}环` }}</span>
+                      </div>
+                      <div class="badges-row">
+                        <span
+                          v-for="(b, i) in getSpellBadges(element)"
+                          :key="i"
+                          class="badge"
+                          :class="b.color"
+                          :title="b.title"
+                        >
+                          {{ b.text }}
+                        </span>
+                      </div>
+                    </div>
+                  </template>
+                </draggable>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -162,13 +153,22 @@ const getSpellBadges = (spell: SpellDefinition) => {
 }
 
 .sticky-sub-header {
-  position: sticky; top: 0; z-index: 10; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 24px;
+  position: sticky; top: 34px; z-index: 10; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 34px;
   font-size: 0.85rem; font-weight: bold; color: #aaa; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background-color 0.2s;
   &:hover { background-color: #2a2a2a; color: #fff; }
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
   &.is-open { color: #eee; background-color: #282828; .arrow-icon { transform: rotate(90deg); } }
   .count { font-size: 0.7rem; color: #666; background: #1a1a1a; padding: 1px 6px; border-radius: 8px; }
+}
+
+.branch-header {
+  position: sticky; top: 0; z-index: 12; background-color: #242424; border-left: 4px solid #3d3d3d; padding: 9px 12px 9px 22px;
+  font-size: 0.88rem; font-weight: 800; color: #c8c8c8; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;
+  &:hover { background-color: #2c2c2c; color: #fff; }
+  .header-left { display: flex; align-items: center; gap: 6px; }
+  .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
+  &.is-open { color: #d8c36a; border-left-color: #d8c36a; .arrow-icon { transform: rotate(90deg); } }
 }
 
 .library-item { background-color: #1e1e1e; border-bottom: 1px solid #282828; padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: #2d2d2d; } }
