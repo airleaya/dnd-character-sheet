@@ -16,10 +16,12 @@ import {
   stripRuntimePrefix,
 } from '../utils/dataPackUtils';
 import {
+  collectVisibilityIssues,
   filterRuntimePackByVisibility,
   getEntryUnlockGroupId,
   isEntryPublic,
   resolveUnlockGroupIdsByPassphrase,
+  summarizeUnlockGroupStats,
   summarizeDataPackVisibility,
 } from '../utils/dataPackVisibility';
 import { getRuntimeLibraryItemById, getRuntimeSpellById } from '../data/dataPacks/runtimeDataPacks';
@@ -268,6 +270,48 @@ export const useDataPackStore = defineStore('dataPack', () => {
     return summarizeDataPackVisibility(pack, getUnlockedGroupIdSet(pack.id), shouldIgnoreUnlockForRuntime());
   };
 
+  const getPackUnlockGroupStats = (packId: string) => {
+    const pack = packs.value.find(entry => entry.id === packId);
+    return pack ? summarizeUnlockGroupStats(pack) : [];
+  };
+
+  const getPackVisibilityIssues = (packId: string) => {
+    const pack = packs.value.find(entry => entry.id === packId);
+    return pack ? collectVisibilityIssues(pack) : [];
+  };
+
+  const getDraftUnlockGroupStats = () => {
+    if (!activeDraftPack.value) return [];
+    return summarizeUnlockGroupStats({
+      editorMeta: activeDraftPack.value.editorMeta,
+      items: activeDraftPack.value.items ?? [],
+      spells: activeDraftPack.value.spells ?? [],
+      traits: activeDraftPack.value.traits ?? [],
+    });
+  };
+
+  const getDraftVisibilityIssues = () => {
+    if (!activeDraftPack.value) return [];
+    return collectVisibilityIssues({
+      editorMeta: activeDraftPack.value.editorMeta,
+      items: activeDraftPack.value.items ?? [],
+      spells: activeDraftPack.value.spells ?? [],
+      traits: activeDraftPack.value.traits ?? [],
+    });
+  };
+
+  const logPackVisibilityIssues = (packId: string, source: string) => {
+    const issues = getPackVisibilityIssues(packId);
+    if (issues.length === 0) return issues;
+    logger.warn('Data pack visibility metadata issues detected', {
+      packId,
+      source,
+      issueCount: issues.length,
+      issueCodes: Array.from(new Set(issues.map(issue => issue.code))),
+    });
+    return issues;
+  };
+
   const unlockByPassphrase = (passphrase: string) => {
     const trimmed = passphrase.trim();
     if (!trimmed) {
@@ -395,6 +439,10 @@ export const useDataPackStore = defineStore('dataPack', () => {
         logger.info('Data pack imported', result.data);
         feedback.showToast(`已导入数据包：${result.data.name}`, 'success');
         await refresh();
+        const issues = logPackVisibilityIssues(result.data.packId, 'import');
+        if (issues.length > 0) {
+          feedback.showToast(`数据包口令分组校验发现 ${issues.length} 个警告，请在数据包管理中查看。`, 'warning', 5200);
+        }
       }
     } catch (e) {
       logger.error('Failed to import data pack', e);
@@ -1210,6 +1258,10 @@ export const useDataPackStore = defineStore('dataPack', () => {
     refresh,
     togglePackEnabled,
     getPackVisibilitySummary,
+    getPackUnlockGroupStats,
+    getPackVisibilityIssues,
+    getDraftUnlockGroupStats,
+    getDraftVisibilityIssues,
     unlockByPassphrase,
     clearPackUnlocks,
     clearAllUnlocks,

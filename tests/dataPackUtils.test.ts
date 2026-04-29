@@ -8,9 +8,11 @@ import {
 } from '../src/utils/dataPackUtils';
 import {
   filterRuntimePackByVisibility,
+  collectVisibilityIssues,
   getNormalizedUnlockGroups,
   isEntryPublic,
   resolveUnlockGroupIdsByPassphrase,
+  summarizeUnlockGroupStats,
   summarizeDataPackVisibility,
 } from '../src/utils/dataPackVisibility';
 import { DEFAULT_DND5E_DATA_PACK } from '../src/data/dataPacks/defaultDnd5ePack';
@@ -175,5 +177,45 @@ describe('data pack utilities', () => {
       lockedSpells: 1,
       unlockGroupCount: 1,
     });
+    expect(summarizeUnlockGroupStats(runtimePack)).toEqual([
+      {
+        groupId: 'gm-only',
+        passphrase: 'GM 可见',
+        itemCount: 1,
+        spellCount: 1,
+        traitCount: 0,
+        totalCount: 2,
+      },
+    ]);
+  });
+
+  it('reports visibility metadata issues without exposing entry payloads', () => {
+    const runtimePack = toRuntimeDataPack({
+      ...minimalPack,
+      editorMeta: {
+        unlockGroups: [
+          { id: 'same-a', passphrase: 'same' },
+          { id: 'same-b', passphrase: 'same' },
+        ],
+      },
+      items: [
+        {
+          ...minimalPack.items![0]!,
+          id: 'orphan',
+          visibility: { public: false, unlockGroupId: 'missing-group' },
+        },
+        {
+          ...minimalPack.items![0]!,
+          id: 'no-group',
+          visibility: { public: false },
+        },
+      ],
+    }, true);
+
+    expect(collectVisibilityIssues(runtimePack).map(issue => issue.code)).toEqual([
+      'duplicate_passphrase',
+      'missing_unlock_group',
+      'non_public_without_group',
+    ]);
   });
 });

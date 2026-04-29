@@ -1,6 +1,11 @@
 ﻿# TODOLIST
 
 > 2026-04-30 version iteration update:
+> Current baseline grows from `0.14.15` to `0.14.16`; this round closes phase-four passphrase workflow with group statistics and metadata warnings.
+> 2026-04-30 phase-four wrap-up:
+> Maker and Data Pack Manager now show passphrase-group counts and visibility warnings; import flow logs invalid visibility metadata without exposing passphrases or raw pack content.
+
+> 2026-04-30 version iteration update:
 > Current baseline grows from `0.14.14` to `0.14.15`; this round adds runtime relock controls for passphrase-unlocked data-pack content.
 > 2026-04-30 passphrase relock update:
 > Data Pack Manager can relock one pack, and the global `Shift + K + L` unlock dialog can clear all session unlocks without changing data-pack files.
@@ -214,12 +219,13 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.14.15`
+当前基线版本：`0.14.16`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
 
 - `0.14.N`：数据包系统；`N` 为自增长补丁版本号。
+- `0.14.16`：已完成阶段四收尾：口令组内容统计、可见性元数据警告与导入校验提示。
 - `0.14.15`：已完成数据包口令解锁状态的本包重新锁定与全局清空本次解锁。
 - `0.14.14`：已完成 GM 制作器口令分组管理、物品/法术/词条公开状态写回与旧“加密分组”文案收敛。
 - `0.14.13`：已完成阶段四第一版口令解锁可见性、数据包管理口令入口、`Shift + K + L` 快捷解锁窗口与编辑时忽视口令开关。
@@ -274,6 +280,7 @@
   - [ ] 如未来需要，再评估 Web Crypto 的 PBKDF2 + AES-GCM 真加密；当前无强密码学加密需求。
   - [x] 支持 PL 在数据包管理界面或 `Shift + K + L` 独立窗口输入 GM 口令解锁更多物品/法术/词条。
   - [x] 支持清空本次运行解锁状态：可在数据包管理中重新锁定单包，或在 `Shift + K + L` 窗口清空全部。
+  - [x] 支持口令组内容统计和可见性元数据校验警告。
   - [ ] 评估是否需要本机保存解锁状态；当前解锁状态仅本次运行有效，且不保存明文口令。
 - 已确认并完成：
   - 阶段一只挂载内置数据包，不做任何文件导入。
@@ -552,6 +559,7 @@
 3. 完成或确认合并后，将结果写入 `UPDATE_LOG.md`。
 4. `TODOLIST.md` 只保留未完成、待验证、待澄清事项。
 5. 工程进度记录必须使用中文。
+
 
 
 

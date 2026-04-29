@@ -34,6 +34,8 @@ onMounted(() => {
 const packs = computed(() => store.orderedDataPacks);
 const isDefaultPack = (packId: string) => packId === DEFAULT_DATA_PACK_ID;
 const getVisibilitySummary = (packId: string) => store.getPackVisibilitySummary(packId);
+const getUnlockGroupStats = (packId: string) => store.getPackUnlockGroupStats(packId);
+const getVisibilityIssues = (packId: string) => store.getPackVisibilityIssues(packId);
 const unlockPack = (packId: string) => {
   unlockResults.value = store.unlockByPassphrase(unlockPassphrases[packId] ?? '');
   unlockPassphrases[packId] = '';
@@ -123,6 +125,20 @@ const createPack = async () => {
                 </span>
                 <span>
                   未公开 {{ (getVisibilitySummary(pack.id)?.lockedItems ?? 0) + (getVisibilitySummary(pack.id)?.lockedSpells ?? 0) + (getVisibilitySummary(pack.id)?.lockedTraits ?? 0) }}
+                </span>
+              </div>
+              <div v-if="getUnlockGroupStats(pack.id).length > 0" class="visibility-line subtle">
+                <span>
+                  口令组 {{ getUnlockGroupStats(pack.id).length }}
+                </span>
+                <span>
+                  组内内容 {{ getUnlockGroupStats(pack.id).reduce((sum, stat) => sum + stat.totalCount, 0) }}
+                </span>
+              </div>
+              <div v-if="getVisibilityIssues(pack.id).length > 0" class="visibility-warning">
+                <strong>口令分组校验警告：{{ getVisibilityIssues(pack.id).length }}</strong>
+                <span v-for="issue in getVisibilityIssues(pack.id).slice(0, 3)" :key="`${pack.id}:${issue.code}:${issue.entryKind}:${issue.entryId}:${issue.groupId}`">
+                  {{ issue.message }}
                 </span>
               </div>
               <form
@@ -343,6 +359,24 @@ const createPack = async () => {
   background: rgba(93, 173, 226, 0.08);
   border-radius: 999px;
   padding: 3px 8px;
+}
+
+.visibility-line.subtle span {
+  border-color: rgba(180, 151, 93, 0.22);
+  background: rgba(180, 151, 93, 0.08);
+  color: #d9c49e;
+}
+
+.visibility-warning {
+  display: grid;
+  gap: 4px;
+  margin-top: 9px;
+  border: 1px solid rgba(235, 152, 78, 0.26);
+  background: rgba(235, 152, 78, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: #f0cfaa;
+  font-size: 0.78rem;
 }
 
 .unlock-inline input {

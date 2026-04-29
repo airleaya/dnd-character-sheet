@@ -20,6 +20,23 @@ export type DataPackVisibilitySummary = {
   unlockedTraits: number;
   unlockGroupCount: number;
 };
+export type DataPackUnlockGroupStats = {
+  groupId: string;
+  passphrase: string;
+  itemCount: number;
+  spellCount: number;
+  traitCount: number;
+  totalCount: number;
+};
+export type DataPackVisibilityIssue = {
+  code: 'missing_unlock_group' | 'non_public_without_group' | 'duplicate_passphrase';
+  severity: 'warning';
+  message: string;
+  entryKind?: 'item' | 'spell' | 'trait' | 'group';
+  entryId?: string;
+  groupId?: string;
+  count?: number;
+};
 
 const clonePlain = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -139,3 +156,96 @@ export const resolveUnlockGroupIdsByPassphrase = (
     .map(group => group.id);
 };
 
+export const summarizeUnlockGroupStats = (
+  pack: Pick<RuntimeDataPack, 'editorMeta' | 'items' | 'spells' | 'traits'>
+): DataPackUnlockGroupStats[] => {
+  const groups = getNormalizedUnlockGroups(pack.editorMeta);
+  const stats = new Map<string, DataPackUnlockGroupStats>();
+
+  groups.forEach(group => {
+    stats.set(group.id, {
+      groupId: group.id,
+      passphrase: group.passphrase,
+      itemCount: 0,
+      spellCount: 0,
+      traitCount: 0,
+      totalCount: 0,
+    });
+  });
+
+  const addEntry = (groupId: string | undefined, key: 'itemCount' | 'spellCount' | 'traitCount') => {
+    if (!groupId) return;
+    const stat = stats.get(groupId);
+    if (!stat) return;
+    stat[key] += 1;
+    stat.totalCount += 1;
+  };
+
+  pack.items.forEach(item => {
+    if (!isEntryPublic(item)) addEntry(getEntryUnlockGroupId(item), 'itemCount');
+  });
+  pack.spells.forEach(spell => {
+    if (!isEntryPublic(spell)) addEntry(getEntryUnlockGroupId(spell), 'spellCount');
+  });
+  pack.traits.forEach(trait => {
+    if (!isEntryPublic(trait)) addEntry(getEntryUnlockGroupId(trait), 'traitCount');
+  });
+
+  return Array.from(stats.values());
+};
+
+export const collectVisibilityIssues = (
+  pack: Pick<RuntimeDataPack, 'editorMeta' | 'items' | 'spells' | 'traits'>
+): DataPackVisibilityIssue[] => {
+  const issues: DataPackVisibilityIssue[] = [];
+  const groups = getNormalizedUnlockGroups(pack.editorMeta);
+  const groupIds = new Set(groups.map(group => group.id));
+  const passphraseCounts = new Map<string, number>();
+
+  groups.forEach(group => {
+    passphraseCounts.set(group.passphrase, (passphraseCounts.get(group.passphrase) ?? 0) + 1);
+  });
+  passphraseCounts.forEach((count, passphrase) => {
+    if (count > 1) {
+      issues.push({
+        code: 'duplicate_passphrase',
+        severity: 'warning',
+        message: `有 ${count} 个口令分组使用了同一个口令。`,
+        entryKind: 'group',
+        count,
+      });
+    }
+    void passphrase;
+  });
+
+  const checkEntry = (entry: VisibleDataPackEntry, entryKind: DataPackVisibilityIssue['entryKind']) => {
+    if (isEntryPublic(entry)) return;
+    const groupId = getEntryUnlockGroupId(entry);
+    if (!groupId) {
+      issues.push({
+        code: 'non_public_without_group',
+        severity: 'warning',
+        message: '存在非公开内容未指定口令分组，将无法通过口令解锁。',
+        entryKind,
+        entryId: entry.id,
+      });
+      return;
+    }
+    if (!groupIds.has(groupId)) {
+      issues.push({
+        code: 'missing_unlock_group',
+        severity: 'warning',
+        message: '存在内容引用了不存在的口令分组，将无法通过口令解锁。',
+        entryKind,
+        entryId: entry.id,
+        groupId,
+      });
+    }
+  };
+
+  pack.items.forEach(item => checkEntry(item, 'item'));
+  pack.spells.forEach(spell => checkEntry(spell, 'spell'));
+  pack.traits.forEach(trait => checkEntry(trait, 'trait'));
+
+  return issues;
+};

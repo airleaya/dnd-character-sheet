@@ -1,5 +1,32 @@
 # UPDATE_LOG
 
+## [0.14.16] - 2026-04-30
+- Type: Feature / Data Pack Unlock / Diagnostics / Maker UI / Tests / Logging
+- Item: Close phase-four passphrase workflow with group statistics and visibility metadata warnings.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/utils/dataPackVisibility.ts`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `tests/dataPackUtils.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.15` to `0.14.16` because this round adds phase-four diagnostics and authoring visibility, not just bug fixes.
+  - Added shared passphrase-group statistics for item/spell/trait counts.
+  - Added visibility metadata diagnostics for duplicate passphrases, non-public entries without unlock groups, and entries referencing missing unlock groups.
+  - GM maker now shows per-passphrase-group content counts and a compact warning list.
+  - Data Pack Manager now shows aggregate passphrase-group counts and warning summaries without exposing group names/passphrases to PL.
+  - Import flow now logs visibility metadata issues and warns the user to inspect Data Pack Manager; logs include issue codes/counts only, not passphrases or raw data-pack content.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/dataPackUtils.test.ts tests/dataPackMakerPanel.ui.test.ts tests/dataPackStoreUnlock.test.ts` passed during focused verification.
+  - `npm run test` passed: 35 files / 160 tests.
+  - `npm run build` passed and generated `0.14.16` installer/portable artifacts.
+
 ## [0.14.15] - 2026-04-30
 - Type: Feature / Data Pack Unlock / Session Relock / UI / Tests / Logging
 - Item: Add runtime relock controls for passphrase-unlocked data-pack content.

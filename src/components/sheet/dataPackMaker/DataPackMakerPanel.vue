@@ -48,6 +48,10 @@ const importablePacks = computed(() =>
 const itemMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.items ?? []);
 const spellMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.spells ?? []);
 const encryptionGroups = computed(() => pack.value?.editorMeta?.encryptionGroups ?? []);
+const unlockGroupStats = computed(() => store.getDraftUnlockGroupStats());
+const visibilityIssues = computed(() => store.getDraftVisibilityIssues());
+const getUnlockGroupStat = (groupId: string) =>
+  unlockGroupStats.value.find(stat => stat.groupId === groupId);
 const contentGroups = computed(() => {
   const groups: Array<{
     category: string;
@@ -720,6 +724,17 @@ const saveDraftFromHeader = async () => {
           <input :value="group.name" @change="store.updateEncryptionGroup(group.id, { name: ($event.target as HTMLInputElement).value })" />
           <button type="button" class="danger small" @click="store.removeEncryptionGroup(group.id)">删除</button>
           <input :value="group.description ?? ''" placeholder="描述（可选）" @change="store.updateEncryptionGroup(group.id, { description: ($event.target as HTMLInputElement).value })" />
+          <small>
+            内容统计：物品 {{ getUnlockGroupStat(group.id)?.itemCount ?? 0 }} /
+            法术 {{ getUnlockGroupStat(group.id)?.spellCount ?? 0 }} /
+            词条 {{ getUnlockGroupStat(group.id)?.traitCount ?? 0 }}
+          </small>
+        </div>
+        <div v-if="visibilityIssues.length > 0" class="visibility-issues">
+          <strong>口令分组校验警告：{{ visibilityIssues.length }}</strong>
+          <span v-for="issue in visibilityIssues.slice(0, 4)" :key="`${issue.code}:${issue.entryKind}:${issue.entryId}:${issue.groupId}`">
+            {{ issue.message }}
+          </span>
         </div>
       </section>
     </div>
@@ -810,6 +825,8 @@ textarea { min-height: 96px; resize: vertical; }
 .inline-form input, .inline-form select { min-width: 180px; }
 .managed-group { border: 1px solid #e3e8e3; border-radius: 10px; padding: 9px; display: grid; grid-template-columns: 1fr auto; gap: 5px 8px; align-items: center; }
 .managed-group small { grid-column: 1 / -1; color: #788178; }
+.visibility-issues { grid-column: 1 / -1; display: grid; gap: 5px; border: 1px solid #e4b46a; background: #fff8e9; color: #7a5520; border-radius: 10px; padding: 10px; font-size: 0.84rem; }
+.visibility-issues span { line-height: 1.35; }
 .hint { color: #7b847b; font-size: 0.85rem; }
 .empty-panel { display: flex; align-items: center; justify-content: center; color: #778077; min-height: 280px; }
 .empty-panel.compact { min-height: 180px; }
