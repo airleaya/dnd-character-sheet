@@ -21,8 +21,7 @@ const ignoresContentWeight = (item: InventoryItem): boolean => {
 const isContainerDefinition = (item: LibraryItem | undefined): boolean => item?.type === 'container';
 
 const canMergeLibraryDefinition = (item: LibraryItem | undefined): boolean => {
-  const mode = item?.multiplicity?.mode;
-  return mode === 'split' || mode === 'split_grouped' || mode === 'split_custom_rule';
+  return Boolean(item && !isContainerDefinition(item) && item.magic?.attunement?.requires !== true);
 };
 
 const hasInstanceMagicOrCustomization = (item: InventoryItem): boolean => {
@@ -42,12 +41,56 @@ const hasInstanceMagicOrCustomization = (item: InventoryItem): boolean => {
   );
 };
 
+const clonePlain = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+const createComparableDataFromDefinition = (definition: LibraryItem): InventoryItem['data'] => {
+  const {
+    id: definitionId,
+    magic,
+    multiplicity,
+    acquisitionRule,
+    descriptionBlocks,
+    audit,
+    ...dataProps
+  } = definition;
+  void definitionId;
+  void magic;
+  void multiplicity;
+  void acquisitionRule;
+  void descriptionBlocks;
+  void audit;
+
+  return clonePlain(dataProps) as InventoryItem['data'];
+};
+
+const inventoryUnitWeight = (definition: LibraryItem): number => {
+  const multiplicity = definition.multiplicity;
+
+  if (
+    multiplicity &&
+    ['split', 'split_grouped', 'split_custom_rule'].includes(multiplicity.mode) &&
+    multiplicity.sourceQuantity > 0
+  ) {
+    return definition.weight / multiplicity.sourceQuantity;
+  }
+
+  return definition.weight;
+};
+
+const normalizeComparable = (value: unknown): string => JSON.stringify(value ?? null);
+
 const isPristineMergeTarget = (item: InventoryItem, definition: LibraryItem | undefined): boolean => {
   if (!definition) return false;
+  const expectedData = createComparableDataFromDefinition(definition);
   return (
+    !isContainerItem(item) &&
+    !requiresAttunement(item) &&
     item.type === definition.type &&
     item.name === definition.name &&
     item.description === definition.description &&
+    item.weight === inventoryUnitWeight(definition) &&
+    normalizeComparable(item.descriptionBlocks) === normalizeComparable(definition.descriptionBlocks) &&
+    normalizeComparable(item.data) === normalizeComparable(expectedData) &&
     !hasInstanceMagicOrCustomization(item)
   );
 };

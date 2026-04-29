@@ -52,7 +52,24 @@ describe('useInventoryLogic', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
-  it('creates independent weapon instances instead of merging with existing inventory items', () => {
+  it('stacks pristine library weapons and moves the stack to the requested preview index', () => {
+    const character = ref(createDefaultCharacter('inventory-stack-pristine-weapons'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('dagger');
+    logic.addItem('club');
+    logic.addItem('longsword', 1);
+    logic.addItem('longsword', 0);
+
+    expect(character.value.inventory.map((item) => item.templateId)).toEqual([
+      'longsword',
+      'dagger',
+      'club',
+    ]);
+    expect(character.value.inventory.find((item) => item.templateId === 'longsword')?.quantity).toBe(2);
+  });
+
+  it('creates independent weapon instances instead of merging with customized inventory items', () => {
     const character = ref(createDefaultCharacter('inventory-2b'));
     const logic = useInventoryLogic(character, ref([]), vi.fn());
 
@@ -81,6 +98,22 @@ describe('useInventoryLogic', () => {
     expect(swords.map((item) => item.quantity)).toEqual([1, 1]);
     expect(swords[0].magic?.customTraits?.[0]?.name).toBe('烈焰');
     expect(swords[1].magic?.customTraits ?? []).toEqual([]);
+  });
+
+  it('does not stack items that require attunement', () => {
+    const character = ref(createDefaultCharacter('inventory-attunement-no-stack'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('longsword');
+    character.value.inventory[0]!.magic = {
+      isMagic: true,
+      attunement: { requires: true, attuned: false },
+    };
+    logic.addItem('longsword');
+
+    const swords = character.value.inventory.filter((item) => item.templateId === 'longsword');
+    expect(swords).toHaveLength(2);
+    expect(swords.map((item) => item.quantity)).toEqual([1, 1]);
   });
 
   it('creates dragged library items at the requested preview index', () => {

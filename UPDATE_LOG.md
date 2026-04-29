@@ -1,5 +1,29 @@
 # UPDATE_LOG
 
+## [0.13.11] - 2026-04-29
+- 类型：行为优化 / 行囊 / 附魔 UI / 测试
+- 条目：普通物品堆叠与装备充能描边
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `tests/useInventoryLogic.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.10` 自增长到 `0.13.11`。
+  - 攻击栏法术区域“装备”分组中的附魔词条充能计数点增加黑色描边，保留填充色读取物品行囊背景色。
+  - 从物品库拖入普通同模板物品时，若行囊中存在可堆叠且未改造的同模板物品，会复用已有物品项、数量 `+1`，并移动到本次拖拽放置位置。
+  - 堆叠目标必须保持物品库默认状态：模板、名称、描述、描述块、重量、类型专属 `data` 与默认模板一致，且没有魔法/附魔/同调/诅咒等实例改造。
+  - 容器永不堆叠；需要同调的物品永不堆叠，也不会作为普通拖入物品的合并目标。
+- 验证结果：
+  - `npm run test -- tests/useInventoryLogic.test.ts tests/actionsPanel.ui.test.ts` 通过：2 个测试文件，19 个用例。
+  - `npm run test` 通过：30 个测试文件，136 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.11` 安装包与便携版。
+
 ## [0.13.10] - 2026-04-29
 - 类型：UI 排序 / 物品库 / 测试
 - 条目：空白模板菜单排序到最后

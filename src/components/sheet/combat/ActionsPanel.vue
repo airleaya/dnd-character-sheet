@@ -588,7 +588,7 @@ const handleLongRest = async () => {
                       type="button"
                       class="slot-dot equipment-dot"
                       :class="{ filled: value <= action.charges.current }"
-                      :style="{ borderColor: action.style?.backgroundColor, backgroundColor: value <= action.charges.current ? action.style?.backgroundColor : '#fff' }"
+                      :style="{ backgroundColor: value <= action.charges.current ? action.style?.backgroundColor : '#fff' }"
                       :title="`设置为 ${value <= action.charges.current ? value - 1 : value}/${action.charges.max} 充能`"
                       @click="handleEquipmentChargeClick(action, value)"
                     ></button>
@@ -1723,8 +1723,9 @@ const handleLongRest = async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid #8e44ad;
+  border: 1px solid #111;
   background: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.72);
   cursor: pointer;
   padding: 0;
 
