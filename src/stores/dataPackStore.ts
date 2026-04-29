@@ -16,9 +16,12 @@ import {
   stripRuntimePrefix,
 } from '../utils/dataPackUtils';
 import { getRuntimeLibraryItemById, getRuntimeSpellById } from '../data/dataPacks/runtimeDataPacks';
+import { createRendererLogger } from '../utils/rendererLogger';
 import type { DataPackFile, DataPackManifest, DataPackMenuGroup, DataPackSettings, RuntimeDataPack } from '../types/DataPack';
 import type { LibraryItem } from '../types/Library';
 import type { SpellDefinition } from '../types/Spell';
+
+const logger = createRendererLogger('stores/dataPackStore');
 
 const applyPackRuntime = (packs: RuntimeDataPack[]) => {
   setRuntimeDataPacks(packs);
@@ -341,18 +344,40 @@ export const useDataPackStore = defineStore('dataPack', () => {
     await saveDraftPack('create');
   };
 
-  const saveDraftPack = async (mode: 'create' | 'update' = 'update') => {
-    if (!activeDraftPack.value || !window.electronAPI?.saveEditableDataPack) return;
-    activeDraftPack.value.manifest.updatedAt = new Date().toISOString();
-    const result = await window.electronAPI.saveEditableDataPack(activeDraftPack.value, mode);
-    if (!result.success) {
-      feedback.showToast(`保存失败：${result.error}`, 'danger', 4200);
-      return;
+  const saveDraftPack = async (mode: 'create' | 'update' = 'update'): Promise<boolean> => {
+    if (!activeDraftPack.value) {
+      feedback.showToast('当前没有可保存的数据包草稿', 'warning');
+      return false;
     }
-    activeDraftPack.value = clonePlain(result.data);
-    draftDirty.value = false;
-    feedback.showToast('数据包已保存', 'success');
-    await refresh();
+    if (!window.electronAPI?.saveEditableDataPack) {
+      feedback.showToast('当前运行环境不支持保存数据包', 'danger', 4200);
+      return false;
+    }
+
+    const previousUpdatedAt = activeDraftPack.value.manifest.updatedAt;
+    activeDraftPack.value.manifest.updatedAt = new Date().toISOString();
+
+    try {
+      const result = await window.electronAPI.saveEditableDataPack(activeDraftPack.value, mode);
+      if (!result.success) {
+        activeDraftPack.value.manifest.updatedAt = previousUpdatedAt;
+        feedback.showToast(`保存失败：${result.error}`, 'danger', 4200);
+        return false;
+      }
+      activeDraftPack.value = clonePlain(result.data);
+      draftDirty.value = false;
+      feedback.showToast('数据包已保存', 'success');
+      await refresh();
+      return true;
+    } catch (e) {
+      activeDraftPack.value.manifest.updatedAt = previousUpdatedAt;
+      logger.error('Failed to save draft data pack', e, {
+        packId: activeDraftPack.value.manifest.id,
+        mode,
+      });
+      feedback.showToast(`保存失败：${e instanceof Error ? e.message : String(e)}`, 'danger', 4200);
+      return false;
+    }
   };
 
   const closeMaker = async () => {

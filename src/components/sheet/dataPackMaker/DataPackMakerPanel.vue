@@ -28,6 +28,7 @@ const newEncryptionGroupName = ref('');
 const newEncryptionGroupDescription = ref('');
 const draggedContentItemId = ref('');
 const draggedContentGroupKey = ref('');
+const isSavingDraft = ref(false);
 const lockDraft = reactive({
   enabled: false,
   password: '',
@@ -419,6 +420,16 @@ const saveLock = async () => {
   lockDraft.password = '';
 };
 
+const saveDraftFromHeader = async () => {
+  if (isSavingDraft.value) return;
+  isSavingDraft.value = true;
+  try {
+    await store.saveDraftPack('update');
+  } finally {
+    isSavingDraft.value = false;
+  }
+};
+
 </script>
 
 <template>
@@ -432,7 +443,9 @@ const saveLock = async () => {
       <div class="header-actions">
         <button type="button" :class="{ active: activeSection === 'items' }" @click="switchLibraryTab('items')">物品制作</button>
         <button type="button" :class="{ active: activeSection === 'spells' }" @click="switchLibraryTab('spells')">法术制作</button>
-        <button type="button" @click="store.saveDraftPack('update')">保存</button>
+        <button type="button" :disabled="isSavingDraft" @click="saveDraftFromHeader">
+          {{ isSavingDraft ? '保存中...' : '保存' }}
+        </button>
         <button type="button" class="ghost" @click="store.closeMaker">关闭制作器</button>
       </div>
     </header>
@@ -717,6 +730,7 @@ const saveLock = async () => {
 }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 button { border: 1px solid #95a38d; background: #fffdf6; color: #263126; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
+button:disabled { cursor: not-allowed; opacity: 0.58; }
 button.active { background: #263126; color: white; }
 button.ghost { background: transparent; }
 button.danger { border-color: #c86f66; color: #9c3026; }
