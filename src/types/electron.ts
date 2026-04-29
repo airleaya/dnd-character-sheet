@@ -1,4 +1,5 @@
 import type { Character } from './Character';
+import type { DataPackImportResult, DataPackSettings, DataPackState } from './DataPack';
 import type { LogWriteInput } from './logging';
 
 export type IpcSuccessResult<T> = {
@@ -25,4 +26,9 @@ export interface ElectronApi {
   selectDirectory: () => Promise<string | null>;
   exportCharacter: (dirPath: string, filename: string, content: string) => Promise<IpcVoidResult>;
   writeLog: (entry: LogWriteInput) => Promise<IpcVoidResult>;
+  readDataPackState?: () => Promise<IpcResult<DataPackState>>;
+  importDataPack?: () => Promise<IpcResult<DataPackImportResult | null>>;
+  exportDataPack?: (packId: string) => Promise<IpcVoidResult>;
+  deleteDataPack?: (packId: string) => Promise<IpcVoidResult>;
+  updateDataPackSettings?: (settings: DataPackSettings) => Promise<IpcResult<DataPackSettings>>;
 }

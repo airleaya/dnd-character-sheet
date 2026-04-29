@@ -2,9 +2,10 @@
 import { computed, ref, watch } from 'vue';
 import { useForge } from '../../../composables/useForge';
 import { useUiFeedbackStore } from '../../../stores/uiFeedback';
+import { useDataPackStore } from '../../../stores/dataPackStore';
 import { DAMAGE_TYPE_OPTIONS } from '../../../data/rules/damageTypes';
 import { WEAPON_PROPERTIES } from '../../../data/rules/weaponProperties';
-import { ITEM_LIBRARY, getLibraryItemById } from '../../../data/libraries/itemLibrary';
+import { getRuntimeLibraryItemById } from '../../../data/dataPacks/runtimeDataPacks';
 import { useEnchanting } from '../../../composables/useEnchanting';
 import type {
   AbilityKey,
@@ -31,6 +32,7 @@ const {
 } = useForge();
 const { openEnchantingForItem } = useEnchanting();
 const feedback = useUiFeedbackStore();
+const dataPackStore = useDataPackStore();
 const weaponProperties = computed(() => draftData.value.properties ?? []);
 
 const itemTypeOptions: Array<{ value: ItemType; label: string }> = [
@@ -75,7 +77,7 @@ const templateSearch = ref('');
 const templateOptions = computed(() => {
   const query = templateSearch.value.trim().toLowerCase();
   const source = query
-    ? ITEM_LIBRARY.filter(item => {
+    ? dataPackStore.itemLibraryItems.filter(item => {
         const haystack = [
           item.name,
           item.englishName,
@@ -88,12 +90,12 @@ const templateOptions = computed(() => {
           .toLowerCase();
         return haystack.includes(query);
       })
-    : ITEM_LIBRARY;
+    : dataPackStore.itemLibraryItems;
 
   return source.slice(0, 80);
 });
 
-const selectedTemplateName = computed(() => getLibraryItemById(draftItem.value?.templateId ?? '')?.name ?? '');
+const selectedTemplateName = computed(() => getRuntimeLibraryItemById(draftItem.value?.templateId ?? '')?.name ?? '');
 
 const tagsText = computed({
   get: () => (Array.isArray(draftData.value.tags) ? draftData.value.tags.join(', ') : ''),
@@ -114,7 +116,7 @@ const onTemplateChange = (event: Event) => {
   if (!draftItem.value) return;
   const templateId = (event.target as HTMLSelectElement).value;
   draftItem.value.templateId = templateId;
-  const template = getLibraryItemById(templateId);
+  const template = getRuntimeLibraryItemById(templateId);
   templateSearch.value = template?.name ?? '';
 };
 
@@ -130,7 +132,7 @@ const initialStateStr = ref('');
 watch(() => draftItem.value, (newVal) => {
   if (newVal) {
     initialStateStr.value = JSON.stringify(newVal);
-    templateSearch.value = getLibraryItemById(newVal.templateId)?.name ?? '';
+    templateSearch.value = getRuntimeLibraryItemById(newVal.templateId)?.name ?? '';
   } else {
     initialStateStr.value = '';
     templateSearch.value = '';

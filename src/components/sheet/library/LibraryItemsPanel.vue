@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
 import draggable from 'vuedraggable';
-import { ITEM_LIBRARY } from '../../../data/libraries/itemLibrary';
-import { getItemLibraryDataPackGroups } from '../../../data/dataPacks/runtimeDataPacks';
+import { useDataPackStore } from '../../../stores/dataPackStore';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
 import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
@@ -28,10 +27,11 @@ const emit = defineEmits<{
 }>();
 
 const queryRef = toRef(props, 'searchQuery');
-const { filteredList } = useLibraryFilter(ITEM_LIBRARY, queryRef);
+const dataPackStore = useDataPackStore();
+const { filteredList } = useLibraryFilter(dataPackStore.itemLibraryItems, queryRef);
 
 const libraryTree = computed(() =>
-  getItemLibraryDataPackGroups(new Set(filteredList.value.map(item => item.id)))
+  dataPackStore.getItemGroups(new Set(filteredList.value.map(item => item.id)))
 );
 
 const expandedState = ref<Record<string, boolean>>({ 'dnd5e-default': true });

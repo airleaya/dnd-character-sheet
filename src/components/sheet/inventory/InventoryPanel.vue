@@ -25,7 +25,7 @@ import {
   getMagicInventoryStyle,
   resolveMagicTraitsForItem,
 } from '../../../utils/magicItems';
-import { getSpellById } from '../../../data/spells';
+import { getRuntimeSpellById } from '../../../data/dataPacks/runtimeDataPacks';
 import type { ItemCost } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
 
@@ -216,7 +216,7 @@ const getMagicTraits = (item: InventoryItem) => resolveMagicTraitsForItem(item);
 
 const getMagicTraitSpellName = (spellId?: string) => {
   if (!spellId) return '';
-  return getSpellById(spellId)?.name ?? spellId;
+  return getRuntimeSpellById(spellId)?.name ?? spellId;
 };
 
 // 2. 显示悬浮窗

@@ -10,7 +10,7 @@ import {
   setupDragData,
 } from '../../../utils/inventoryDropUtils';
 import { formatContainerCapacity } from '../../../utils/containerCapacity';
-import { getLibraryItemById } from '../../../data/libraries/itemLibrary';
+import { getRuntimeLibraryItemById } from '../../../data/dataPacks/runtimeDataPacks';
 import {
   formatMagicItemName,
   getMagicInventoryStyle,
@@ -88,7 +88,7 @@ const containerPreviewLabel = computed(() => {
 });
 
 const containerCapacityLabel = computed(() => formatContainerCapacity(props.item));
-const templateName = computed(() => getLibraryItemById(props.item.templateId)?.name ?? '');
+const templateName = computed(() => getRuntimeLibraryItemById(props.item.templateId)?.name ?? '');
 const shouldShowTemplateName = computed(
   () => Boolean(templateName.value) && templateName.value !== props.item.name
 );

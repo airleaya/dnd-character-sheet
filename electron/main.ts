@@ -2,8 +2,19 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import type { Character } from '../src/types/Character'
+import type { DataPackFile, DataPackImportResult, DataPackSettings, DataPackState } from '../src/types/DataPack'
 import type { IpcFailureResult, IpcResult, IpcVoidResult } from '../src/types/electron'
 import { normalizeLogEntry } from '../src/utils/logging'
+import {
+  DATA_PACK_EXTENSION,
+  DEFAULT_DATA_PACK_ID,
+  buildExportableDefaultDataPack,
+  createDefaultDataPackSettings,
+  normalizeDataPackSettings,
+  toRuntimeDataPack,
+  validateDataPackFile,
+} from '../src/utils/dataPackUtils'
+import { DEFAULT_DND5E_DATA_PACK } from '../src/data/dataPacks/defaultDnd5ePack'
 import { createMainLogger, initializeLogging, writeLogEntry } from './logger'
 
 const toErrorMessage = (error: unknown): string => {
@@ -23,6 +34,9 @@ const getLegacyWindowConfigPath = (): string => path.join(process.cwd(), 'window
 const getUserDataRoot = (): string => app.getPath('userData');
 const getSavesDir = (): string => path.join(getUserDataRoot(), 'saves');
 const getWindowConfigPath = (): string => path.join(getUserDataRoot(), 'window-config.json');
+const getDataPacksRoot = (): string => path.join(getUserDataRoot(), 'data-packs');
+const getImportedDataPacksDir = (): string => path.join(getDataPacksRoot(), 'imported');
+const getDataPackSettingsPath = (): string => path.join(getDataPacksRoot(), 'data-pack-settings.json');
 
 const ensureDirectoryExists = (dirPath: string): void => {
   if (!fs.existsSync(dirPath)) {
@@ -106,6 +120,76 @@ const saveWindowState = () => {
   }
 };
 
+const safeDataPackFileName = (packId: string): string => `${packId}${DATA_PACK_EXTENSION}`;
+
+const readJsonFile = (filePath: string): unknown => JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+const readImportedDataPackFiles = (): DataPackFile[] => {
+  const importedDir = getImportedDataPacksDir();
+  ensureDirectoryExists(importedDir);
+
+  return fs.readdirSync(importedDir)
+    .filter(file => file.endsWith(DATA_PACK_EXTENSION))
+    .map(file => validateDataPackFile(readJsonFile(path.join(importedDir, file))));
+};
+
+const readDataPackSettings = (knownPackIds: string[]): DataPackSettings => {
+  const settingsPath = getDataPackSettingsPath();
+
+  if (!fs.existsSync(settingsPath)) {
+    return normalizeDataPackSettings(createDefaultDataPackSettings(), knownPackIds);
+  }
+
+  try {
+    return normalizeDataPackSettings(readJsonFile(settingsPath) as Partial<DataPackSettings>, knownPackIds);
+  } catch (e) {
+    logger.warn('Failed to read data pack settings, using defaults', { error: toErrorMessage(e) });
+    return normalizeDataPackSettings(createDefaultDataPackSettings(), knownPackIds);
+  }
+};
+
+const writeDataPackSettings = (settings: DataPackSettings, knownPackIds: string[]): DataPackSettings => {
+  const normalized = normalizeDataPackSettings(settings, knownPackIds);
+  ensureDirectoryExists(getDataPacksRoot());
+  fs.writeFileSync(getDataPackSettingsPath(), JSON.stringify(normalized, null, 2), 'utf-8');
+  return normalized;
+};
+
+const readDataPackState = (): DataPackState => {
+  const importedFiles = readImportedDataPackFiles();
+  const knownPackIds = [DEFAULT_DATA_PACK_ID, ...importedFiles.map(file => file.manifest.id)];
+  const settings = readDataPackSettings(knownPackIds);
+  const enabledIds = new Set(settings.enabledPackIds);
+  const importedPacks = importedFiles.map(file => toRuntimeDataPack(file, enabledIds.has(file.manifest.id), false));
+  const defaultPack = {
+    ...DEFAULT_DND5E_DATA_PACK,
+    enabled: enabledIds.has(DEFAULT_DATA_PACK_ID),
+  };
+  const packMap = new Map([defaultPack, ...importedPacks].map(pack => [pack.id, pack]));
+  const packs = settings.packOrder
+    .map(packId => packMap.get(packId))
+    .filter((pack): pack is typeof defaultPack => Boolean(pack));
+
+  return { packs, settings };
+};
+
+const getExportableDataPack = (packId: string): DataPackFile => {
+  if (packId === DEFAULT_DATA_PACK_ID) {
+    return buildExportableDefaultDataPack({
+      ...DEFAULT_DND5E_DATA_PACK,
+      version: '0.14.2',
+      manifest: {
+        ...DEFAULT_DND5E_DATA_PACK.manifest,
+        version: '0.14.2',
+      },
+    });
+  }
+
+  const imported = readImportedDataPackFiles().find(file => file.manifest.id === packId);
+  if (!imported) throw new Error(`未找到数据包：${packId}`);
+  return imported;
+};
+
 const createWindow = () => {
   //创建前先读取状态
   const state = loadWindowState();
@@ -160,6 +244,129 @@ app.whenReady().then(() => {
       return { success: true, data: null };
     } catch (e) {
       logger.error('Renderer log write failed', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('read-data-pack-state', async (): Promise<IpcResult<DataPackState>> => {
+    try {
+      return { success: true, data: readDataPackState() };
+    } catch (e) {
+      logger.error('Failed to read data pack state', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('import-data-pack', async (): Promise<IpcResult<DataPackImportResult | null>> => {
+    try {
+      if (!win) return { success: true, data: null };
+
+      const result = await dialog.showOpenDialog(win, {
+        title: '导入数据包',
+        properties: ['openFile'],
+        filters: [{ name: 'DND 数据包', extensions: ['dndpack.json', 'json'] }],
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: true, data: null };
+      }
+
+      const dataPack = validateDataPackFile(readJsonFile(result.filePaths[0]));
+      if (dataPack.manifest.id === DEFAULT_DATA_PACK_ID) {
+        throw new Error('该数据包 id 为保留 id，不能导入');
+      }
+
+      const importedFiles = readImportedDataPackFiles();
+      if (importedFiles.some(file => file.manifest.id === dataPack.manifest.id)) {
+        throw new Error(`已存在同 id 数据包：${dataPack.manifest.id}`);
+      }
+
+      ensureDirectoryExists(getImportedDataPacksDir());
+      fs.writeFileSync(
+        path.join(getImportedDataPacksDir(), safeDataPackFileName(dataPack.manifest.id)),
+        JSON.stringify(dataPack, null, 2),
+        'utf-8'
+      );
+
+      const knownPackIds = [DEFAULT_DATA_PACK_ID, ...importedFiles.map(file => file.manifest.id), dataPack.manifest.id];
+      const settings = readDataPackSettings(knownPackIds);
+      writeDataPackSettings({
+        enabledPackIds: [...settings.enabledPackIds, dataPack.manifest.id],
+        packOrder: [...settings.packOrder.filter(id => id !== dataPack.manifest.id), dataPack.manifest.id],
+      }, knownPackIds);
+
+      return {
+        success: true,
+        data: {
+          packId: dataPack.manifest.id,
+          name: dataPack.manifest.name,
+          itemCount: dataPack.items?.length ?? 0,
+          spellCount: dataPack.spells?.length ?? 0,
+          traitCount: dataPack.traits?.length ?? 0,
+        },
+      };
+    } catch (e) {
+      logger.error('Failed to import data pack', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('export-data-pack', async (_event, packId: string): Promise<IpcVoidResult> => {
+    try {
+      if (!win) return { success: true, data: null };
+
+      const dataPack = getExportableDataPack(packId);
+      const result = await dialog.showSaveDialog(win, {
+        title: '导出数据包',
+        defaultPath: safeDataPackFileName(dataPack.manifest.id),
+        filters: [{ name: 'DND 数据包', extensions: ['dndpack.json'] }],
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: true, data: null };
+      }
+
+      fs.writeFileSync(result.filePath, JSON.stringify(dataPack, null, 2), 'utf-8');
+      return { success: true, data: null };
+    } catch (e) {
+      logger.error('Failed to export data pack', e, { packId });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('delete-data-pack', async (_event, packId: string): Promise<IpcVoidResult> => {
+    try {
+      if (packId === DEFAULT_DATA_PACK_ID) {
+        throw new Error('默认数据包不能删除');
+      }
+
+      const filePath = path.join(getImportedDataPacksDir(), safeDataPackFileName(packId));
+      const resolvedDir = path.resolve(getImportedDataPacksDir());
+      const resolvedFile = path.resolve(filePath);
+      if (!resolvedFile.startsWith(resolvedDir + path.sep)) {
+        throw new Error('非法数据包路径');
+      }
+
+      if (fs.existsSync(resolvedFile)) {
+        fs.unlinkSync(resolvedFile);
+      }
+
+      const remainingIds = [DEFAULT_DATA_PACK_ID, ...readImportedDataPackFiles().map(file => file.manifest.id)];
+      const settings = readDataPackSettings(remainingIds);
+      writeDataPackSettings(settings, remainingIds);
+      return { success: true, data: null };
+    } catch (e) {
+      logger.error('Failed to delete data pack', e, { packId });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('update-data-pack-settings', async (_event, settings: DataPackSettings): Promise<IpcResult<DataPackSettings>> => {
+    try {
+      const knownPackIds = [DEFAULT_DATA_PACK_ID, ...readImportedDataPackFiles().map(file => file.manifest.id)];
+      return { success: true, data: writeDataPackSettings(settings, knownPackIds) };
+    } catch (e) {
+      logger.error('Failed to update data pack settings', e);
       return createErrorResult(e);
     }
   });

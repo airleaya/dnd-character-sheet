@@ -1,5 +1,41 @@
 # UPDATE_LOG
 
+## [0.14.2] - 2026-04-29
+- 类型：功能迭代 / 数据包系统 / Electron IPC / UI / 测试
+- 条目：数据包系统阶段二
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/types/DataPack.ts`
+  - `src/types/electron.ts`
+  - `src/types/Spell.ts`
+  - `src/utils/dataPackUtils.ts`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `src/components/layout/SidebarRight.vue`
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/sheet/library/LibrarySpellsPanel.vue`
+  - `tests/dataPackUtils.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.14.1` 自增长到 `0.14.2`。
+  - 新增 `.dndpack.json` 明文数据包 schema，包含 `manifest`、`items`、`spells` 与预留 `traits` 词条接口。
+  - 默认数据包继续作为源码/打包内的锁死静态数据，不迁移到用户路径；允许启用/禁用和导出，禁止删除与覆盖。
+  - 默认数据包导出时使用 id `dnd5e-output`，导出文件此后视为第三方数据包副本。
+  - 第三方数据包存放在 Electron `userData/data-packs/imported/`，支持导入、启用/禁用、排序、导出与删除。
+  - 导入同 `manifest.id` 的数据包会被拒绝；`dnd5e-default` 为内置保留 id，不能作为第三方包导入。
+  - 外部物品/法术运行时 id 使用 `packId:localId` 命名空间，避免和默认数据冲突；Forge、行囊创建与法术学习改为读取运行时数据包库。
+  - 右侧栏新增“数据包”管理入口；第三方包提供预留编辑按钮，当前只提示后续 GM 制作器阶段实装。
+- 验证结果：
+  - `npm run test -- tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/spellRitualBadges.ui.test.ts tests/useForge.test.ts` 通过：4 个测试文件，14 个用例。
+  - `npm run test` 通过：32 个测试文件，145 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.14.2` 安装包与便携版。
+
 ## [0.14.1] - 2026-04-29
 - 类型：功能迭代 / 数据包系统 / 物品库 / 法术库 / 测试
 - 条目：数据包系统阶段一

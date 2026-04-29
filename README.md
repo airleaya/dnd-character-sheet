@@ -15,11 +15,11 @@
 - 管理物品、装备、容器、货币与负重
 - 制作自定义物品、附魔词条、装备充能、防御徽章、魔法视觉与同调状态
 - 使用法术书面板管理已知法术、预备法术与法术位
-- 使用内置数据包目录浏览默认物品/法术数据；后续将允许 GM 分发独立数据包并支持分级密码解锁
+- 使用数据包目录浏览默认与第三方物品/法术数据；后续将支持 GM 制作器与分级密码解锁
 - 通过本地 JSON 文件保存角色数据，适合离线使用
 - 通过本地 JSONL 日志记录关键流程与错误，便于排查本机问题
 
-> 当前版本：`0.14.1`
+> 当前版本：`0.14.2`
 
 ---
 
@@ -33,6 +33,7 @@
 - **主进程**：Electron，负责窗口创建、本地文件读写、导出与关闭前保存
 - **本地持久化**：角色以 `.json` 文件形式保存在 `saves/` 目录
 - **本地日志**：运行日志以 `.jsonl` 文件形式保存在 Electron `userData/logs/` 目录，默认保留 7 天
+- **本地数据包**：默认数据包保留在源码/打包资源中，第三方 `.dndpack.json` 保存在 Electron `userData/data-packs/imported/`
 
 这意味着：
 
@@ -141,6 +142,22 @@
 - `src/components/sheet/modals/EnchantingModal.vue`
 - `src/components/sidebar/ForgeDropZone.vue`
 - `src/components/sidebar/EnchantDropZone.vue`
+
+### 7. 数据包
+
+- 默认数据包 id 为 `dnd5e-default`，作为锁死静态数据保留在源码/打包资源中
+- 默认数据包允许启用 / 禁用和导出；导出文件 id 改为 `dnd5e-output`，后续视为第三方数据包副本
+- 第三方 `.dndpack.json` 数据包保存在 Electron `userData/data-packs/imported/`
+- 数据包管理界面支持第三方包导入、启用 / 禁用、排序、导出和删除
+- 外部包物品 / 法术使用 `packId:localId` 运行时命名空间，避免覆盖默认数据
+- 数据包 schema 已预留 `traits` 词条接口和第三方包编辑入口，当前只保存与透传，不参与规则计算
+
+核心实现：
+
+- `src/stores/dataPackStore.ts`
+- `src/components/sheet/modals/DataPackManagerModal.vue`
+- `src/data/dataPacks/`
+- `src/utils/dataPackUtils.ts`
 
 ---
 

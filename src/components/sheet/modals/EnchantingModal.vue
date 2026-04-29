@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useDataPackStore } from '../../../stores/dataPackStore';
 import { useEnchanting } from '../../../composables/useEnchanting';
 import { DAMAGE_TYPE_OPTIONS } from '../../../data/rules/damageTypes';
 import {
@@ -9,13 +10,14 @@ import {
   DEFAULT_MAGIC_NAME_COLOR,
   PRESET_MAGIC_TRAITS,
 } from '../../../data/rules/magicTraits';
-import { SPELL_LIBRARY, getSpellById } from '../../../data/spells';
+import { getRuntimeSpellById } from '../../../data/dataPacks/runtimeDataPacks';
 import { formatMagicItemName, resolveMagicTraitsForItem } from '../../../utils/magicItems';
 import type { ItemMagicTrait, ItemRarity } from '../../../types/Library';
 
 type EnchantTab = 'basic' | 'traits' | 'create' | 'manage';
 
 const store = useActiveSheetStore();
+const dataPackStore = useDataPackStore();
 const {
   isEnchantingOpen,
   entrySource,
@@ -93,8 +95,8 @@ const filteredTraits = computed(() => {
 const filteredSpells = computed(() => {
   const keyword = spellKeyword.value.trim().toLowerCase();
   const spells = keyword
-    ? SPELL_LIBRARY.filter(spell => `${spell.name} ${spell.id}`.toLowerCase().includes(keyword))
-    : SPELL_LIBRARY;
+    ? dataPackStore.spellLibraryItems.filter(spell => `${spell.name} ${spell.id}`.toLowerCase().includes(keyword))
+    : dataPackStore.spellLibraryItems;
   return spells.slice(0, 100);
 });
 
@@ -114,7 +116,7 @@ const attackPreviewStyle = computed(() => ({
 
 const isTraitSelected = (id: string) => targetItem.value?.magic?.selectedTraitIds?.includes(id) ?? false;
 
-const getSpellName = (spellId?: string) => (spellId ? getSpellById(spellId)?.name ?? spellId : '未指定法术');
+const getSpellName = (spellId?: string) => (spellId ? getRuntimeSpellById(spellId)?.name ?? spellId : '未指定法术');
 
 const getTraitTypeLabel = (type: ItemMagicTrait['type']) =>
   traitTypeOptions.find(option => option.value === type)?.label ?? type;
@@ -515,7 +517,7 @@ const saveNewCustomTrait = () => {
                         <span>指定法术</span>
                         <select v-model="trait.spellId">
                           <option value="">未指定</option>
-                          <option v-for="spell in SPELL_LIBRARY" :key="spell.id" :value="spell.id">
+                          <option v-for="spell in dataPackStore.spellLibraryItems" :key="spell.id" :value="spell.id">
                             {{ spell.name }}（{{ spell.level === 0 ? '戏法' : `${spell.level}环` }}）
                           </option>
                         </select>

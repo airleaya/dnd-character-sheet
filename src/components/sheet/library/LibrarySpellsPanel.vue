@@ -3,10 +3,8 @@ import { ref, computed, toRef } from 'vue';
 import draggable from 'vuedraggable';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useDataPackStore } from '../../../stores/dataPackStore';
 import type { SpellDefinition } from '../../../types/Spell';
-// 数据源
-import { SPELL_LIBRARY } from '../../../data/spells/index';
-import { getSpellLibraryDataPackGroups } from '../../../data/dataPacks/runtimeDataPacks';
 
 const props = defineProps<{
   searchQuery: string;
@@ -20,14 +18,15 @@ const emit = defineEmits<{
 
 //初始化 Store 并创建检查函数
 const store = useActiveSheetStore();
+const dataPackStore = useDataPackStore();
 const isKnown = (spellId: string) => store.allKnownSpells.some(s => s.id === spellId);
 
 // 1. 过滤逻辑
 const queryRef = toRef(props, 'searchQuery');
-const { filteredList: spells } = useLibraryFilter(SPELL_LIBRARY, queryRef);
+const { filteredList: spells } = useLibraryFilter(dataPackStore.spellLibraryItems, queryRef);
 
 const spellLibraryTree = computed(() =>
-  getSpellLibraryDataPackGroups(new Set(spells.value.map(spell => spell.id)))
+  dataPackStore.getSpellGroups(new Set(spells.value.map(spell => spell.id)))
 );
 
 // 3. 展开/折叠状态

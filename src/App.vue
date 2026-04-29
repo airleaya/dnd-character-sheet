@@ -11,11 +11,13 @@ import GlobalFeedback from './components/ui/GlobalFeedback.vue';
 import GlobalTooltip from './components/ui/GlobalTooltip.vue';
 import { useCharacterStore } from './stores/characterStore';
 import { useActiveSheetStore } from './stores/activeSheet';
+import { useDataPackStore } from './stores/dataPackStore';
 
 const SpellbookPanel = defineAsyncComponent(() => import('./components/sheet/spellbook/SpellbookPanel.vue'));
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
+const dataPackStore = useDataPackStore();
 const hasOpenedSpellbook = ref(false);
 
 watch(
@@ -33,6 +35,7 @@ const shouldRenderSpellbook = computed(
 );
 
 onMounted(() => {
+  dataPackStore.init();
   charStore.init();
 
   if (window.electronAPI) {

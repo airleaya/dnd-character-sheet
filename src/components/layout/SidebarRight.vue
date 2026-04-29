@@ -8,6 +8,7 @@ import type { SpellDefinition } from '../../types/Spell';
 import LibraryTooltip from '../sidebar/LibraryTooltip.vue';
 import ForgeDropZone from '../sidebar/ForgeDropZone.vue';
 import EnchantDropZone from '../sidebar/EnchantDropZone.vue';
+import DataPackManagerModal from '../sheet/modals/DataPackManagerModal.vue';
 
 const LibraryItemsPanel = defineAsyncComponent(() => import('../sheet/library/LibraryItemsPanel.vue'));
 const LibrarySpellsPanel = defineAsyncComponent(() => import('../sheet/library/LibrarySpellsPanel.vue'));
@@ -21,6 +22,7 @@ type HoveredLibraryItem = LibraryItem | SpellDefinition;
 const activeTab = ref<RootTab>('items');
 const searchQuery = ref('');
 const hasVisitedSpellsTab = ref(false);
+const isDataPackManagerOpen = ref(false);
 
 const shouldRenderItemsPanel = computed(() => activeTab.value === 'items');
 const shouldRenderSpellsPanel = computed(() => activeTab.value === 'spells' || hasVisitedSpellsTab.value);
@@ -175,6 +177,14 @@ const setActiveTab = (tab: RootTab) => {
 
     <EnchantDropZone />
     <ForgeDropZone/>
+    <button type="button" class="data-pack-entry" @click="isDataPackManagerOpen = true">
+      🧩 数据包
+    </button>
+
+    <DataPackManagerModal
+      :is-open="isDataPackManagerOpen"
+      @close="isDataPackManagerOpen = false"
+    />
 
     <Transition name="fade">
       <LibraryTooltip 
@@ -223,6 +233,23 @@ const setActiveTab = (tab: RootTab) => {
 }
 
 .empty-state { padding: 40px; text-align: center; color: #555; }
+
+.data-pack-entry {
+  flex-shrink: 0;
+  margin: 8px 10px 10px;
+  border: 1px solid rgba(93, 173, 226, 0.35);
+  background: linear-gradient(135deg, rgba(38, 57, 72, 0.95), rgba(24, 28, 34, 0.95));
+  color: #d8ebff;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(93, 173, 226, 0.7);
+    background: linear-gradient(135deg, rgba(45, 70, 90, 0.98), rgba(29, 35, 42, 0.98));
+  }
+}
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

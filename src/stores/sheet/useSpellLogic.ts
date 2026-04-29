@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 import type { Ref } from 'vue';
 import type { Character } from '../../types/Character';
-import { SPELL_LIBRARY } from '../../data/spells/index';
+import { getRuntimeSpellById } from '../../data/dataPacks/runtimeDataPacks';
 import type { AbilityKey } from '../../types/Library';
 import type { SpellDefinition } from '../../types/Spell';
 import type { InventoryItem } from '../../types/Item';
@@ -56,7 +56,7 @@ const canUseMagicItemEffects = (item: InventoryItem) => !requiresAttunement(item
 
 const getSpellsByIds = (spellIds: string[]): SpellDefinition[] => {
   return spellIds
-    .map((id) => SPELL_LIBRARY.find((spell) => spell.id === id))
+    .map((id) => getRuntimeSpellById(id))
     .filter(isDefinedSpell);
 };
 
@@ -138,7 +138,7 @@ export function useSpellLogic(
       return resolveMagicTraitsForItem(item)
         .filter(trait => trait.charges && trait.charges.max > 0)
         .map(trait => {
-          const spell = trait.spellId ? SPELL_LIBRARY.find(entry => entry.id === trait.spellId) : undefined;
+          const spell = trait.spellId ? getRuntimeSpellById(trait.spellId) : undefined;
           return {
             id: `${item.instanceId}:${trait.id}`,
             itemId: item.instanceId,

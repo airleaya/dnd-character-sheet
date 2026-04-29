@@ -5,7 +5,7 @@ import type { ContainerData, InventoryItem } from '../../types/Item';
 import type { CurrencyUnit, LibraryItem, PackDefinition } from '../../types/Library';
 import { createItemFromLibrary } from '../../utils/itemFactory';
 import { CURRENCY_RATES } from '../../data/rules/currency';
-import { getLibraryItemById } from '../../data/libraries/itemLibrary';
+import { getRuntimeLibraryItemById } from '../../data/dataPacks/runtimeDataPacks';
 import { isAttuned, requiresAttunement } from '../../utils/magicItems';
 
 type ContainerInventoryItem = InventoryItem & { data: ContainerData };
@@ -275,7 +275,7 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
   ): InventoryItem | undefined => {
     if (!character.value) return undefined;
 
-    const definition = getLibraryItemById(libraryId);
+    const definition = getRuntimeLibraryItemById(libraryId);
     const isContainer = isContainerDefinition(definition);
     const allowMerge = canMergeLibraryDefinition(definition);
 
@@ -302,7 +302,7 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
   };
 
   const addPack = (packId: string, index?: number, parentId?: string): void => {
-    const packDefinition = getLibraryItemById(packId) as PackDefinition | undefined;
+    const packDefinition = getRuntimeLibraryItemById(packId) as PackDefinition | undefined;
     if (!packDefinition || !character.value) return;
 
     let targetContainerId = parentId;
@@ -345,7 +345,7 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
     parentId?: string,
     containerSlot?: InventoryItem['containerSlot']
   ): boolean => {
-    const definition = getLibraryItemById(libraryId);
+    const definition = getRuntimeLibraryItemById(libraryId);
     const creates = definition?.acquisitionRule?.creates;
     if (!character.value || !creates?.length) {
       return false;
@@ -393,7 +393,7 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
       return;
     }
 
-    if (getLibraryItemById(libraryId)?.type === 'pack') {
+    if (getRuntimeLibraryItemById(libraryId)?.type === 'pack') {
       addPack(libraryId, index, parentId);
       return;
     }

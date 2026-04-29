@@ -1,4 +1,4 @@
-import { getLibraryItemById } from '../data/libraries/itemLibrary';
+import { getRuntimeLibraryItemById } from '../data/dataPacks/runtimeDataPacks';
 import type { ConsumableData, ContainerData, InventoryItem } from '../types/Item';
 import type { ConsumableDefinition } from '../types/Library';
 import { generateUUID } from './idGenerator';
@@ -12,7 +12,7 @@ const clonePlain = <T>(value: T): T => {
   return JSON.parse(JSON.stringify(value)) as T;
 };
 
-const inventoryUnitWeight = (def: NonNullable<ReturnType<typeof getLibraryItemById>>): number => {
+const inventoryUnitWeight = (def: NonNullable<ReturnType<typeof getRuntimeLibraryItemById>>): number => {
   const multiplicity = def.multiplicity;
 
   if (
@@ -27,7 +27,7 @@ const inventoryUnitWeight = (def: NonNullable<ReturnType<typeof getLibraryItemBy
 };
 
 export function createItemFromLibrary(templateId: string): InventoryItem | null {
-  const def = getLibraryItemById(templateId);
+  const def = getRuntimeLibraryItemById(templateId);
 
   if (!def) {
     logger.warn('Cannot find library item', { templateId });

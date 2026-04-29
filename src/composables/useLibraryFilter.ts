@@ -1,6 +1,7 @@
 // src/composables/useLibraryFilter.ts
 import { computed } from 'vue';
-import type { Ref } from 'vue';
+import { unref } from 'vue';
+import type { MaybeRef, Ref } from 'vue';
 import { getSchoolLabel } from '../data/rules/dndRules';
 
 interface SearchableItem {
@@ -13,13 +14,14 @@ interface SearchableItem {
   school?: string;
 }
 
-export function useLibraryFilter<T extends SearchableItem>(list: T[], searchQuery: Ref<string>) {
+export function useLibraryFilter<T extends SearchableItem>(list: MaybeRef<T[]>, searchQuery: Ref<string>) {
   
   const filteredList = computed(() => {
     const q = searchQuery.value.toLowerCase().trim();
-    if (!q) return list;
+    const entries = unref(list);
+    if (!q) return entries;
 
-    return list.filter(item => {
+    return entries.filter(item => {
       // 1. 基础匹配：名字或 ID
       const matchName = item.name.toLowerCase().includes(q);
       const matchId = item.id.toLowerCase().includes(q);

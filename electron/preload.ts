@@ -14,6 +14,11 @@ const electronAPI: ElectronApi = {
   exportCharacter: (dirPath: string, filename: string, content: string) =>
     ipcRenderer.invoke('export-character', dirPath, filename, content),
   writeLog: (entry) => ipcRenderer.invoke('write-log', entry),
+  readDataPackState: () => ipcRenderer.invoke('read-data-pack-state'),
+  importDataPack: () => ipcRenderer.invoke('import-data-pack'),
+  exportDataPack: (packId: string) => ipcRenderer.invoke('export-data-pack', packId),
+  deleteDataPack: (packId: string) => ipcRenderer.invoke('delete-data-pack', packId),
+  updateDataPackSettings: (settings) => ipcRenderer.invoke('update-data-pack-settings', settings),
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

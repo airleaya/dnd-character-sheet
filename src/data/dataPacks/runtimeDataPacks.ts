@@ -12,8 +12,36 @@ import type { SpellClassKey, SpellDefinition } from '../../types/Spell';
 
 export const RUNTIME_DATA_PACKS: RuntimeDataPack[] = [DEFAULT_DND5E_DATA_PACK];
 
+export const setRuntimeDataPacks = (packs: RuntimeDataPack[]): void => {
+  RUNTIME_DATA_PACKS.splice(0, RUNTIME_DATA_PACKS.length, ...packs);
+};
+
 export const getEnabledDataPacks = (): RuntimeDataPack[] =>
   RUNTIME_DATA_PACKS.filter(pack => pack.enabled);
+
+export const getRuntimeLibraryItemById = (id: string): LibraryItem | undefined => {
+  for (const pack of RUNTIME_DATA_PACKS) {
+    const direct = pack.items.find(item => item.id === id);
+    if (direct) return direct;
+
+    if (pack.id !== DEFAULT_DND5E_DATA_PACK.id && id.startsWith(`${pack.id}:`)) {
+      const localId = id.slice(pack.id.length + 1);
+      const local = pack.items.find(item => item.id === `${pack.id}:${localId}` || item.id === localId);
+      if (local) return local;
+    }
+  }
+
+  return DEFAULT_DND5E_DATA_PACK.items.find(item => item.id === id);
+};
+
+export const getRuntimeSpellById = (id: string): SpellDefinition | undefined => {
+  for (const pack of RUNTIME_DATA_PACKS) {
+    const direct = pack.spells.find(spell => spell.id === id);
+    if (direct) return direct;
+  }
+
+  return DEFAULT_DND5E_DATA_PACK.spells.find(spell => spell.id === id);
+};
 
 export const SPELL_CLASS_LABELS: Record<SpellClassKey, string> = {
   bard: '吟游诗人',
@@ -87,8 +115,11 @@ export const buildSpellClassGroups = (spells: SpellDefinition[]): DataPackSpellS
     [...Object.values(SPELL_CLASS_LABELS), '无职业数据']
   );
 
-export const getItemLibraryDataPackGroups = (visibleIds?: Set<string>): DataPackItemGroup[] =>
-  getEnabledDataPacks()
+export const getItemLibraryDataPackGroups = (
+  visibleIds?: Set<string>,
+  packs: RuntimeDataPack[] = getEnabledDataPacks()
+): DataPackItemGroup[] =>
+  packs
     .map(pack => {
       const categoryMap = new Map<string, Map<string, LibraryItem[]>>();
       const items = visibleIds ? pack.items.filter(item => visibleIds.has(item.id)) : pack.items;
@@ -115,8 +146,11 @@ export const getItemLibraryDataPackGroups = (visibleIds?: Set<string>): DataPack
     })
     .filter(group => group.categoryGroups.length > 0);
 
-export const getSpellLibraryDataPackGroups = (visibleIds?: Set<string>): DataPackSpellGroup[] =>
-  getEnabledDataPacks()
+export const getSpellLibraryDataPackGroups = (
+  visibleIds?: Set<string>,
+  packs: RuntimeDataPack[] = getEnabledDataPacks()
+): DataPackSpellGroup[] =>
+  packs
     .map(pack => {
       const spells = visibleIds ? pack.spells.filter(spell => visibleIds.has(spell.id)) : pack.spells;
       const allBranches: DataPackSpellBranch[] = [
