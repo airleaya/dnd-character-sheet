@@ -559,7 +559,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     gap: 8px;
 
     strong {
-      color: #f0e7ff;
+      color: #dcc2ff;
     }
 
     span {

@@ -536,8 +536,8 @@ describe('useCombatLogic', () => {
           },
         ],
         visuals: {
-          inventoryBackground: '#f0e7ff',
-          nameColor: '#8b1e3f',
+          inventoryBackground: '#dcc2ff',
+          nameColor: '#4f0b22',
         },
       },
       data: {},

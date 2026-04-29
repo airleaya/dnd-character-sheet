@@ -1,5 +1,28 @@
 # UPDATE_LOG
 
+## [0.13.8] - 2026-04-29
+- 类型：UI 微调 / 附魔系统 / 工程记录
+- 条目：默认魔法视觉颜色加深
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/data/rules/magicTraits.ts`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `tests/enchantingModal.ui.test.ts`
+  - `tests/useCombatLogic.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.7` 自增长到 `0.13.8`。
+  - 默认魔法物品行囊/攻击项背景从 `#f0e7ff` 调整为更紫的 `#dcc2ff`。
+  - 默认魔法物品名字颜色从 `#8b1e3f` 调整为更暗的深红 `#4f0b22`。
+  - 行囊词条标签、同调按钮和悬停窗标题色同步调整，避免默认视觉局部仍停留在旧色板。
+- 验证结果：
+  - `npm run test -- tests/enchantingModal.ui.test.ts tests/useCombatLogic.test.ts` 通过：2 个测试文件，26 个用例。
+  - `npm run typecheck` 通过。
+
 ## [0.13.7] - 2026-04-29
 - 类型：功能增强 / 附魔系统 / 战斗面板 / 测试
 - 条目：附魔词条类别、装备充能与护甲附魔

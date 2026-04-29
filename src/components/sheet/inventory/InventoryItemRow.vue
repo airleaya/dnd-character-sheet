@@ -480,11 +480,11 @@ const handleDelete = () => {
   .enchant-tag,
   .enchant-more {
     flex-shrink: 0;
-    border: 1px solid rgba(139, 30, 63, 0.18);
+    border: 1px solid rgba(79, 11, 34, 0.2);
     border-radius: 999px;
     padding: 1px 6px;
-    background: rgba(240, 231, 255, 0.76);
-    color: #8b1e3f;
+    background: rgba(220, 194, 255, 0.8);
+    color: #4f0b22;
     font-size: 0.68rem;
     font-weight: 700;
     line-height: 1.3;
@@ -563,18 +563,18 @@ const handleDelete = () => {
 }
 
 .btn-attune {
-  border: 1px solid #c9b6ff;
+  border: 1px solid #b58cff;
   border-radius: 999px;
-  background: #f0e7ff;
-  color: #8b1e3f;
+  background: #dcc2ff;
+  color: #4f0b22;
   font-size: 0.76rem;
   font-weight: 800;
   padding: 4px 9px;
   cursor: pointer;
 
   &.active {
-    background: #8b1e3f;
-    border-color: #8b1e3f;
+    background: #4f0b22;
+    border-color: #4f0b22;
     color: #fff7fb;
   }
 }

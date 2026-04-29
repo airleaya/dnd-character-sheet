@@ -1,8 +1,8 @@
 import type { ItemMagicTrait } from '../../types/Library';
 
-export const DEFAULT_MAGIC_INVENTORY_BACKGROUND = '#f0e7ff';
-export const DEFAULT_MAGIC_ATTACK_BACKGROUND = '#f0e7ff';
-export const DEFAULT_MAGIC_NAME_COLOR = '#8b1e3f';
+export const DEFAULT_MAGIC_INVENTORY_BACKGROUND = '#dcc2ff';
+export const DEFAULT_MAGIC_ATTACK_BACKGROUND = '#dcc2ff';
+export const DEFAULT_MAGIC_NAME_COLOR = '#4f0b22';
 
 export const PRESET_MAGIC_TRAITS: ItemMagicTrait[] = [
   {

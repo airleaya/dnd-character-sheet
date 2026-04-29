@@ -68,7 +68,7 @@ describe('EnchantingModal', () => {
 
     expect(wrapper.text()).toContain('影牙');
     expect(wrapper.text()).toContain('行囊预览');
-    expect(weapon.magic?.visuals?.inventoryBackground).toBe('#f0e7ff');
+    expect(weapon.magic?.visuals?.inventoryBackground).toBe('#dcc2ff');
   });
 
   it('creates a reusable custom damage trait and selects it for the current item', async () => {
