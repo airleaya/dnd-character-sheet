@@ -11,7 +11,7 @@ import {
   PRESET_MAGIC_TRAITS,
 } from '../../../data/rules/magicTraits';
 import { getRuntimeSpellById } from '../../../data/dataPacks/runtimeDataPacks';
-import { formatMagicItemName, resolveMagicTraitsForItem } from '../../../utils/magicItems';
+import { formatMagicItemName, formatMagicTraitDamage, resolveMagicTraitsForItem } from '../../../utils/magicItems';
 import type { ItemMagicTrait, ItemRarity } from '../../../types/Library';
 
 type EnchantTab = 'basic' | 'traits' | 'create' | 'manage';
@@ -32,12 +32,14 @@ const {
   editorContext,
   saveEnchanting,
   addCustomTrait,
+  updateCustomTrait,
   deleteCustomTrait,
   toggleTraitSelection,
   closeEnchanting,
 } = useEnchanting();
 
 const activeTab = ref<EnchantTab>('basic');
+const editingTraitId = ref('');
 
 const isDataPackMakerEditor = computed(() => editorContext.value?.dataPackMaker === true);
 const dataPackMenuGroups = computed(() => dataPackStore.activeDraftPack?.editorMeta?.menuGroups?.items ?? []);
@@ -162,6 +164,41 @@ const getSpellName = (spellId?: string) => (spellId ? getRuntimeSpellById(spellI
 const getTraitTypeLabel = (type: ItemMagicTrait['type']) =>
   traitTypeOptions.find(option => option.value === type)?.label ?? type;
 
+const getTraitActivationLabel = (trait: ItemMagicTrait) =>
+  trait.activationMode === 'charged' ? '消耗充能' : '默认生效';
+
+const getTraitSourceLabel = (trait: ItemMagicTrait) =>
+  trait.source === 'preset' ? '预设' : '自定义';
+
+const getTraitBadgeMeta = (trait: ItemMagicTrait) => {
+  const typeLabel = trait.type === 'spell'
+    ? `附带法术：${getSpellName(trait.spellId)}`
+    : getTraitTypeLabel(trait.type);
+  return `${getTraitSourceLabel(trait)} / ${typeLabel} / ${getTraitActivationLabel(trait)}`;
+};
+
+const getTraitDetailLines = (trait: ItemMagicTrait) => {
+  const lines = [
+    `类别：${trait.type === 'spell' ? `附带法术：${getSpellName(trait.spellId)}` : getTraitTypeLabel(trait.type)}`,
+    `触发：${getTraitActivationLabel(trait)}`,
+  ];
+  const damage = formatMagicTraitDamage(trait);
+  if (damage) lines.push(`伤害：${damage}`);
+  if (trait.charges) {
+    lines.push(`充能：${trait.charges.current}/${trait.charges.max}`);
+    if (trait.charges.resetCondition || trait.charges.resetFormula) {
+      lines.push(`恢复：${[trait.charges.resetCondition, trait.charges.resetFormula].filter(Boolean).join(' / ')}`);
+    }
+  }
+  if (trait.spellExtraDescription) lines.push(`法术补充：${trait.spellExtraDescription}`);
+  return lines;
+};
+
+const openTraitEditor = (traitId: string) => {
+  editingTraitId.value = traitId;
+  activeTab.value = 'manage';
+};
+
 const ensureVisualDefaults = () => {
   if (!targetItem.value?.magic) return;
   targetItem.value.magic.visuals = {
@@ -196,6 +233,11 @@ const syncTraitMode = (trait: ItemMagicTrait) => {
   if (trait.activationMode === 'charged' || trait.type === 'spell') {
     ensureTraitCharges(trait);
   }
+};
+
+const commitCustomTraitEdit = (trait: ItemMagicTrait) => {
+  syncTraitMode(trait);
+  updateCustomTrait(trait.id, trait);
 };
 
 const buildCharges = () =>
@@ -425,25 +467,41 @@ const saveNewCustomTrait = () => {
                     <p>选择的词条会绑定到当前物品；默认伤害词条参与攻击计算，充能/法术词条进入说明。</p>
                   </div>
                   <input class="search-input" type="search" v-model="traitKeyword" placeholder="搜索词条名或描述">
-                  <div class="trait-list">
-                    <label v-for="trait in filteredTraits" :key="trait.id" class="trait-option" :class="{ selected: isTraitSelected(trait.id) }">
-                      <input type="checkbox" :checked="isTraitSelected(trait.id)" @change="toggleTraitSelection(trait.id)">
-                      <span class="trait-main">
+                  <div class="trait-badge-grid">
+                    <div
+                      v-for="trait in filteredTraits"
+                      :key="trait.id"
+                      class="trait-badge"
+                      :class="{ selected: isTraitSelected(trait.id) }"
+                    >
+                      <label class="trait-badge-toggle">
+                        <input type="checkbox" :checked="isTraitSelected(trait.id)" @change="toggleTraitSelection(trait.id)">
+                        <span class="trait-badge-main">
+                          <strong>{{ trait.name }}</strong>
+                          <small>{{ getTraitBadgeMeta(trait) }}</small>
+                        </span>
+                        <span v-if="trait.type === 'damage' && trait.participatesInDamage" class="trait-pill">
+                          {{ trait.damageDice || '无骰' }} {{ trait.damageBonus ? `+${trait.damageBonus}` : '' }}
+                        </span>
+                        <span v-else-if="trait.charges" class="trait-pill">
+                          {{ trait.charges.current }}/{{ trait.charges.max }}
+                        </span>
+                      </label>
+                      <button
+                        v-if="trait.source === 'custom'"
+                        type="button"
+                        class="btn-edit-trait"
+                        @click="openTraitEditor(trait.id)"
+                      >
+                        编辑
+                      </button>
+                      <aside class="trait-hover-card" role="tooltip">
                         <strong>{{ trait.name }}</strong>
-                        <small>
-                          {{ trait.source === 'preset' ? '预设' : '自定义' }} ·
-                          {{ trait.type === 'spell' ? `附带法术：${getSpellName(trait.spellId)}` : getTraitTypeLabel(trait.type) }} ·
-                          {{ trait.activationMode === 'charged' ? '消耗充能' : '默认生效' }}
-                        </small>
-                        <em>{{ trait.description || trait.spellExtraDescription || '暂无描述' }}</em>
-                      </span>
-                      <span v-if="trait.type === 'damage' && trait.participatesInDamage" class="trait-pill">
-                        {{ trait.damageDice || '无骰' }} {{ trait.damageBonus ? `+${trait.damageBonus}` : '' }}
-                      </span>
-                      <span v-else-if="trait.charges" class="trait-pill">
-                        {{ trait.charges.current }}/{{ trait.charges.max }} 充能
-                      </span>
-                    </label>
+                        <p>{{ trait.description || '暂无描述' }}</p>
+                        <p v-if="trait.spellExtraDescription">{{ trait.spellExtraDescription }}</p>
+                        <span v-for="line in getTraitDetailLines(trait)" :key="line">{{ line }}</span>
+                      </aside>
+                    </div>
                   </div>
                 </section>
 
@@ -553,19 +611,26 @@ const saveNewCustomTrait = () => {
                   <div v-if="!store.character?.customMagicTraits?.length" class="empty-inline">
                     尚未创建自定义词条。
                   </div>
-                  <div v-for="trait in store.character?.customMagicTraits ?? []" :key="trait.id" class="saved-trait-edit">
+                  <div
+                    v-for="trait in store.character?.customMagicTraits ?? []"
+                    :key="trait.id"
+                    class="saved-trait-edit"
+                    :class="{ focused: editingTraitId === trait.id }"
+                    @change="commitCustomTraitEdit(trait)"
+                  >
                     <div class="saved-trait-head">
                       <strong>{{ trait.name || '未命名词条' }}</strong>
+                      <span>编辑后会同步到所有已选择该词条的物品。</span>
                       <button type="button" class="btn-delete-trait" @click="deleteCustomTrait(trait.id)">删除</button>
                     </div>
                     <div class="field-grid">
                       <label>
                         <span>词条名</span>
-                        <input v-model="trait.name">
+                        <input data-test="edit-trait-name" v-model="trait.name">
                       </label>
                       <label>
                         <span>词条类别</span>
-                        <select v-model="trait.type" @change="syncTraitMode(trait)">
+                        <select v-model="trait.type">
                           <option v-for="option in traitTypeOptions" :key="option.value" :value="option.value">
                             {{ option.label }}
                           </option>
@@ -573,7 +638,7 @@ const saveNewCustomTrait = () => {
                       </label>
                       <label>
                         <span>触发方式</span>
-                        <select v-model="trait.activationMode" @change="syncTraitMode(trait)">
+                        <select v-model="trait.activationMode">
                           <option value="always">默认作用</option>
                           <option value="charged">消耗充能</option>
                         </select>
@@ -584,7 +649,7 @@ const saveNewCustomTrait = () => {
                       </label>
                       <label v-if="trait.type === 'damage'">
                         <span>伤害骰</span>
-                        <input v-model="trait.damageDice" placeholder="例如：1d6">
+                        <input data-test="edit-trait-dice" v-model="trait.damageDice" placeholder="例如：1d6">
                       </label>
                       <label v-if="trait.type === 'damage'">
                         <span>伤害加值</span>
@@ -998,33 +1063,120 @@ input[type='color'] {
   margin-bottom: 10px;
 }
 
-.trait-list {
-  display: grid;
-  gap: 8px;
+.trait-badge-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.trait-option {
-  align-items: flex-start;
+.trait-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  max-width: min(100%, 360px);
+  border: 1px solid rgba(245, 197, 96, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.065);
+  color: #d6dfef;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
 
   &.selected {
-    border-color: rgba(245, 197, 96, 0.64);
-    background: rgba(245, 197, 96, 0.13);
+    border-color: rgba(245, 197, 96, 0.76);
+    background: linear-gradient(135deg, rgba(245, 197, 96, 0.22), rgba(129, 95, 255, 0.12));
+    color: #f9df9c;
+  }
+
+  &:hover,
+  &:focus-within {
+    transform: translateY(-1px);
+    border-color: rgba(245, 197, 96, 0.72);
+
+    .trait-hover-card {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
   }
 }
 
-.trait-main {
-  display: grid;
-  gap: 2px;
-  flex: 1;
+.trait-badge-toggle {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
 
+  input {
+    width: 14px;
+    height: 14px;
+    accent-color: #f5c560;
+  }
+}
+
+.trait-badge-main {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+
+  strong,
   small {
-    color: #b7c2d2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  em {
-    color: #d5d0c5;
-    font-size: 0.78rem;
-    font-style: normal;
+  small {
+    max-width: 210px;
+    color: #b7c2d2;
+    font-size: 0.68rem;
+  }
+}
+
+.btn-edit-trait {
+  border: 0;
+  border-left: 1px solid rgba(245, 197, 96, 0.22);
+  border-radius: 0 999px 999px 0;
+  background: rgba(0, 0, 0, 0.18);
+  color: #f7d58a;
+  padding: 0 10px;
+  font-size: 0.74rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.trait-hover-card {
+  position: absolute;
+  z-index: 20;
+  left: 12px;
+  top: calc(100% + 8px);
+  width: min(340px, 78vw);
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid rgba(245, 197, 96, 0.36);
+  border-radius: 12px;
+  background: rgba(14, 18, 25, 0.97);
+  color: #e8edf7;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.36);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+
+  strong {
+    color: #f7d58a;
+  }
+
+  p {
+    margin: 0;
+    color: #c9d2df;
+    line-height: 1.45;
+  }
+
+  span {
+    color: #9fb2c8;
+    font-size: 0.74rem;
   }
 }
 
@@ -1054,6 +1206,11 @@ input[type='color'] {
   & + & {
     margin-top: 10px;
   }
+
+  &.focused {
+    border-color: rgba(245, 197, 96, 0.72);
+    box-shadow: 0 0 0 2px rgba(245, 197, 96, 0.12);
+  }
 }
 
 .saved-trait-head {
@@ -1062,6 +1219,12 @@ input[type='color'] {
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+
+  span {
+    flex: 1;
+    color: #9fb2c8;
+    font-size: 0.74rem;
+  }
 }
 
 .empty-inline {

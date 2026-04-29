@@ -1,5 +1,30 @@
 # UPDATE_LOG
 
+## [0.14.18] - 2026-04-30
+- Type: Feature / Enchanting UI / Magic Traits / Tests / Logging
+- Item: Add custom-trait edit entry from enchanting selection and badge-based trait browsing.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/composables/useEnchanting.ts`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `tests/enchantingModal.ui.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.17` to `0.14.18` because this round adds enchanting trait editing behavior and a redesigned trait-selection UI.
+  - Added an edit entry on custom magic-trait badges in the enchanting selection tab; clicking it jumps to the management editor.
+  - Custom magic-trait edits now propagate to every inventory item that has selected that trait, so affected weapons immediately use the updated damage/name/description/charge data.
+  - Deleting a custom magic trait now detaches it from inventory items that selected it, preventing stale deleted traits from continuing to calculate.
+  - Trait selection now renders compact badges; long descriptions, damage, charge, spell, and trigger details are moved into hover detail cards.
+  - Logging records trait ids and affected item counts only, not raw item JSON or full character content.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/enchantingModal.ui.test.ts tests/useCombatLogic.test.ts` passed during focused verification.
+  - `npm run test` passed: 35 files / 164 tests.
+  - `npm run build` passed and generated `0.14.18` installer/portable artifacts.
+
 ## [0.14.17] - 2026-04-30
 - Type: Feature / Data Pack Unlock / Persistence / Export Options / UI / Tests / Logging
 - Item: Persist passphrase unlock progress and add global passphrase visibility controls.

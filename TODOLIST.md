@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-30 version iteration update:
+> Current baseline grows from `0.14.17` to `0.14.18`; this round upgrades the enchanting trait editor and selection UI.
+> 2026-04-30 enchanting trait editor update:
+> The enchanting interface now exposes custom-trait editing from the trait selection area, propagates saved custom-trait edits to all inventory items selecting that trait, and renders selectable traits as compact badges with hover-only detail cards instead of full text rows.
+
+> 2026-04-30 version iteration update:
 > Current baseline grows from `0.14.16` to `0.14.17`; this round adds persistent data-pack unlock progress, global passphrases, public/total information counts, and export reset controls.
 > 2026-04-30 data-pack unlock persistence update:
 > Data Pack Manager now shows ?????/???? for items+spells+traits; PL passphrase unlocks are stored in the local third-party pack file, global passphrases mark the whole pack visible, and exports default to stripping local unlock progress unless the exporter chooses to keep it.

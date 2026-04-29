@@ -7,6 +7,7 @@ import type { ItemMagicTrait } from '../types/Library';
 import { createEmptyCustomMagicTrait, PRESET_MAGIC_TRAITS } from '../data/rules/magicTraits';
 import {
   attachMagicTraitSnapshot,
+  cloneMagicTrait,
   detachMagicTraitSnapshot,
   ensureMagicDefinition,
 } from '../utils/magicItems';
@@ -124,6 +125,51 @@ export function useEnchanting() {
     activeSheet.character.customMagicTraits = (activeSheet.character.customMagicTraits ?? []).filter(
       trait => trait.id !== traitId
     );
+    let detachedItemCount = 0;
+    activeSheet.character.inventory.forEach(item => {
+      if (!item.magic?.selectedTraitIds?.includes(traitId)) return;
+      detachMagicTraitSnapshot(item, traitId);
+      detachedItemCount += 1;
+    });
+    logger.info('Custom magic trait deleted', { traitId, detachedItemCount });
+    activeSheet.save();
+  };
+
+  const updateCustomTrait = (traitId: string, patch: Partial<ItemMagicTrait>) => {
+    if (!activeSheet.character) return;
+    const existing = activeSheet.character.customMagicTraits?.find(trait => trait.id === traitId);
+    if (!existing) {
+      logger.warn('Ignored custom magic trait update for missing trait', { traitId });
+      return;
+    }
+
+    const nextTrait = cloneMagicTrait({
+      ...existing,
+      ...patch,
+      id: traitId,
+      source: 'custom',
+    });
+
+    activeSheet.character.customMagicTraits = (activeSheet.character.customMagicTraits ?? []).map(trait =>
+      trait.id === traitId ? nextTrait : trait
+    );
+
+    let updatedItemCount = 0;
+    activeSheet.character.inventory.forEach(item => {
+      if (!item.magic?.selectedTraitIds?.includes(traitId)) return;
+      const magic = ensureMagicDefinition(item);
+      const customTraits = magic.customTraits ?? [];
+      const existingIndex = customTraits.findIndex(trait => trait.id === traitId);
+      if (existingIndex >= 0) {
+        customTraits[existingIndex] = cloneMagicTrait(nextTrait);
+        magic.customTraits = [...customTraits];
+      } else {
+        magic.customTraits = [...customTraits, cloneMagicTrait(nextTrait)];
+      }
+      updatedItemCount += 1;
+    });
+
+    logger.info('Custom magic trait updated and propagated', { traitId, updatedItemCount });
     activeSheet.save();
   };
 
@@ -160,6 +206,7 @@ export function useEnchanting() {
     openEnchantingWithDropData,
     saveEnchanting,
     addCustomTrait,
+    updateCustomTrait,
     deleteCustomTrait,
     toggleTraitSelection,
     closeEnchanting,

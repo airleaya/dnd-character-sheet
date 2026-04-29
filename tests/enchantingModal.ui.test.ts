@@ -145,17 +145,23 @@ describe('EnchantingModal', () => {
     expect(wrapper.text()).toContain('防御');
   });
 
-  it('keeps selected item traits as snapshots when the reusable trait library changes', async () => {
+  it('propagates custom trait edits to every item selecting that trait', async () => {
     const store = useActiveSheetStore();
-    const character = createDefaultCharacter('enchant-modal-decoupled-trait');
+    const character = createDefaultCharacter('enchant-modal-linked-trait');
     const weapon = createWeapon();
+    const secondWeapon: InventoryItem = {
+      ...createWeapon(),
+      instanceId: 'enchant-target-2',
+      name: 'Second Dagger',
+      magic: { isMagic: false },
+    };
     character.customMagicTraits = [
       {
         id: 'custom-fire',
         source: 'custom',
         type: 'damage',
-        name: '烈焰',
-        description: '旧描述',
+        name: 'Flame',
+        description: 'Old description',
         activationMode: 'always',
         participatesInDamage: true,
         damageDice: '1d6',
@@ -163,19 +169,58 @@ describe('EnchantingModal', () => {
         damageType: 'fire',
       },
     ];
+    character.inventory = [weapon, secondWeapon];
+    store.character = character;
+
+    const wrapper = mountModal();
+    useEnchanting().openEnchantingForItem(weapon);
+    useEnchanting().toggleTraitSelection('custom-fire');
+    useEnchanting().openEnchantingForItem(secondWeapon);
+    useEnchanting().toggleTraitSelection('custom-fire');
+    await nextTick();
+
+    await wrapper.find('[data-test="enchant-tab-manage"]').trigger('click');
+    const firstTraitEditor = wrapper.find('.saved-trait-edit');
+    await firstTraitEditor.find('[data-test="edit-trait-name"]').setValue('Flame Revised');
+    await firstTraitEditor.find('[data-test="edit-trait-dice"]').setValue('2d6');
+    await firstTraitEditor.trigger('change');
+
+    expect(weapon.magic?.customTraits?.[0]).toMatchObject({
+      name: 'Flame Revised',
+      damageDice: '2d6',
+    });
+    expect(secondWeapon.magic?.customTraits?.[0]).toMatchObject({
+      name: 'Flame Revised',
+      damageDice: '2d6',
+    });
+  });
+
+  it('renders selectable magic traits as compact badges with hover detail text', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('enchant-modal-badges');
+    const weapon = createWeapon();
+    character.customMagicTraits = [
+      {
+        id: 'custom-glow',
+        source: 'custom',
+        type: 'plain',
+        name: 'Glimmer',
+        description: 'Soft light aura.',
+        activationMode: 'always',
+        participatesInDamage: false,
+      },
+    ];
     character.inventory = [weapon];
     store.character = character;
 
-    mountModal();
+    const wrapper = mountModal();
     useEnchanting().openEnchantingForItem(weapon);
-    useEnchanting().toggleTraitSelection('custom-fire');
+    await nextTick();
 
-    character.customMagicTraits[0]!.name = '烈焰改';
-    character.customMagicTraits[0]!.damageDice = '2d6';
+    await wrapper.find('[data-test="enchant-tab-traits"]').trigger('click');
 
-    expect(weapon.magic?.customTraits?.[0]).toMatchObject({
-      name: '烈焰',
-      damageDice: '1d6',
-    });
+    expect(wrapper.find('.trait-badge').exists()).toBe(true);
+    expect(wrapper.findAll('.trait-hover-card').some(card => card.text().includes('Soft light aura.'))).toBe(true);
+    expect(wrapper.find('.btn-edit-trait').exists()).toBe(true);
   });
 });
