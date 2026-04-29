@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useDataPackStore } from '../../../stores/dataPackStore';
 import { DEFAULT_DATA_PACK_ID } from '../../../utils/dataPackUtils';
 
@@ -12,6 +12,18 @@ const emit = defineEmits<{
 }>();
 
 const store = useDataPackStore();
+const showCreateForm = ref(false);
+const createForm = reactive({
+  id: '',
+  name: '',
+  version: '1.0.0',
+  author: '',
+  description: '',
+  tags: '',
+  password: '',
+  passwordHint: '',
+  localOnly: false,
+});
 
 onMounted(() => {
   store.init();
@@ -19,6 +31,23 @@ onMounted(() => {
 
 const packs = computed(() => store.orderedDataPacks);
 const isDefaultPack = (packId: string) => packId === DEFAULT_DATA_PACK_ID;
+const createPack = async () => {
+  await store.createDraftPack({
+    schemaVersion: 1,
+    id: createForm.id.trim(),
+    name: createForm.name.trim(),
+    version: createForm.version.trim(),
+    author: createForm.author.trim() || undefined,
+    description: createForm.description.trim() || undefined,
+    tags: createForm.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+  }, {
+    password: createForm.password.trim() || undefined,
+    passwordHint: createForm.passwordHint.trim() || undefined,
+    localOnly: createForm.localOnly,
+  });
+  showCreateForm.value = false;
+  emit('close');
+};
 </script>
 
 <template>
@@ -34,11 +63,28 @@ const isDefaultPack = (packId: string) => packId === DEFAULT_DATA_PACK_ID;
         </header>
 
         <div class="toolbar">
+          <button type="button" class="primary-btn" :disabled="store.isBusy" @click="showCreateForm = !showCreateForm">
+            新建数据包
+          </button>
           <button type="button" class="primary-btn" :disabled="store.isBusy" @click="store.importPack">
             导入数据包
           </button>
           <span class="hint">第三方包保存在本机 userData/data-packs/imported。</span>
         </div>
+
+        <form v-if="showCreateForm" class="create-form" @submit.prevent="createPack">
+          <h3>新建数据包元数据</h3>
+          <label>ID（创建后不可修改）<input v-model="createForm.id" required placeholder="my-campaign-pack" /></label>
+          <label>名称<input v-model="createForm.name" required placeholder="我的战役数据包" /></label>
+          <label>版本<input v-model="createForm.version" required /></label>
+          <label>作者<input v-model="createForm.author" /></label>
+          <label>简介<textarea v-model="createForm.description"></textarea></label>
+          <label>标签（逗号分隔）<input v-model="createForm.tags" /></label>
+          <label>编辑密码<input v-model="createForm.password" type="password" placeholder="默认无需密码" /></label>
+          <label>密码提示<input v-model="createForm.passwordHint" /></label>
+          <label class="check"><input v-model="createForm.localOnly" type="checkbox" /> 仅本 PC 用户可编辑</label>
+          <button type="submit" class="primary-btn">创建并进入制作器</button>
+        </form>
 
         <div class="pack-list">
           <article v-for="(pack, index) in packs" :key="pack.id" class="pack-card" :class="{ builtin: pack.builtin }">
@@ -158,6 +204,28 @@ const isDefaultPack = (packId: string) => packId === DEFAULT_DATA_PACK_ID;
 }
 
 .hint { color: #7f8b96; font-size: 0.78rem; }
+
+.create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 20px;
+  background: #11151a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  h3 { grid-column: 1 / -1; margin: 0; }
+  label { display: flex; flex-direction: column; gap: 4px; color: #b9c4ce; font-size: 0.82rem; }
+  label.check { flex-direction: row; align-items: center; }
+  input, textarea {
+    border: 1px solid #39424c;
+    border-radius: 7px;
+    background: #1c2229;
+    color: #fff;
+    padding: 7px 9px;
+  }
+  textarea { min-height: 68px; resize: vertical; }
+  button { width: max-content; }
+}
 
 .pack-list {
   padding: 16px 20px 20px;

@@ -10,9 +10,15 @@ import { useUiFeedbackStore } from './uiFeedback';
 import {
   DEFAULT_DATA_PACK_ID,
   createDefaultDataPackSettings,
+  isValidDataPackId,
+  makeUniqueLocalId,
   normalizeDataPackSettings,
+  stripRuntimePrefix,
 } from '../utils/dataPackUtils';
-import type { DataPackSettings, RuntimeDataPack } from '../types/DataPack';
+import { getRuntimeLibraryItemById, getRuntimeSpellById } from '../data/dataPacks/runtimeDataPacks';
+import type { DataPackFile, DataPackManifest, DataPackSettings, RuntimeDataPack } from '../types/DataPack';
+import type { LibraryItem } from '../types/Library';
+import type { SpellDefinition } from '../types/Spell';
 
 const applyPackRuntime = (packs: RuntimeDataPack[]) => {
   setRuntimeDataPacks(packs);
@@ -23,8 +29,28 @@ export const useDataPackStore = defineStore('dataPack', () => {
   const settings = ref<DataPackSettings>(createDefaultDataPackSettings());
   const isLoaded = ref(false);
   const isBusy = ref(false);
+  const isMakerOpen = ref(false);
+  const activeDraftPack = ref<DataPackFile | null>(null);
+  const draftDirty = ref(false);
 
   const feedback = useUiFeedbackStore();
+
+  const clonePlain = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+  const hashText = async (value: string, salt: string): Promise<string> => {
+    const payload = `${salt}:${value}`;
+    if (globalThis.crypto?.subtle) {
+      const bytes = new TextEncoder().encode(payload);
+      const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+      return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    return btoa(unescape(encodeURIComponent(payload)));
+  };
+
+  const getLocalEditorHash = async (): Promise<string | undefined> => {
+    const result = await window.electronAPI?.getLocalEditorIdHash?.();
+    return result?.success ? result.data : undefined;
+  };
 
   const orderedDataPacks = computed(() => {
     const packMap = new Map(packs.value.map(pack => [pack.id, pack]));
@@ -179,13 +205,217 @@ export const useDataPackStore = defineStore('dataPack', () => {
     await refresh();
   };
 
+  const canEditDraftWithLock = async (packFile: DataPackFile): Promise<boolean> => {
+    const lock = packFile.editorMeta?.editLock;
+    if (!lock?.enabled) return true;
+
+    if (lock.localOnly) {
+      const localHash = await getLocalEditorHash();
+      if (!localHash || localHash !== lock.localEditorIdHash) {
+        await feedback.alert({
+          title: '不能编辑数据包',
+          message: '该数据包设置为仅创建它的本机可编辑。本机可以使用、导出或复制其中内容，但不能进入编辑模式。',
+          tone: 'warning',
+        });
+        return false;
+      }
+    }
+
+    if (lock.passwordHash) {
+      const input = window.prompt(lock.hint ? `请输入编辑密码（提示：${lock.hint}）` : '请输入编辑密码');
+      if (input === null) return false;
+      const inputHash = await hashText(input, lock.salt ?? '');
+      if (inputHash !== lock.passwordHash) {
+        feedback.showToast('编辑密码错误', 'danger');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const openMaker = async (packId: string) => {
+    if (packId === DEFAULT_DATA_PACK_ID || !window.electronAPI?.readEditableDataPack) return;
+    isBusy.value = true;
+    try {
+      const result = await window.electronAPI.readEditableDataPack(packId);
+      if (!result.success) throw new Error(result.error);
+      if (!(await canEditDraftWithLock(result.data))) return;
+      activeDraftPack.value = clonePlain(result.data);
+      draftDirty.value = false;
+      isMakerOpen.value = true;
+    } catch (e) {
+      feedback.showToast(`无法打开制作器：${e instanceof Error ? e.message : String(e)}`, 'danger', 4200);
+    } finally {
+      isBusy.value = false;
+    }
+  };
+
+  const createDraftPack = async (
+    manifest: DataPackManifest,
+    options: { password?: string; passwordHint?: string; localOnly?: boolean } = {}
+  ) => {
+    if (!isValidDataPackId(manifest.id) || manifest.id === DEFAULT_DATA_PACK_ID) {
+      feedback.showToast('数据包 ID 不合法或为保留 ID', 'danger');
+      return;
+    }
+    if (packs.value.some(pack => pack.id === manifest.id)) {
+      feedback.showToast(`已存在同 ID 数据包：${manifest.id}`, 'danger');
+      return;
+    }
+
+    const salt = options.password ? crypto.randomUUID() : undefined;
+    const localEditorIdHash = options.localOnly ? await getLocalEditorHash() : undefined;
+    const draft: DataPackFile = {
+      manifest: {
+        ...manifest,
+        schemaVersion: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      editorMeta: (options.password || options.localOnly) ? {
+        editLock: {
+          enabled: true,
+          salt,
+          passwordHash: options.password && salt ? await hashText(options.password, salt) : undefined,
+          hint: options.passwordHint,
+          localOnly: options.localOnly,
+          localEditorIdHash,
+        },
+      } : undefined,
+      items: [],
+      spells: [],
+      traits: [],
+    };
+
+    activeDraftPack.value = draft;
+    draftDirty.value = true;
+    isMakerOpen.value = true;
+    await saveDraftPack('create');
+  };
+
+  const saveDraftPack = async (mode: 'create' | 'update' = 'update') => {
+    if (!activeDraftPack.value || !window.electronAPI?.saveEditableDataPack) return;
+    activeDraftPack.value.manifest.updatedAt = new Date().toISOString();
+    const result = await window.electronAPI.saveEditableDataPack(activeDraftPack.value, mode);
+    if (!result.success) {
+      feedback.showToast(`保存失败：${result.error}`, 'danger', 4200);
+      return;
+    }
+    activeDraftPack.value = clonePlain(result.data);
+    draftDirty.value = false;
+    feedback.showToast('数据包已保存', 'success');
+    await refresh();
+  };
+
+  const closeMaker = async () => {
+    if (draftDirty.value) {
+      const confirmed = await feedback.confirm({
+        title: '关闭制作器',
+        message: '当前数据包有未保存修改，确认关闭吗？',
+        tone: 'warning',
+      });
+      if (!confirmed) return;
+    }
+    isMakerOpen.value = false;
+    activeDraftPack.value = null;
+    draftDirty.value = false;
+  };
+
+  const markDraftDirty = () => {
+    draftDirty.value = true;
+  };
+
+  const importItemToDraft = (runtimeItemId: string, target?: 'forge' | 'enchant') => {
+    if (!activeDraftPack.value) return;
+    const source = getRuntimeLibraryItemById(runtimeItemId);
+    if (!source) {
+      feedback.showToast('未找到要导入的物品', 'danger');
+      return;
+    }
+    const items = activeDraftPack.value.items ?? (activeDraftPack.value.items = []);
+    const item = clonePlain(source) as LibraryItem;
+    item.id = makeUniqueLocalId(stripRuntimePrefix(item.id), items.map(entry => entry.id));
+    item.source = activeDraftPack.value.manifest.name;
+    items.push(item);
+    draftDirty.value = true;
+    feedback.showToast(target === 'enchant' ? `已复制到附魔入口：${item.name}` : `已复制到铁匠铺：${item.name}`, 'success');
+  };
+
+  const importSpellToDraft = (runtimeSpellId: string) => {
+    if (!activeDraftPack.value) return;
+    const source = getRuntimeSpellById(runtimeSpellId);
+    if (!source) {
+      feedback.showToast('未找到要导入的法术', 'danger');
+      return;
+    }
+    const spells = activeDraftPack.value.spells ?? (activeDraftPack.value.spells = []);
+    const spell = clonePlain(source) as SpellDefinition;
+    spell.id = makeUniqueLocalId(stripRuntimePrefix(spell.id), spells.map(entry => entry.id));
+    spell.source = activeDraftPack.value.manifest.name;
+    spells.push(spell);
+    draftDirty.value = true;
+    feedback.showToast(`已复制到法术编辑占位：${spell.name}`, 'success');
+  };
+
+  const importPackContentsToDraft = (sourcePackId: string) => {
+    if (!activeDraftPack.value || sourcePackId === activeDraftPack.value.manifest.id) return;
+    const sourcePack = packs.value.find(pack => pack.id === sourcePackId);
+    if (!sourcePack) return;
+
+    const draftItems = activeDraftPack.value.items ?? (activeDraftPack.value.items = []);
+    const draftSpells = activeDraftPack.value.spells ?? (activeDraftPack.value.spells = []);
+    const draftTraits = activeDraftPack.value.traits ?? (activeDraftPack.value.traits = []);
+
+    sourcePack.items.forEach(source => {
+      const item = clonePlain(source) as LibraryItem;
+      item.id = makeUniqueLocalId(stripRuntimePrefix(item.id), draftItems.map(entry => entry.id));
+      item.source = activeDraftPack.value?.manifest.name;
+      draftItems.push(item);
+    });
+
+    sourcePack.spells.forEach(source => {
+      const spell = clonePlain(source) as SpellDefinition;
+      spell.id = makeUniqueLocalId(stripRuntimePrefix(spell.id), draftSpells.map(entry => entry.id));
+      spell.source = activeDraftPack.value?.manifest.name;
+      draftSpells.push(spell);
+    });
+
+    sourcePack.traits.forEach(source => {
+      const trait = clonePlain(source);
+      trait.id = makeUniqueLocalId(stripRuntimePrefix(trait.id), draftTraits.map(entry => entry.id));
+      draftTraits.push(trait);
+    });
+
+    draftDirty.value = true;
+    feedback.showToast(`已导入 ${sourcePack.name} 的内容快照`, 'success');
+  };
+
+  const updateDraftEditLock = async (options: { enabled: boolean; password?: string; hint?: string; localOnly?: boolean }) => {
+    if (!activeDraftPack.value) return;
+    if (!options.enabled) {
+      activeDraftPack.value.editorMeta = undefined;
+      draftDirty.value = true;
+      return;
+    }
+
+    const salt = options.password ? crypto.randomUUID() : undefined;
+    activeDraftPack.value.editorMeta = {
+      editLock: {
+        enabled: true,
+        salt,
+        passwordHash: options.password && salt ? await hashText(options.password, salt) : undefined,
+        hint: options.hint,
+        localOnly: options.localOnly,
+        localEditorIdHash: options.localOnly ? await getLocalEditorHash() : undefined,
+      },
+    };
+    draftDirty.value = true;
+  };
+
   const openReservedEditor = async (pack: RuntimeDataPack) => {
     if (pack.builtin) return;
-    await feedback.alert({
-      title: '编辑入口预留',
-      message: '第三方数据包编辑器将在后续 GM 制作器阶段实装；当前版本只预留入口，不修改源数据包。',
-      tone: 'info',
-    });
+    await openMaker(pack.id);
   };
 
   const getItemGroups = (visibleIds?: Set<string>) =>
@@ -199,6 +429,9 @@ export const useDataPackStore = defineStore('dataPack', () => {
     settings,
     isLoaded,
     isBusy,
+    isMakerOpen,
+    activeDraftPack,
+    draftDirty,
     orderedDataPacks,
     enabledDataPacks,
     itemLibraryItems,
@@ -212,6 +445,15 @@ export const useDataPackStore = defineStore('dataPack', () => {
     exportPack,
     deletePack,
     openReservedEditor,
+    openMaker,
+    createDraftPack,
+    saveDraftPack,
+    closeMaker,
+    markDraftDirty,
+    importItemToDraft,
+    importSpellToDraft,
+    importPackContentsToDraft,
+    updateDraftEditLock,
     getItemGroups,
     getSpellGroups,
   };

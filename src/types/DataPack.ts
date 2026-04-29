@@ -42,9 +42,23 @@ export interface DataPackManifest {
 
 export interface DataPackFile {
   manifest: DataPackManifest;
+  editorMeta?: DataPackEditorMeta;
   items?: LibraryItem[];
   spells?: SpellDefinition[];
   traits?: DataPackTraitDefinition[];
+}
+
+export interface DataPackEditLock {
+  enabled: boolean;
+  passwordHash?: string;
+  salt?: string;
+  hint?: string;
+  localOnly?: boolean;
+  localEditorIdHash?: string;
+}
+
+export interface DataPackEditorMeta {
+  editLock?: DataPackEditLock;
 }
 
 export interface DataPackSettings {
@@ -79,6 +93,8 @@ export interface DataPackImportResult {
   spellCount: number;
   traitCount: number;
 }
+
+export type DataPackSaveMode = 'create' | 'update';
 
 export interface DataPackItemSubGroup {
   title: string;

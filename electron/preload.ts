@@ -19,6 +19,9 @@ const electronAPI: ElectronApi = {
   exportDataPack: (packId: string) => ipcRenderer.invoke('export-data-pack', packId),
   deleteDataPack: (packId: string) => ipcRenderer.invoke('delete-data-pack', packId),
   updateDataPackSettings: (settings) => ipcRenderer.invoke('update-data-pack-settings', settings),
+  readEditableDataPack: (packId: string) => ipcRenderer.invoke('read-editable-data-pack', packId),
+  saveEditableDataPack: (packFile, mode) => ipcRenderer.invoke('save-editable-data-pack', packFile, mode),
+  getLocalEditorIdHash: () => ipcRenderer.invoke('get-local-editor-id-hash'),
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

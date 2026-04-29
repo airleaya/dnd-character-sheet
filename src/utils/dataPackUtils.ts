@@ -18,6 +18,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isSafePackId = (id: string): boolean =>
   /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id) && !id.includes('..');
 
+export const isValidDataPackId = (id: string): boolean => isSafePackId(id);
+
 const requireString = (value: unknown, label: string): string => {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${label} 必须是非空字符串`);
@@ -89,6 +91,7 @@ export const validateDataPackFile = (value: unknown): DataPackFile => {
         ? value.manifest.tags.filter((tag): tag is string => typeof tag === 'string')
         : undefined,
     },
+    editorMeta: isRecord(value.editorMeta) ? value.editorMeta as DataPackFile['editorMeta'] : undefined,
     items: (items ?? []) as LibraryItem[],
     spells: (spells ?? []) as SpellDefinition[],
     traits: (traits ?? []) as DataPackFile['traits'],
@@ -166,3 +169,22 @@ export const buildExportableDefaultDataPack = (pack: RuntimeDataPack): DataPackF
   spells: pack.spells,
   traits: pack.traits,
 });
+
+export const stripRuntimePrefix = (runtimeId: string): string => {
+  const separatorIndex = runtimeId.indexOf(':');
+  return separatorIndex >= 0 ? runtimeId.slice(separatorIndex + 1) : runtimeId;
+};
+
+export const makeUniqueLocalId = (baseId: string, existingIds: Iterable<string>): string => {
+  const existing = new Set(existingIds);
+  const safeBase = (stripRuntimePrefix(baseId).trim() || 'entry')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/^-+/, '') || 'entry';
+  if (!existing.has(safeBase)) return safeBase;
+
+  let index = 2;
+  while (existing.has(`${safeBase}-${index}`)) {
+    index += 1;
+  }
+  return `${safeBase}-${index}`;
+};

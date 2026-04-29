@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import type { Character } from '../src/types/Character'
-import type { DataPackFile, DataPackImportResult, DataPackSettings, DataPackState } from '../src/types/DataPack'
+import type { DataPackFile, DataPackImportResult, DataPackSaveMode, DataPackSettings, DataPackState } from '../src/types/DataPack'
 import type { IpcFailureResult, IpcResult, IpcVoidResult } from '../src/types/electron'
 import { normalizeLogEntry } from '../src/utils/logging'
 import {
@@ -37,6 +38,7 @@ const getWindowConfigPath = (): string => path.join(getUserDataRoot(), 'window-c
 const getDataPacksRoot = (): string => path.join(getUserDataRoot(), 'data-packs');
 const getImportedDataPacksDir = (): string => path.join(getDataPacksRoot(), 'imported');
 const getDataPackSettingsPath = (): string => path.join(getDataPacksRoot(), 'data-pack-settings.json');
+const getLocalEditorIdPath = (): string => path.join(getDataPacksRoot(), 'local-editor-id');
 
 const ensureDirectoryExists = (dirPath: string): void => {
   if (!fs.existsSync(dirPath)) {
@@ -121,8 +123,20 @@ const saveWindowState = () => {
 };
 
 const safeDataPackFileName = (packId: string): string => `${packId}${DATA_PACK_EXTENSION}`;
+const getImportedDataPackPath = (packId: string): string => path.join(getImportedDataPacksDir(), safeDataPackFileName(packId));
 
 const readJsonFile = (filePath: string): unknown => JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+const sha256 = (value: string): string => crypto.createHash('sha256').update(value).digest('hex');
+
+const getLocalEditorIdHash = (): string => {
+  ensureDirectoryExists(getDataPacksRoot());
+  const editorIdPath = getLocalEditorIdPath();
+  if (!fs.existsSync(editorIdPath)) {
+    fs.writeFileSync(editorIdPath, crypto.randomUUID(), 'utf-8');
+  }
+  return sha256(fs.readFileSync(editorIdPath, 'utf-8').trim());
+};
 
 const readImportedDataPackFiles = (): DataPackFile[] => {
   const importedDir = getImportedDataPacksDir();
@@ -188,6 +202,52 @@ const getExportableDataPack = (packId: string): DataPackFile => {
   const imported = readImportedDataPackFiles().find(file => file.manifest.id === packId);
   if (!imported) throw new Error(`未找到数据包：${packId}`);
   return imported;
+};
+
+const readEditableDataPackFile = (packId: string): DataPackFile => {
+  if (packId === DEFAULT_DATA_PACK_ID) throw new Error('默认数据包不能编辑');
+  const filePath = getImportedDataPackPath(packId);
+  if (!fs.existsSync(filePath)) throw new Error(`未找到数据包：${packId}`);
+  return validateDataPackFile(readJsonFile(filePath));
+};
+
+const saveEditableDataPackFile = (packFile: DataPackFile, mode: DataPackSaveMode): DataPackFile => {
+  const dataPack = validateDataPackFile(packFile);
+  if (dataPack.manifest.id === DEFAULT_DATA_PACK_ID) throw new Error('默认数据包不能编辑');
+
+  ensureDirectoryExists(getImportedDataPacksDir());
+  const filePath = getImportedDataPackPath(dataPack.manifest.id);
+  const exists = fs.existsSync(filePath);
+
+  if (mode === 'create' && exists) {
+    throw new Error(`已存在同 id 数据包：${dataPack.manifest.id}`);
+  }
+  if (mode === 'update' && !exists) {
+    throw new Error(`未找到要更新的数据包：${dataPack.manifest.id}`);
+  }
+
+  if (mode === 'update') {
+    const existing = validateDataPackFile(readJsonFile(filePath));
+    if (existing.manifest.id !== dataPack.manifest.id) {
+      throw new Error('数据包 id 创建后不可修改');
+    }
+  }
+
+  fs.writeFileSync(filePath, JSON.stringify(dataPack, null, 2), 'utf-8');
+
+  const importedFiles = readImportedDataPackFiles();
+  const knownPackIds = [DEFAULT_DATA_PACK_ID, ...importedFiles.map(file => file.manifest.id)];
+  const settings = readDataPackSettings(knownPackIds);
+  writeDataPackSettings({
+    enabledPackIds: settings.enabledPackIds.includes(dataPack.manifest.id)
+      ? settings.enabledPackIds
+      : [...settings.enabledPackIds, dataPack.manifest.id],
+    packOrder: settings.packOrder.includes(dataPack.manifest.id)
+      ? settings.packOrder
+      : [...settings.packOrder, dataPack.manifest.id],
+  }, knownPackIds);
+
+  return dataPack;
 };
 
 const createWindow = () => {
@@ -367,6 +427,33 @@ app.whenReady().then(() => {
       return { success: true, data: writeDataPackSettings(settings, knownPackIds) };
     } catch (e) {
       logger.error('Failed to update data pack settings', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('read-editable-data-pack', async (_event, packId: string): Promise<IpcResult<DataPackFile>> => {
+    try {
+      return { success: true, data: readEditableDataPackFile(packId) };
+    } catch (e) {
+      logger.error('Failed to read editable data pack', e, { packId });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('save-editable-data-pack', async (_event, packFile: DataPackFile, mode: DataPackSaveMode): Promise<IpcResult<DataPackFile>> => {
+    try {
+      return { success: true, data: saveEditableDataPackFile(packFile, mode) };
+    } catch (e) {
+      logger.error('Failed to save editable data pack', e, { packId: packFile?.manifest?.id, mode });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('get-local-editor-id-hash', async (): Promise<IpcResult<string>> => {
+    try {
+      return { success: true, data: getLocalEditorIdHash() };
+    } catch (e) {
+      logger.error('Failed to get local editor id hash', e);
       return createErrorResult(e);
     }
   });

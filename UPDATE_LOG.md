@@ -1,5 +1,37 @@
 # UPDATE_LOG
 
+## [0.14.3] - 2026-04-29
+- 类型：功能迭代 / 数据包系统 / GM 制作器 / 编辑锁 / 测试
+- 条目：数据包系统阶段三
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/types/DataPack.ts`
+  - `src/types/Spell.ts`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `src/components/sheet/library/LibrarySpellsPanel.vue`
+  - `src/utils/dataPackUtils.ts`
+- 已完成变化：
+  - 项目版本号从 `0.14.2` 自增长到 `0.14.3`。
+  - 新增 GM 数据包制作器，中间栏打开后直接取代角色卡界面，右侧物品/法术库保持可用。
+  - 新建数据包时先填写元数据；`manifest.id` 创建后只读，不允许后续直接修改。
+  - 第三方数据包可进入制作器自由编辑名称、版本、作者、简介、物品/法术归类字段、词条占位数据和编辑锁。
+  - 制作器支持从其他数据包批量导入内容快照，也支持从右侧库拖拽物品/法术进入当前数据包。
+  - 制作器内置铁匠铺、附魔台、法术编辑占位、词条编辑占位入口；保存终端为当前数据包文件。
+  - 新增编辑锁元数据：密码锁仅作为应用内编辑保护，不做内容加密；可选“仅本 PC 用户可编辑”，通过本机 `userData/data-packs/local-editor-id` 指纹判断。
+- 验证结果：
+  - `npm run test -- tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts tests/spellRitualBadges.ui.test.ts` 通过：4 个测试文件，14 个用例。
+  - `npm run test` 通过：32 个测试文件，145 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.14.3` 安装包与便携版。
+
 ## [0.14.2] - 2026-04-29
 - 类型：功能迭代 / 数据包系统 / Electron IPC / UI / 测试
 - 条目：数据包系统阶段二

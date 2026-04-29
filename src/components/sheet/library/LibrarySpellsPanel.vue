@@ -50,6 +50,11 @@ const cloneSpell = (spell: SpellDefinition) => {
 };
 
 const handleDragStart = () => emit('leave-item');
+const onNativeDragStart = (event: DragEvent, spell: SpellDefinition) => {
+  emit('leave-item');
+  event.dataTransfer?.setData('application/x-dnd-spell-id', spell.id);
+  event.dataTransfer?.setData('text/plain', JSON.stringify({ type: 'spell', id: spell.id }));
+};
 
 // 5. 徽章显示逻辑
 const getSpellBadges = (spell: SpellDefinition) => {
@@ -105,10 +110,12 @@ const getSpellBadges = (spell: SpellDefinition) => {
                 >
                   <template #item="{ element }">
                     <div class="library-item spell-item"
+                    draggable="true"
                     :class="{ 'is-learned': isKnown(element.id) }"
                     @mouseenter="emit('hover-item', element, $event)"
                     @mousemove="emit('move-item', $event)"
-                    @mouseleave="emit('leave-item')">
+                    @mouseleave="emit('leave-item')"
+                    @dragstart="onNativeDragStart($event, element)">
                       <div class="item-row">
                         <span class="item-name">
                           {{ element.name }}

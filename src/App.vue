@@ -7,6 +7,7 @@ import CombatPanel from './components/sheet/combat/CombatPanel.vue';
 import ActionsPanel from './components/sheet/combat/ActionsPanel.vue';
 import EquipmentSlots from './components/sheet/inventory/EquipmentSlots.vue';
 import InventoryPanel from './components/sheet/inventory/InventoryPanel.vue';
+import DataPackMakerPanel from './components/sheet/dataPackMaker/DataPackMakerPanel.vue';
 import GlobalFeedback from './components/ui/GlobalFeedback.vue';
 import GlobalTooltip from './components/ui/GlobalTooltip.vue';
 import { useCharacterStore } from './stores/characterStore';
@@ -58,7 +59,9 @@ onMounted(() => {
   <GlobalTooltip />
   <GlobalFeedback />
   <AppLayout>
-    <div v-if="activeStore.character" class="sheet-container">
+    <DataPackMakerPanel v-if="dataPackStore.isMakerOpen" />
+
+    <div v-else-if="activeStore.character" class="sheet-container">
       <HeaderInfo />
       <StatsAndSkills />
       <CombatPanel />

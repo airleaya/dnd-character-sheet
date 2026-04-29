@@ -19,7 +19,7 @@
 - 通过本地 JSON 文件保存角色数据，适合离线使用
 - 通过本地 JSONL 日志记录关键流程与错误，便于排查本机问题
 
-> 当前版本：`0.14.2`
+> 当前版本：`0.14.3`
 
 ---
 
@@ -149,13 +149,16 @@
 - 默认数据包允许启用 / 禁用和导出；导出文件 id 改为 `dnd5e-output`，后续视为第三方数据包副本
 - 第三方 `.dndpack.json` 数据包保存在 Electron `userData/data-packs/imported/`
 - 数据包管理界面支持第三方包导入、启用 / 禁用、排序、导出和删除
+- GM 数据包制作器会直接占据中间栏，支持新建元数据、编辑第三方包、导入其他包内容快照和从右侧库拖拽内容
 - 外部包物品 / 法术使用 `packId:localId` 运行时命名空间，避免覆盖默认数据
-- 数据包 schema 已预留 `traits` 词条接口和第三方包编辑入口，当前只保存与透传，不参与规则计算
+- 数据包 schema 已预留 `traits` 词条接口；词条编辑与法术编辑当前为占位，不参与规则计算
+- 第三方数据包可以设置编辑密码锁和“仅本 PC 用户可编辑”；这是应用内编辑保护，不是内容加密
 
 核心实现：
 
 - `src/stores/dataPackStore.ts`
 - `src/components/sheet/modals/DataPackManagerModal.vue`
+- `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
 - `src/data/dataPacks/`
 - `src/utils/dataPackUtils.ts`
 
