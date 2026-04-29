@@ -251,4 +251,55 @@ describe('ActionsPanel attack picker modal', () => {
     expect(wrapper!.find(`[data-test="selected-attack-${firstKey}"]`).exists()).toBe(true);
     expect(wrapper!.find(`[data-test="selected-attack-${secondKey}"]`).exists()).toBe(true);
   });
+
+  it('renders charged equipment traits under the equipment spell group and updates their counter', async () => {
+    const activeSheet = useActiveSheetStore();
+    const character = createDefaultCharacter('actions-panel-equipment-traits');
+    character.inventory.push({
+      instanceId: 'charm-1',
+      templateId: 'charm',
+      name: '护符',
+      description: '',
+      weight: 1,
+      quantity: 1,
+      type: 'gear',
+      magic: {
+        isMagic: true,
+        selectedTraitIds: ['spark'],
+        customTraits: [
+          {
+            id: 'spark',
+            source: 'custom',
+            type: 'plain',
+            name: '火花',
+            description: '消耗充能产生火花。',
+            activationMode: 'charged',
+            participatesInDamage: false,
+            charges: { current: 1, max: 2 },
+          },
+        ],
+        visuals: {
+          inventoryBackground: '#ffeeaa',
+          nameColor: '#771122',
+        },
+      },
+      data: {},
+    });
+    activeSheet.character = character;
+
+    mountPanel();
+    await nextTick();
+
+    expect(wrapper!.find('[data-test="equipment-trait-group"]').exists()).toBe(true);
+    expect(wrapper!.text()).toContain('装备');
+    expect(wrapper!.text()).toContain('火花');
+    expect(wrapper!.text()).toContain('护符');
+
+    const dots = wrapper!.findAll('.equipment-dot');
+    expect(dots).toHaveLength(2);
+    await dots[1]!.trigger('click');
+    await nextTick();
+
+    expect(activeSheet.character.inventory[0]?.magic?.customTraits?.[0]?.charges?.current).toBe(2);
+  });
 });

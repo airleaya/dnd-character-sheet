@@ -21,6 +21,7 @@ import {
   UNARMED_STRIKE_TAG_LABELS,
 } from '../../../stores/sheet/useCombatLogic';
 import type { AttackCatalogEntry } from '../../../stores/sheet/useCombatLogic';
+import type { EquipmentTraitAction } from '../../../stores/sheet/useSpellLogic';
 import { createUnarmedStrikeSignature } from '../../../utils/characterMigration';
 import type { TooltipData, TooltipSection } from '../../../stores/tooltip';
 
@@ -79,6 +80,8 @@ const showAttackPicker = ref(false);
 const showUnarmedEditor = ref(false);
 const unarmedEditorError = ref('');
 const expandedSpellId = ref<string | null>(null);
+const expandedEquipmentActionId = ref<string | null>(null);
+const equipmentGroupCollapsed = ref(false);
 const collapsedGroups = ref<Record<number, boolean>>({});
 
 const abilityOptions: Array<{ key: AbilityKey; label: string }> = [
@@ -358,8 +361,16 @@ const toggleSpellExpand = (id: string) => {
   expandedSpellId.value = expandedSpellId.value === id ? null : id;
 };
 
+const toggleEquipmentActionExpand = (id: string) => {
+  expandedEquipmentActionId.value = expandedEquipmentActionId.value === id ? null : id;
+};
+
 const toggleGroupCollapse = (level: number) => {
   collapsedGroups.value[level] = !collapsedGroups.value[level];
+};
+
+const toggleEquipmentGroupCollapse = () => {
+  equipmentGroupCollapsed.value = !equipmentGroupCollapsed.value;
 };
 
 const formatComponents = (components?: SpellComponents) => {
@@ -387,6 +398,18 @@ const handleSlotClick = (level: number, index: number, current: number) => {
   }
 
   store.updateSpellSlot(level, index + 1);
+};
+
+const handleEquipmentChargeClick = (action: EquipmentTraitAction, value: number) => {
+  const nextValue = value <= action.charges.current ? value - 1 : value;
+  store.updateEquipmentTraitCharge(action.itemId, action.traitId, nextValue);
+};
+
+const getEquipmentTraitTypeLabel = (action: EquipmentTraitAction) => {
+  if (action.type === 'spell') return '附带法术';
+  if (action.type === 'defense') return '防御词条';
+  if (action.type === 'damage') return '伤害词条';
+  return '普通词条';
 };
 
 const handleLongRest = async () => {
@@ -527,12 +550,71 @@ const handleLongRest = async () => {
       </div>
 
       <div class="spell-list-container">
-        <div v-if="store.battleGroups.length === 0" class="empty-battle-spells">
+        <div v-if="store.battleGroups.length === 0 && store.equipmentTraitActions.length === 0" class="empty-battle-spells">
           <p>未准备任何法术</p>
           <small>点击顶部“法术书”进行准备</small>
         </div>
 
         <div v-else class="spell-groups">
+          <div v-if="store.equipmentTraitActions.length > 0" class="spell-group equipment-group" data-test="equipment-trait-group">
+            <div class="group-header equipment-header" @click="toggleEquipmentGroupCollapse">
+              <span class="fold-arrow">{{ equipmentGroupCollapsed ? '▸' : '▾' }}</span>
+              <span class="group-label">装备</span>
+
+              <div class="equipment-count">
+                {{ store.equipmentTraitActions.length }} 项
+              </div>
+            </div>
+
+            <div v-show="!equipmentGroupCollapsed" class="group-items">
+              <div
+                v-for="action in store.equipmentTraitActions"
+                :key="action.id"
+                class="spell-card equipment-action-card"
+                :style="action.style"
+                :data-test="`equipment-trait-action-${action.id}`"
+                @click="toggleEquipmentActionExpand(action.id)"
+              >
+                <div class="card-top">
+                  <div class="spell-name equipment-name" :style="{ color: action.style?.color }">
+                    {{ action.name }}
+                    <span class="equipment-badge">{{ action.itemName }}</span>
+                  </div>
+
+                  <div class="equipment-charge-tracker" @click.stop>
+                    <button
+                      v-for="value in action.charges.max"
+                      :key="value"
+                      type="button"
+                      class="slot-dot equipment-dot"
+                      :class="{ filled: value <= action.charges.current }"
+                      :style="{ borderColor: action.style?.backgroundColor, backgroundColor: value <= action.charges.current ? action.style?.backgroundColor : '#fff' }"
+                      :title="`设置为 ${value <= action.charges.current ? value - 1 : value}/${action.charges.max} 充能`"
+                      @click="handleEquipmentChargeClick(action, value)"
+                    ></button>
+                  </div>
+                </div>
+
+                <div v-if="expandedEquipmentActionId === action.id" class="card-detail equipment-detail" @click.stop>
+                  <div class="spell-meta-header">
+                    <span>{{ getEquipmentTraitTypeLabel(action) }}</span>
+                    <span>{{ action.charges.current }}/{{ action.charges.max }} 充能</span>
+                  </div>
+                  <div v-if="action.spellName" class="combat-line">
+                    <span class="combat-badge type">法术：{{ action.spellName }}</span>
+                  </div>
+                  <div class="desc-divider"></div>
+                  <div v-if="action.description" class="desc-text">{{ action.description }}</div>
+                  <div v-if="action.spellExtraDescription" class="desc-text">{{ action.spellExtraDescription }}</div>
+                  <div v-if="action.charges.resetCondition || action.charges.resetFormula" class="scaling">
+                    <strong>恢复:</strong>
+                    {{ [action.charges.resetCondition, action.charges.resetFormula].filter(Boolean).join(' · ') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-for="group in store.battleGroups" :key="group.level" class="spell-group">
             <div class="group-header" @click="toggleGroupCollapse(group.level)">
               <span class="fold-arrow">{{ collapsedGroups[group.level] ? '▸' : '▾' }}</span>
@@ -1478,6 +1560,19 @@ const handleLongRest = async () => {
   margin-bottom: 8px;
 }
 
+.equipment-group {
+  border: 1px solid rgba(155, 89, 182, 0.18);
+  border-radius: 4px;
+  background: rgba(155, 89, 182, 0.04);
+}
+
+.equipment-count {
+  margin-left: auto;
+  color: #8e44ad;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .group-header {
   display: flex;
   justify-content: space-between;
@@ -1597,6 +1692,51 @@ const handleLongRest = async () => {
       color: #fff;
       background: #95a5a6;
     }
+  }
+}
+
+.equipment-action-card {
+  border-left-color: #8e44ad;
+}
+
+.equipment-name {
+  min-width: 0;
+}
+
+.equipment-badge {
+  border: 1px solid rgba(52, 73, 94, 0.18);
+  border-radius: 999px;
+  padding: 0 5px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #5d6d7e;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.equipment-charge-tracker {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.equipment-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #8e44ad;
+  background: #fff;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    transform: scale(1.2);
+  }
+}
+
+.equipment-detail {
+  .spell-meta-header {
+    font-style: normal;
+    font-weight: 800;
   }
 }
 

@@ -48,7 +48,7 @@ export type EnchantmentEffect =
   | { kind: 'custom_text'; text: string };
 
 export type MagicTraitSource = 'preset' | 'custom';
-export type MagicTraitType = 'damage' | 'spell';
+export type MagicTraitType = 'plain' | 'damage' | 'spell' | 'defense';
 export type MagicTraitActivationMode = 'always' | 'charged';
 
 export interface MagicTraitCharges {

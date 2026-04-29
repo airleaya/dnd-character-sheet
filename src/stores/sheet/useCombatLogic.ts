@@ -15,6 +15,9 @@ import {
   formatMagicItemName,
   getMagicAttackStyle,
   getMagicBonus,
+  getMagicInventoryStyle,
+  isAttuned,
+  requiresAttunement,
   resolveMagicTraitsForItem,
 } from '../../utils/magicItems';
 import {
@@ -93,6 +96,15 @@ export interface AttackCatalogEntry {
   rawKeys: string[];
 }
 
+export interface ArmorClassMagicBadge {
+  id: string;
+  itemId: string;
+  itemName: string;
+  name: string;
+  description: string;
+  style?: Record<string, string>;
+}
+
 const DEFAULT_MELEE_RANGE = '5 尺';
 
 export const UNARMED_STRIKE_TAG_LABELS: Record<UnarmedStrikeTagKey, string> = {
@@ -117,6 +129,12 @@ const isArmorItem = (item: InventoryItem): item is InventoryItem & { data: Armor
 const isWeaponItem = (item: InventoryItem): item is InventoryItem & { data: WeaponData } => item.type === 'weapon';
 const isAmmoConsumable = (item: InventoryItem, requiredType: string) =>
   item.type === 'consumable' && 'ammoType' in item.data && item.data.ammoType === requiredType;
+const canUseMagicItemEffects = (item: InventoryItem) => !requiresAttunement(item) || isAttuned(item);
+
+const getEquippedArmorItems = (char: Character) =>
+  char.equippedIds
+    .map(id => char.inventory.find(i => i.instanceId === id))
+    .filter((item): item is InventoryItem & { data: ArmorData } => item !== undefined && isArmorItem(item));
 
 const cloneHitDice = (hitDice: HitDiceMap): HitDiceMap =>
   Object.fromEntries(Object.entries(hitDice).map(([type, entry]) => [type, { ...entry }]));
@@ -210,10 +228,7 @@ export function useCombatLogic(
     const combat = char.combat;
     const dexMod = abilityModifier(char.stats.dex);
 
-    const equippedItems = char.equippedIds
-      .map(id => char.inventory.find(i => i.instanceId === id))
-      .filter((item): item is InventoryItem => item !== undefined);
-    const equippedArmor = equippedItems.filter(isArmorItem);
+    const equippedArmor = getEquippedArmorItems(char);
 
     const mainArmor = equippedArmor.find(i => i.data.armorType !== 'shield');
     const shields = equippedArmor.filter(i => i.data.armorType === 'shield');
@@ -264,7 +279,38 @@ export function useCombatLogic(
       }
     }
 
+    finalAC += equippedArmor
+      .filter(canUseMagicItemEffects)
+      .reduce((sum, item) => sum + getMagicBonus(item), 0);
+
     return finalAC;
+  });
+
+  const armorClassMagicBadges = computed<ArmorClassMagicBadge[]>(() => {
+    if (!character.value) return [];
+
+    return character.value.inventory.flatMap(item => {
+      if (!canUseMagicItemEffects(item)) return [];
+      const style = getMagicInventoryStyle(item);
+      return resolveMagicTraitsForItem(item)
+        .filter(trait => trait.type === 'defense')
+        .map(trait => ({
+          id: `${item.instanceId}:${trait.id}`,
+          itemId: item.instanceId,
+          itemName: formatMagicItemName(item),
+          name: trait.name,
+          description: trait.description,
+          style,
+        }));
+    });
+  });
+
+  const armorClassMagicStyle = computed<Record<string, string> | undefined>(() => {
+    if (!character.value) return undefined;
+    const magicArmor = getEquippedArmorItems(character.value).find(
+      item => item.magic?.isMagic === true && canUseMagicItemEffects(item)
+    );
+    return magicArmor ? getMagicInventoryStyle(magicArmor) : undefined;
   });
 
   const isWearingNonProficientArmor = computed(() => {
@@ -878,6 +924,8 @@ export function useCombatLogic(
     initiative,
     initiativeJackOfAllTrades,
     armorClass,
+    armorClassMagicBadges,
+    armorClassMagicStyle,
     isWearingNonProficientArmor,
     rawAttacks,
     attackCatalog,

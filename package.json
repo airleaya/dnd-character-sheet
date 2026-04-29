@@ -2,7 +2,7 @@
   "name": "dnd-character-sheet",
   "private": true,
   "main": "dist-electron/main.js",
-  "version": "0.13.6",
+  "version": "0.13.7",
   "author": "雪荔枝 snowlitch & Gemini 3.0 Pro & Codex",
   "description": "DnD 5e Character Manager",
   "scripts": {

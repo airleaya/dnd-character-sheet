@@ -49,8 +49,15 @@ const tabs: Array<{ key: EnchantTab; label: string; note: string }> = [
   { key: 'manage', label: '管理词条', note: '修改或删除自定义词条' },
 ];
 
+const traitTypeOptions: Array<{ value: ItemMagicTrait['type']; label: string; note: string }> = [
+  { value: 'plain', label: '普通', note: '描述性词条，可带独立充能' },
+  { value: 'damage', label: '伤害词条', note: '可参与武器伤害计算' },
+  { value: 'spell', label: '附带法术', note: '关联一个法术并记录充能' },
+  { value: 'defense', label: '防御词条', note: '同调后显示在 AC 面板' },
+];
+
 const customDraft = reactive({
-  type: 'damage' as ItemMagicTrait['type'],
+  type: 'plain' as ItemMagicTrait['type'],
   name: '',
   description: '',
   activationMode: 'always' as ItemMagicTrait['activationMode'],
@@ -108,6 +115,9 @@ const attackPreviewStyle = computed(() => ({
 const isTraitSelected = (id: string) => targetItem.value?.magic?.selectedTraitIds?.includes(id) ?? false;
 
 const getSpellName = (spellId?: string) => (spellId ? getSpellById(spellId)?.name ?? spellId : '未指定法术');
+
+const getTraitTypeLabel = (type: ItemMagicTrait['type']) =>
+  traitTypeOptions.find(option => option.value === type)?.label ?? type;
 
 const ensureVisualDefaults = () => {
   if (!targetItem.value?.magic) return;
@@ -337,7 +347,7 @@ const saveNewCustomTrait = () => {
                         <strong>{{ trait.name }}</strong>
                         <small>
                           {{ trait.source === 'preset' ? '预设' : '自定义' }} ·
-                          {{ trait.type === 'spell' ? `附带法术：${getSpellName(trait.spellId)}` : '伤害词条' }} ·
+                          {{ trait.type === 'spell' ? `附带法术：${getSpellName(trait.spellId)}` : getTraitTypeLabel(trait.type) }} ·
                           {{ trait.activationMode === 'charged' ? '消耗充能' : '默认生效' }}
                         </small>
                         <em>{{ trait.description || trait.spellExtraDescription || '暂无描述' }}</em>
@@ -360,14 +370,15 @@ const saveNewCustomTrait = () => {
                   <div class="field-grid">
                     <label>
                       <span>词条类别</span>
-                      <select v-model="customDraft.type">
-                        <option value="damage">伤害词条</option>
-                        <option value="spell">附带法术</option>
+                      <select data-test="custom-trait-type" v-model="customDraft.type">
+                        <option v-for="option in traitTypeOptions" :key="option.value" :value="option.value">
+                          {{ option.label }}
+                        </option>
                       </select>
                     </label>
                     <label>
                       <span>触发方式</span>
-                      <select v-model="customDraft.activationMode">
+                      <select data-test="custom-trait-activation" v-model="customDraft.activationMode">
                         <option value="always">默认作用</option>
                         <option value="charged">消耗充能</option>
                       </select>
@@ -403,7 +414,7 @@ const saveNewCustomTrait = () => {
                     </label>
                   </div>
 
-                  <div v-else class="field-grid nested-grid">
+                  <div v-else-if="customDraft.type === 'spell'" class="field-grid nested-grid">
                     <label class="full-field">
                       <span>搜索法术</span>
                       <input type="search" v-model="spellKeyword" placeholder="输入中文法术名搜索">
@@ -423,14 +434,18 @@ const saveNewCustomTrait = () => {
                     </label>
                   </div>
 
+                  <div v-else class="trait-type-note">
+                    {{ traitTypeOptions.find(option => option.value === customDraft.type)?.note }}
+                  </div>
+
                   <div v-if="customDraft.activationMode === 'charged' || customDraft.type === 'spell'" class="field-grid nested-grid">
                     <label>
                       <span>当前充能</span>
-                      <input type="number" min="0" v-model.number="customDraft.chargesCurrent">
+                      <input data-test="custom-trait-charges-current" type="number" min="0" v-model.number="customDraft.chargesCurrent">
                     </label>
                     <label>
                       <span>最大充能</span>
-                      <input type="number" min="0" v-model.number="customDraft.chargesMax">
+                      <input data-test="custom-trait-charges-max" type="number" min="0" v-model.number="customDraft.chargesMax">
                     </label>
                     <label>
                       <span>恢复条件</span>
@@ -466,8 +481,9 @@ const saveNewCustomTrait = () => {
                       <label>
                         <span>词条类别</span>
                         <select v-model="trait.type" @change="syncTraitMode(trait)">
-                          <option value="damage">伤害词条</option>
-                          <option value="spell">附带法术</option>
+                          <option v-for="option in traitTypeOptions" :key="option.value" :value="option.value">
+                            {{ option.label }}
+                          </option>
                         </select>
                       </label>
                       <label>
@@ -824,6 +840,16 @@ const saveNewCustomTrait = () => {
 
 .nested-grid {
   margin-top: 10px;
+}
+
+.trait-type-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(245, 197, 96, 0.28);
+  border-radius: 10px;
+  color: #c7d2e2;
+  font-size: 0.78rem;
+  background: rgba(0, 0, 0, 0.14);
 }
 
 .check-option,

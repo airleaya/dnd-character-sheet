@@ -2,7 +2,7 @@ import { nextTick, ref } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import { useCombatLogic } from '../src/stores/sheet/useCombatLogic';
 import { createDefaultCharacter, normalizeCharacterData } from '../src/utils/characterMigration';
-import type { InventoryItem, WeaponData } from '../src/types/Item';
+import type { ArmorData, InventoryItem, WeaponData } from '../src/types/Item';
 
 const createWeaponItem = (
   instanceId: string,
@@ -31,6 +31,27 @@ const createWeaponItem = (
     damageType: 'piercing',
     properties: ['finesse', 'light', 'thrown'],
     range: '20/60',
+    ...dataOverrides,
+  },
+});
+
+const createArmorItem = (
+  instanceId: string,
+  dataOverrides: Partial<ArmorData> = {}
+): InventoryItem => ({
+  instanceId,
+  templateId: 'leather',
+  name: '皮甲',
+  description: '',
+  weight: 10,
+  quantity: 1,
+  type: 'armor',
+  magic: { isMagic: false },
+  data: {
+    armorType: 'light',
+    ac: 11,
+    donTime: '1分钟',
+    doffTime: '1分钟',
     ...dataOverrides,
   },
 });
@@ -458,6 +479,84 @@ describe('useCombatLogic', () => {
     expect(dexDagger?.damage).toBe('1d4 +4 穿刺 (Piercing)');
     expect(dexDagger?.bonusBreakdown.magicBonus).toBe(1);
     expect(dexDagger?.attackStyle).toMatchObject({ backgroundColor: '#ffeeaa', color: '#771122' });
+  });
+
+  it('adds active magic armor and shield bonuses to AC and exposes AC magic style', () => {
+    const character = ref(createDefaultCharacter('combat-magic-armor-bonus'));
+    character.value.stats.dex = 14;
+    const armor = createArmorItem('armor-1');
+    armor.magic = {
+      isMagic: true,
+      magicBonus: 1,
+      visuals: {
+        inventoryBackground: '#ddeeff',
+        nameColor: '#112244',
+      },
+    };
+    const shield = createArmorItem('shield-1', { armorType: 'shield', ac: 2 });
+    shield.magic = {
+      isMagic: true,
+      magicBonus: 2,
+    };
+    character.value.inventory.push(armor, shield);
+    character.value.equippedIds = ['armor-1', 'shield-1'];
+
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+
+    expect(logic.armorClass.value).toBe(18);
+    expect(logic.armorClassMagicStyle.value).toMatchObject({
+      backgroundColor: '#ddeeff',
+      color: '#112244',
+    });
+  });
+
+  it('shows defense magic traits as AC badges when their item effects are active', () => {
+    const character = ref(createDefaultCharacter('combat-defense-trait-badges'));
+    character.value.inventory.push({
+      instanceId: 'cloak-1',
+      templateId: 'cloak',
+      name: '防护斗篷',
+      description: '',
+      weight: 1,
+      quantity: 1,
+      type: 'gear',
+      magic: {
+        isMagic: true,
+        attunement: { requires: true, attuned: true },
+        selectedTraitIds: ['ward'],
+        customTraits: [
+          {
+            id: 'ward',
+            source: 'custom',
+            type: 'defense',
+            name: '守御',
+            description: '同调时提供防御提醒。',
+            activationMode: 'always',
+            participatesInDamage: false,
+          },
+        ],
+        visuals: {
+          inventoryBackground: '#f0e7ff',
+          nameColor: '#8b1e3f',
+        },
+      },
+      data: {},
+    });
+
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+
+    expect(logic.armorClassMagicBadges.value).toEqual([
+      expect.objectContaining({
+        itemId: 'cloak-1',
+        itemName: '防护斗篷',
+        name: '守御',
+        description: '同调时提供防御提醒。',
+      }),
+    ]);
+
+    character.value.inventory[0]!.magic!.attunement!.attuned = false;
+
+    expect(logic.armorClassMagicBadges.value).toEqual([]);
   });
 
   it('shows explicit +0 magic weapons and applies automatic damage traits', () => {

@@ -1,5 +1,43 @@
 # UPDATE_LOG
 
+## [0.13.7] - 2026-04-29
+- 类型：功能增强 / 附魔系统 / 战斗面板 / 测试
+- 条目：附魔词条类别、装备充能与护甲附魔
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/types/Library.ts`
+  - `src/data/rules/magicTraits.ts`
+  - `src/utils/magicItems.ts`
+  - `src/utils/characterMigration.ts`
+  - `src/stores/sheet/useSpellLogic.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/components/sheet/combat/CombatPanel.vue`
+  - `tests/useSpellLogic.test.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/enchantingModal.ui.test.ts`
+  - `tests/actionsPanel.ui.test.ts`
+  - `tests/combatPanelJack.ui.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.6` 自增长到 `0.13.7`。
+  - 附魔词条类别扩展为普通、伤害、附带法术、防御；附魔界面新建/管理词条时使用中文类别，不暴露原始 JSON。
+  - 普通词条可作为纯描述性附魔存在；若词条带充能，会进入攻击栏法术面板的“装备”分组。
+  - “装备”分组为每个带充能词条生成独立计数器，计数器颜色读取对应魔法物品的行囊背景色，点击可直接调整当前充能。
+  - 防御词条在物品魔法效果生效时显示到 AC 面板，作为独立小徽章展示，并沿用物品魔法视觉。
+  - 已装备的魔法护甲与魔法盾牌加值加入 AC 计算；需要同调的魔法物品仅在已同调后生效。
+  - AC 面板在穿戴生效魔法护甲/盾牌时同步显示魔法视觉，便于和普通 AC 状态区分。
+  - 词条运行时仍从行囊物品自身 `magic.customTraits` 快照读取，不重新耦合角色词条库或预设词条库。
+- 验证结果：
+  - `npm run test -- tests/useCombatLogic.test.ts tests/useSpellLogic.test.ts tests/enchantingModal.ui.test.ts tests/actionsPanel.ui.test.ts tests/combatPanelJack.ui.test.ts` 通过：5 个测试文件，37 个用例。
+  - `npm run test` 通过：30 个测试文件，132 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.7` 安装包与便携版。
+
 ## [0.13.6] - 2026-04-29
 - 类型：Bugfix / 行囊 / 物品实例 / 测试
 - 条目：物品库拖入行囊时创建独立实例

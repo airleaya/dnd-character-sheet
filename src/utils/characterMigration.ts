@@ -179,13 +179,20 @@ const normalizeInventory = (inventory?: InventoryItem[]): InventoryItem[] => {
 const normalizeCustomMagicTraits = (traits?: unknown): ItemMagicTrait[] => {
   if (!Array.isArray(traits)) return [];
 
+  const normalizeMagicTraitType = (type: unknown): ItemMagicTrait['type'] => {
+    if (type === 'spell' || type === 'damage' || type === 'plain' || type === 'defense') {
+      return type;
+    }
+    return 'damage';
+  };
+
   return traits
     .filter((trait): trait is Partial<ItemMagicTrait> => Boolean(trait) && typeof trait === 'object')
     .map((trait, index) =>
       cloneMagicTrait({
         id: typeof trait.id === 'string' && trait.id.trim() ? trait.id : `custom_magic_trait_${index}`,
         source: 'custom',
-        type: trait.type === 'spell' ? 'spell' : 'damage',
+        type: normalizeMagicTraitType(trait.type),
         name:
           typeof trait.name === 'string' && trait.name.trim()
             ? trait.name.trim()

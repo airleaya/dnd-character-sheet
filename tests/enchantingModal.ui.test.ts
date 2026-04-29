@@ -83,6 +83,8 @@ describe('EnchantingModal', () => {
     await nextTick();
 
     await wrapper.find('[data-test="enchant-tab-create"]').trigger('click');
+    await wrapper.find('[data-test="custom-trait-type"]').setValue('damage');
+    await nextTick();
     await wrapper.find('[data-test="custom-trait-name"]').setValue('寒霜');
     await wrapper.find('[data-test="custom-trait-participates"]').setValue(true);
     await wrapper.find('[data-test="custom-trait-dice"]').setValue('1d6');
@@ -101,6 +103,46 @@ describe('EnchantingModal', () => {
       participatesInDamage: true,
     });
     expect(wrapper.text()).toContain('寒霜');
+  });
+
+  it('creates plain charged and defense custom trait categories without exposing raw data', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('enchant-modal-new-categories');
+    const weapon = createWeapon();
+    character.inventory = [weapon];
+    store.character = character;
+
+    const wrapper = mountModal();
+    useEnchanting().openEnchantingForItem(weapon);
+    await nextTick();
+
+    await wrapper.find('[data-test="enchant-tab-create"]').trigger('click');
+    await wrapper.find('[data-test="custom-trait-type"]').setValue('plain');
+    await wrapper.find('[data-test="custom-trait-activation"]').setValue('charged');
+    await nextTick();
+    await wrapper.find('[data-test="custom-trait-name"]').setValue('火花');
+    await wrapper.find('[data-test="custom-trait-charges-current"]').setValue(1);
+    await wrapper.find('[data-test="custom-trait-charges-max"]').setValue(3);
+    await wrapper.find('[data-test="save-custom-trait"]').trigger('click');
+
+    expect(store.character.customMagicTraits[0]).toMatchObject({
+      type: 'plain',
+      name: '火花',
+      charges: { current: 1, max: 3 },
+    });
+    expect(wrapper.text()).toContain('普通');
+    expect(wrapper.text()).not.toContain('"type"');
+
+    await wrapper.find('[data-test="enchant-tab-create"]').trigger('click');
+    await wrapper.find('[data-test="custom-trait-type"]').setValue('defense');
+    await wrapper.find('[data-test="custom-trait-name"]').setValue('守御');
+    await wrapper.find('[data-test="save-custom-trait"]').trigger('click');
+
+    expect(store.character.customMagicTraits[1]).toMatchObject({
+      type: 'defense',
+      name: '守御',
+    });
+    expect(wrapper.text()).toContain('防御');
   });
 
   it('keeps selected item traits as snapshots when the reusable trait library changes', async () => {

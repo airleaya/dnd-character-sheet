@@ -137,7 +137,7 @@ const hpPercent = computed(() => {
     
     <div class="stats-row">
 
-      <div class="stat-box ac-box">
+      <div class="stat-box ac-box" :class="{ 'is-magic-ac': !!store.armorClassMagicStyle }">
         <div
          class="label toggle-btn"
           @click="toggleACEdit"
@@ -162,8 +162,20 @@ const hpPercent = computed(() => {
            </select>
         </div>
 
-        <div class="value shield-shape" v-else @click="isEditingAC = true">
+        <div class="value shield-shape" v-else :style="store.armorClassMagicStyle" @click="isEditingAC = true">
           {{ store.armorClass }}
+        </div>
+
+        <div v-if="store.armorClassMagicBadges.length" class="ac-magic-badges">
+          <span
+            v-for="badge in store.armorClassMagicBadges"
+            :key="badge.id"
+            class="ac-magic-badge"
+            :style="badge.style"
+            :title="`${badge.itemName}：${badge.description || badge.name}`"
+          >
+            {{ badge.name }}
+          </span>
         </div>
       </div>
       
@@ -375,6 +387,11 @@ const hpPercent = computed(() => {
     &.ac-box {
       // cursor: pointer;
       transition: background 0.2s;
+
+      &.is-magic-ac {
+        border-color: rgba(142, 68, 173, 0.36);
+        box-shadow: inset 0 0 0 1px rgba(142, 68, 173, 0.1);
+      }
       
       &:hover {
         background: #f0f0f0;
@@ -450,6 +467,28 @@ const hpPercent = computed(() => {
 
       //确保下拉框不溢出盾牌
       overflow: hidden;
+    }
+
+    .ac-magic-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 3px;
+      margin-top: 4px;
+      max-width: 100%;
+    }
+
+    .ac-magic-badge {
+      max-width: 84px;
+      border-radius: 999px;
+      padding: 1px 6px;
+      font-size: 0.62rem;
+      font-weight: 900;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     }
 
     // [ADD] 下拉框样式

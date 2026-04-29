@@ -4,6 +4,14 @@ import type { Character } from '../../types/Character';
 import { SPELL_LIBRARY } from '../../data/spells/index';
 import type { AbilityKey } from '../../types/Library';
 import type { SpellDefinition } from '../../types/Spell';
+import type { InventoryItem } from '../../types/Item';
+import {
+  formatMagicItemName,
+  getMagicInventoryStyle,
+  isAttuned,
+  requiresAttunement,
+  resolveMagicTraitsForItem,
+} from '../../utils/magicItems';
 
 type SpellSlots = Character['spells']['slots'];
 type SpellSource = 'primary' | 'secondary';
@@ -21,9 +29,30 @@ export interface SpellGroup {
   } | null;
 }
 
+export interface EquipmentTraitAction {
+  id: string;
+  itemId: string;
+  itemName: string;
+  traitId: string;
+  name: string;
+  type: 'plain' | 'damage' | 'spell' | 'defense';
+  description: string;
+  spellName?: string;
+  spellExtraDescription?: string;
+  charges: {
+    current: number;
+    max: number;
+    resetCondition?: string;
+    resetFormula?: string;
+  };
+  style?: Record<string, string>;
+}
+
 const isDefinedSpell = (spell: SpellDefinition | undefined): spell is SpellDefinition => {
   return !!spell;
 };
+
+const canUseMagicItemEffects = (item: InventoryItem) => !requiresAttunement(item) || isAttuned(item);
 
 const getSpellsByIds = (spellIds: string[]): SpellDefinition[] => {
   return spellIds
@@ -98,6 +127,38 @@ export function useSpellLogic(
   const battleGroups = computed<SpellGroup[]>(() => {
     if (!character.value) return [];
     return groupSpellsByLevel(battleSpells.value, character.value.spells.slots);
+  });
+
+  const equipmentTraitActions = computed<EquipmentTraitAction[]>(() => {
+    if (!character.value) return [];
+
+    return character.value.inventory.flatMap(item => {
+      if (!canUseMagicItemEffects(item)) return [];
+      const style = getMagicInventoryStyle(item);
+      return resolveMagicTraitsForItem(item)
+        .filter(trait => trait.charges && trait.charges.max > 0)
+        .map(trait => {
+          const spell = trait.spellId ? SPELL_LIBRARY.find(entry => entry.id === trait.spellId) : undefined;
+          return {
+            id: `${item.instanceId}:${trait.id}`,
+            itemId: item.instanceId,
+            itemName: formatMagicItemName(item),
+            traitId: trait.id,
+            name: trait.name || spell?.name || '装备附魔',
+            type: trait.type,
+            description: trait.description,
+            spellName: spell?.name,
+            spellExtraDescription: trait.spellExtraDescription,
+            charges: {
+              current: Math.max(0, Math.min(trait.charges!.current, trait.charges!.max)),
+              max: trait.charges!.max,
+              resetCondition: trait.charges!.resetCondition,
+              resetFormula: trait.charges!.resetFormula,
+            },
+            style,
+          };
+        });
+    });
   });
 
   // 施法关键属性调整值
@@ -216,6 +277,19 @@ export function useSpellLogic(
     save();
   };
 
+  const updateEquipmentTraitCharge = (itemId: string, traitId: string, newValue: number): void => {
+    if (!character.value) return;
+
+    const item = character.value.inventory.find(entry => entry.instanceId === itemId);
+    if (!item?.magic?.customTraits) return;
+
+    const trait = item.magic.customTraits.find(entry => entry.id === traitId);
+    if (!trait?.charges) return;
+
+    trait.charges.current = Math.max(0, Math.min(newValue, trait.charges.max));
+    save();
+  };
+
 
       const updatePactSlot = (newValue: number): void => {
     if (!character.value) return;
@@ -266,6 +340,7 @@ export function useSpellLogic(
     spellbookGroups,
     battleSpells,
     battleGroups,
+    equipmentTraitActions,
     spellAbilityMod,
     calculatedSpellSaveDC,
     calculatedSpellAttackMod,
@@ -280,6 +355,7 @@ export function useSpellLogic(
     unprepareSpell,
     updateSpellSlot,
     updateSpellSlotMax,
+    updateEquipmentTraitCharge,
     updatePactSlot,
     updatePactSlotMax,
     recoverAllSlots,

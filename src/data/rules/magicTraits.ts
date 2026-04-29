@@ -8,7 +8,7 @@ export const PRESET_MAGIC_TRAITS: ItemMagicTrait[] = [
   {
     id: 'placeholder_magic_trait',
     source: 'preset',
-    type: 'damage',
+    type: 'plain',
     name: '占位魔法词条',
     description: '这是一个预留词条，用于后续替换为正式魔法词条。',
     activationMode: 'always',
@@ -19,7 +19,7 @@ export const PRESET_MAGIC_TRAITS: ItemMagicTrait[] = [
 export const createEmptyCustomMagicTrait = (id: string): ItemMagicTrait => ({
   id,
   source: 'custom',
-  type: 'damage',
+  type: 'plain',
   name: '自定义魔法词条',
   description: '',
   activationMode: 'always',

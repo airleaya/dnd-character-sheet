@@ -172,6 +172,16 @@ export const formatMagicTraitMeta = (trait: ItemMagicTrait): string => {
     return `附带法术${chargeText}`;
   }
 
+  if (trait.type === 'plain') {
+    const chargeText = trait.charges ? ` · ${trait.charges.current}/${trait.charges.max} 充能` : '';
+    return `普通词条${chargeText}`;
+  }
+
+  if (trait.type === 'defense') {
+    const chargeText = trait.charges ? ` · ${trait.charges.current}/${trait.charges.max} 充能` : '';
+    return `防御词条${chargeText}`;
+  }
+
   const damage = formatMagicTraitDamage(trait);
   const mode = trait.activationMode === 'charged' ? '消耗充能' : '默认作用';
   const chargeText = trait.charges ? ` · ${trait.charges.current}/${trait.charges.max} 充能` : '';

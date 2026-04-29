@@ -36,4 +36,48 @@ describe('CombatPanel jack of all trades initiative badge', () => {
     expect(wrapper.find('.jack-chip').exists()).toBe(true);
     expect(wrapper.find('.jack-chip').text()).toBe('万');
   });
+
+  it('shows attuned defense traits as AC badges', () => {
+    const activeSheet = useActiveSheetStore();
+    const character = createDefaultCharacter('combat-panel-defense-badge');
+    character.inventory.push({
+      instanceId: 'cloak-1',
+      templateId: 'cloak',
+      name: '防护斗篷',
+      description: '',
+      weight: 1,
+      quantity: 1,
+      type: 'gear',
+      magic: {
+        isMagic: true,
+        attunement: { requires: true, attuned: true },
+        selectedTraitIds: ['ward'],
+        customTraits: [
+          {
+            id: 'ward',
+            source: 'custom',
+            type: 'defense',
+            name: '守御',
+            description: '防御提醒。',
+            activationMode: 'always',
+            participatesInDamage: false,
+          },
+        ],
+      },
+      data: {},
+    });
+    activeSheet.character = character;
+
+    const wrapper = mount(CombatPanel, {
+      global: {
+        plugins: [pinia],
+        stubs: {
+          EditableText: true,
+        },
+      },
+    });
+
+    expect(wrapper.find('.ac-magic-badge').exists()).toBe(true);
+    expect(wrapper.find('.ac-magic-badge').text()).toBe('守御');
+  });
 });

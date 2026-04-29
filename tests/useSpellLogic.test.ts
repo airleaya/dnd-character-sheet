@@ -49,4 +49,55 @@ describe('useSpellLogic', () => {
     expect(character.value.spells.slots.current).toEqual([0, 4, 3, 0, 0, 0, 0, 0, 0, 0]);
     expect(save).toHaveBeenCalledTimes(2);
   });
+
+  it('exposes charged equipment traits as equipment spell actions with independent counters', () => {
+    const character = ref(createDefaultCharacter('spell-equipment-traits'));
+    character.value.inventory.push({
+      instanceId: 'wand-1',
+      templateId: 'wand',
+      name: '紫杉魔杖',
+      description: '',
+      weight: 1,
+      quantity: 1,
+      type: 'gear',
+      magic: {
+        isMagic: true,
+        selectedTraitIds: ['spark'],
+        customTraits: [
+          {
+            id: 'spark',
+            source: 'custom',
+            type: 'plain',
+            name: '火花',
+            description: '放出一枚无害火花。',
+            activationMode: 'charged',
+            participatesInDamage: false,
+            charges: { current: 2, max: 3, resetCondition: '每日黎明' },
+          },
+        ],
+        visuals: {
+          inventoryBackground: '#ffeeaa',
+          nameColor: '#771122',
+        },
+      },
+      data: {},
+    });
+    const save = vi.fn();
+    const logic = useSpellLogic(character, save, ref(2));
+
+    expect(logic.equipmentTraitActions.value).toHaveLength(1);
+    expect(logic.equipmentTraitActions.value[0]).toMatchObject({
+      itemId: 'wand-1',
+      traitId: 'spark',
+      name: '火花',
+      itemName: '紫杉魔杖',
+      charges: { current: 2, max: 3, resetCondition: '每日黎明' },
+      style: { backgroundColor: '#ffeeaa', color: '#771122' },
+    });
+
+    logic.updateEquipmentTraitCharge('wand-1', 'spark', 1);
+
+    expect(character.value.inventory[0]?.magic?.customTraits?.[0]?.charges?.current).toBe(1);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
 });
