@@ -18,6 +18,7 @@ const isEnchantingOpen = ref(false);
 const entrySource = ref<EnchantingEntrySource>('button');
 const targetPayload = ref<ReturnType<typeof parseDragPayload> | null>(null);
 const targetItem = ref<InventoryItem | null>(null);
+const saveOverride = ref<((item: InventoryItem) => void) | null>(null);
 const logger = createRendererLogger('composables/useEnchanting');
 
 export function useEnchanting() {
@@ -31,8 +32,13 @@ export function useEnchanting() {
     isEnchantingOpen.value = true;
   };
 
-  const openEnchantingForItem = (item: InventoryItem, source: EnchantingEntrySource = 'button') => {
+  const openEnchantingForItem = (
+    item: InventoryItem,
+    source: EnchantingEntrySource = 'button',
+    onSave?: (item: InventoryItem) => void
+  ) => {
     targetItem.value = item;
+    saveOverride.value = onSave ?? null;
     targetPayload.value = {
       type: 'inventory-item',
       instanceId: item.instanceId,
@@ -63,6 +69,7 @@ export function useEnchanting() {
     isEnchantingOpen.value = false;
     targetPayload.value = null;
     targetItem.value = null;
+    saveOverride.value = null;
   };
 
   const saveEnchanting = () => {
@@ -72,6 +79,11 @@ export function useEnchanting() {
         targetItem.value.quantity = 1;
       } else if (magic.attunement) {
         magic.attunement.attuned = false;
+      }
+      if (saveOverride.value) {
+        saveOverride.value(targetItem.value);
+        closeEnchanting();
+        return;
       }
       activeSheet.updateInventoryItem(targetItem.value);
     } else {

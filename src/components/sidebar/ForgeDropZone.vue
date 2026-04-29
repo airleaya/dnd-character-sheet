@@ -80,7 +80,7 @@ const onDrop = (e: DragEvent) => {
   >
     <div class="icon">🔨</div>
     <div class="text">
-      <strong>铁匠铺</strong>
+      <strong>铁匠台</strong>
       <span>拖拽物品至此进行<br>改造或创建</span>
     </div>
   </div>

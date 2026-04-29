@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-29 version iteration update:
+> Current baseline grows from `0.14.8` to `0.14.9`; this round reworks the GM maker item area into a grouped data pack content view with drag sorting and existing DIY/enchant editor reuse.
+> 2026-04-29 maker content UI update:
+> The maker now displays data pack items grouped by normal menu fields, supports item/group drag ordering, routes DIY item edits through the existing item window, routes enchant edits through the existing enchant window, and renames visible ????? labels to ?????.
+
+> 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.7` to `0.14.8`; this round routes right-sidebar forge/enchant drops into the GM data pack maker.
 > 2026-04-29 right-sidebar workbench routing fix:
 > When the GM maker is open, dragging a library item to the right-sidebar forge/enchant zones now imports it into the active data pack and activates the maker's matching edit step instead of using the character inventory forge/enchant workflow.

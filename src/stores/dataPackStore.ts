@@ -571,7 +571,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     item.source = activeDraftPack.value.manifest.name;
     items.push(item);
     draftDirty.value = true;
-    feedback.showToast(target === 'enchant' ? `已复制到附魔入口：${item.name}` : `已复制到铁匠铺：${item.name}`, 'success');
+    feedback.showToast(target === 'enchant' ? `已复制到附魔入口：${item.name}` : `已复制到铁匠台：${item.name}`, 'success');
     recordMakerDragDiagnostic('store.import-item', 'ok', 'Item copied into active draft pack', {
       runtimeItemId,
       localItemId: item.id,

@@ -1,5 +1,32 @@
 # UPDATE_LOG
 
+## [0.14.9] - 2026-04-29
+- Type: Feature / Data Pack Maker / UI / Drag Sorting / Forge-Enchant Reuse / Tests
+- Item: Rework maker item area into a grouped data pack content view.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sidebar/ForgeDropZone.vue`
+  - `src/composables/useForge.ts`
+  - `src/composables/useEnchanting.ts`
+  - `src/stores/dataPackStore.ts`
+  - `src/data/dataPacks/defaultDnd5ePack.ts`
+- Completed changes:
+  - Project version grows from `0.14.8` to `0.14.9` because this is an actual maker UI/functionality iteration, not only a bug fix.
+  - The maker item area now uses the right side as a grouped data pack content view instead of the inline field editor.
+  - Data pack items are shown by normal first/second-level menu groups; item cards support drag sorting and dragging across groups updates their normal group fields.
+  - Subgroup headers can be dragged to reorder grouped chunks in the data pack item order.
+  - Item DIY editing and enchant editing now open the existing DIY item window and enchant window, then write the edited result back to the active data pack draft.
+  - Visible ????? labels were renamed to ?????.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/inventoryDropUtils.test.ts tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts` passed.
+  - `npm run build` passed and generated `0.14.9` installer/portable artifacts.
+
 ## [0.14.8] - 2026-04-29
 - Type: Bugfix / Data Pack Maker / Right Sidebar Workbench / Drag-and-drop / Tests
 - Item: Route right-sidebar forge/enchant drops into the GM data pack maker.

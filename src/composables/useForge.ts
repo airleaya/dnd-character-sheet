@@ -72,6 +72,7 @@ export interface ForgeDraftData {
 
 const draftItem = ref<InventoryItem | null>(null);
 const forgeMode = ref<'create' | 'edit'>('create');
+const saveOverride = ref<((item: InventoryItem) => void) | null>(null);
 const logger = createRendererLogger('composables/useForge');
 
 export function useForge() {
@@ -213,6 +214,17 @@ export function useForge() {
     }
   };
 
+  const openForgeForItem = (
+    item: InventoryItem,
+    mode: 'create' | 'edit' = 'edit',
+    onSave?: (item: InventoryItem) => void
+  ) => {
+    draftItem.value = JSON.parse(JSON.stringify(item));
+    forgeMode.value = mode;
+    saveOverride.value = onSave ?? null;
+    ensureCostStructure();
+  };
+
   const updateItemType = (type: ItemType) => {
     if (!draftItem.value) return;
     draftItem.value.type = type;
@@ -248,21 +260,35 @@ export function useForge() {
     syncRootFieldsToData();
 
     if (forgeMode.value === 'create') {
+      if (saveOverride.value) {
+        saveOverride.value(draftItem.value);
+        close();
+        return;
+      }
       store.character?.inventory.push(draftItem.value);
       store.save();
     } else {
+      if (saveOverride.value) {
+        saveOverride.value(draftItem.value);
+        close();
+        return;
+      }
       store.updateInventoryItem(draftItem.value);
     }
     close();
   };
 
   // --- 动作：关闭 ---
-  const close = () => { draftItem.value = null; };
+  const close = () => {
+    draftItem.value = null;
+    saveOverride.value = null;
+  };
 
   return {
     draftItem,
     draftData,
     forgeMode,
+    openForgeForItem,
     handleDropData,
     updateItemType,
     toggleWeaponProperty,

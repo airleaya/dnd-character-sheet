@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useDataPackStore } from '../../../stores/dataPackStore';
+import { useForge } from '../../../composables/useForge';
+import { useEnchanting } from '../../../composables/useEnchanting';
 import { getDragPayloadFromEvent } from '../../../utils/inventoryDropUtils';
 import type { DataPackTraitDefinition } from '../../../types/DataPack';
 import type { LibraryItem } from '../../../types/Library';
+import type { InventoryItem } from '../../../types/Item';
 import type { SpellDefinition } from '../../../types/Spell';
 
 const store = useDataPackStore();
+const { openForgeForItem } = useForge();
+const { openEnchantingForItem } = useEnchanting();
 const activeSection = ref<'items' | 'spells' | 'traits' | 'groups' | 'meta'>('items');
 const selectedItemIndex = ref(0);
 const selectedSpellIndex = ref(0);
@@ -21,6 +26,8 @@ const newSpellSubgroupName = ref('');
 const newSpellSubgroupParentId = ref('');
 const newEncryptionGroupName = ref('');
 const newEncryptionGroupDescription = ref('');
+const draggedContentItemId = ref('');
+const draggedContentGroupKey = ref('');
 const lockDraft = reactive({
   enabled: false,
   password: '',
@@ -41,6 +48,37 @@ const itemMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.items 
 const spellMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.spells ?? []);
 const encryptionGroups = computed(() => pack.value?.editorMeta?.encryptionGroups ?? []);
 const diagnosticEvents = computed(() => store.makerDragDiagnostics);
+const contentGroups = computed(() => {
+  const groups: Array<{
+    category: string;
+    subgroups: Array<{ key: string; category: string; subcategory: string; items: LibraryItem[] }>;
+  }> = [];
+  const categoryMap = new Map<string, typeof groups[number]>();
+
+  items.value.forEach(item => {
+    const category = item.displayCategory || item.type || '未分组';
+    const subcategory = item.displaySubcategory || item.type || '未分组';
+    let group = categoryMap.get(category);
+    if (!group) {
+      group = { category, subgroups: [] };
+      categoryMap.set(category, group);
+      groups.push(group);
+    }
+    let subgroup = group.subgroups.find(entry => entry.subcategory === subcategory);
+    if (!subgroup) {
+      subgroup = {
+        key: `${category}::${subcategory}`,
+        category,
+        subcategory,
+        items: [],
+      };
+      group.subgroups.push(subgroup);
+    }
+    subgroup.items.push(item);
+  });
+
+  return groups;
+});
 
 watch(pack, next => {
   const lock = next?.editorMeta?.editLock;
@@ -54,6 +92,81 @@ const markDirty = () => store.markDraftDirty();
 const switchLibraryTab = (tab: 'items' | 'spells') => {
   activeSection.value = tab;
   store.setMakerLibraryTab(tab);
+};
+
+const clonePlain = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+const libraryItemToInventoryItem = (item: LibraryItem): InventoryItem => {
+  const {
+    id,
+    name,
+    type,
+    weight,
+    description,
+    descriptionBlocks,
+    magic,
+    multiplicity,
+    acquisitionRule,
+    audit,
+    ...data
+  } = item;
+  void multiplicity;
+  void acquisitionRule;
+  void audit;
+
+  return {
+    instanceId: `draft-${id}`,
+    templateId: id,
+    name,
+    type,
+    weight,
+    quantity: 1,
+    description,
+    descriptionBlocks: clonePlain(descriptionBlocks),
+    magic: clonePlain(magic),
+    data: clonePlain(data),
+  };
+};
+
+const inventoryItemToLibraryItem = (original: LibraryItem, item: InventoryItem): LibraryItem => {
+  const data = clonePlain(item.data) as Partial<LibraryItem>;
+  return {
+    ...clonePlain(original),
+    ...data,
+    id: original.id,
+    name: item.name,
+    type: item.type,
+    weight: item.weight,
+    description: item.description ?? '',
+    descriptionBlocks: clonePlain(item.descriptionBlocks),
+    magic: clonePlain(item.magic),
+  } as LibraryItem;
+};
+
+const updateDraftItemFromInventory = (itemId: string, inventoryItem: InventoryItem) => {
+  if (!pack.value) return;
+  const index = items.value.findIndex(item => item.id === itemId);
+  if (index < 0) return;
+  const updated = inventoryItemToLibraryItem(items.value[index], inventoryItem);
+  pack.value.items = items.value.map((item, itemIndex) => itemIndex === index ? updated : item);
+  selectedItemIndex.value = index;
+  store.markDraftDirty();
+};
+
+const openForgeEditorForDraftItem = (item: LibraryItem) => {
+  activeItemWorkbench.value = 'forge';
+  selectedItemIndex.value = items.value.findIndex(entry => entry.id === item.id);
+  openForgeForItem(libraryItemToInventoryItem(item), 'edit', updated => {
+    updateDraftItemFromInventory(item.id, updated);
+  });
+};
+
+const openEnchantEditorForDraftItem = (item: LibraryItem) => {
+  activeItemWorkbench.value = 'enchant';
+  selectedItemIndex.value = items.value.findIndex(entry => entry.id === item.id);
+  openEnchantingForItem(libraryItemToInventoryItem(item), 'button', updated => {
+    updateDraftItemFromInventory(item.id, updated);
+  });
 };
 
 const importItemIntoWorkbench = async (runtimeItemId: string, target: 'forge' | 'enchant') => {
@@ -78,6 +191,13 @@ const importItemIntoWorkbench = async (runtimeItemId: string, target: 'forge' | 
     selectedItemId: selectedItem.value?.id,
     itemCount: items.value.length,
   });
+  if (importedItem) {
+    if (target === 'enchant') {
+      openEnchantEditorForDraftItem(importedItem);
+    } else {
+      openForgeEditorForDraftItem(importedItem);
+    }
+  }
 };
 
 watch(
@@ -272,6 +392,75 @@ const removeSelectedSpell = () => {
   store.markDraftDirty();
 };
 
+const removeDraftItem = (itemId: string) => {
+  if (!pack.value) return;
+  pack.value.items = items.value.filter(item => item.id !== itemId);
+  selectedItemIndex.value = Math.max(0, Math.min(selectedItemIndex.value, pack.value.items.length - 1));
+  store.markDraftDirty();
+};
+
+const onContentItemDragStart = (itemId: string) => {
+  draggedContentItemId.value = itemId;
+};
+
+const onContentItemDragEnd = () => {
+  draggedContentItemId.value = '';
+};
+
+const moveContentItemToGroup = (
+  category: string,
+  subcategory: string,
+  beforeItemId?: string
+) => {
+  if (!pack.value || !draggedContentItemId.value) return;
+  const source = [...items.value];
+  const sourceIndex = source.findIndex(item => item.id === draggedContentItemId.value);
+  if (sourceIndex < 0) return;
+  const [moving] = source.splice(sourceIndex, 1);
+  moving.displayCategory = category;
+  moving.displaySubcategory = subcategory;
+
+  let insertIndex = beforeItemId ? source.findIndex(item => item.id === beforeItemId) : -1;
+  if (insertIndex < 0) {
+    insertIndex = source.reduce((lastIndex, item, index) => {
+      const itemCategory = item.displayCategory || item.type || '未分组';
+      const itemSubcategory = item.displaySubcategory || item.type || '未分组';
+      return itemCategory === category && itemSubcategory === subcategory ? index + 1 : lastIndex;
+    }, source.length);
+  }
+
+  source.splice(insertIndex, 0, moving);
+  pack.value.items = source;
+  selectedItemIndex.value = source.findIndex(item => item.id === moving.id);
+  draggedContentItemId.value = '';
+  store.markDraftDirty();
+};
+
+const onContentGroupDragStart = (key: string) => {
+  draggedContentGroupKey.value = key;
+};
+
+const onContentGroupDragEnd = () => {
+  draggedContentGroupKey.value = '';
+};
+
+const moveContentGroupBefore = (targetKey: string) => {
+  if (!pack.value || !draggedContentGroupKey.value || draggedContentGroupKey.value === targetKey) return;
+  const chunks = contentGroups.value.flatMap(group => group.subgroups).map(subgroup => ({
+    key: subgroup.key,
+    items: subgroup.items,
+  }));
+  const movingIndex = chunks.findIndex(chunk => chunk.key === draggedContentGroupKey.value);
+  const targetIndex = chunks.findIndex(chunk => chunk.key === targetKey);
+  if (movingIndex < 0 || targetIndex < 0) return;
+
+  const [moving] = chunks.splice(movingIndex, 1);
+  chunks.splice(movingIndex < targetIndex ? targetIndex - 1 : targetIndex, 0, moving);
+  pack.value.items = chunks.flatMap(chunk => chunk.items);
+  draggedContentGroupKey.value = '';
+  store.markDraftDirty();
+};
+
 const saveLock = async () => {
   await store.updateDraftEditLock({
     enabled: lockDraft.enabled,
@@ -339,7 +528,7 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
         <button type="button" class="small" @click="store.clearMakerDragDiagnostics">清空诊断</button>
       </div>
       <div v-if="diagnosticEvents.length === 0" class="diagnostic-empty">
-        暂无事件。请从右侧物品库拖拽物品到中间铁匠铺/附魔台，或右侧底部铁匠铺/附魔台。
+        暂无事件。请从右侧物品库拖拽物品到中间铁匠台/附魔台，或右侧底部铁匠台/附魔台。
       </div>
       <div v-else class="diagnostic-list">
         <article
@@ -360,8 +549,8 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
       </div>
     </section>
 
-    <div v-if="activeSection === 'items'" class="maker-grid">
-      <aside class="list-panel">
+    <div v-if="activeSection === 'items'" class="maker-grid maker-grid-content">
+      <aside class="list-panel workbench-panel">
         <div class="drop-grid">
           <div
             class="drop-card"
@@ -372,8 +561,8 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
             @dragleave.prevent.stop="onWorkbenchDragLeave('forge')"
             @drop.prevent.stop="onItemDrop($event, 'forge')"
           >
-            <strong>铁匠铺</strong>
-            <span>拖拽物品到这里，复制到当前数据包并进入下方编辑。</span>
+            <strong>???</strong>
+            <span>??????????????????? DIY ?????</span>
           </div>
           <div
             class="drop-card purple"
@@ -384,60 +573,83 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
             @dragleave.prevent.stop="onWorkbenchDragLeave('enchant')"
             @drop.prevent.stop="onItemDrop($event, 'enchant')"
           >
-            <strong>附魔台</strong>
-            <span>拖拽物品到这里，复制到当前数据包；附魔细节沿用物品魔法字段。</span>
+            <strong>???</strong>
+            <span>????????????????????????</span>
+          </div>
+        </div>
+        <div class="workbench-hint">
+          <strong>????</strong>
+          <span>??????????DIY ???????????????????/?????</span>
+        </div>
+      </aside>
+
+      <main class="content-panel">
+        <div class="editor-top">
+          <div>
+            <h2>??????</h2>
+            <p class="hint">?????????????????????????????????????????</p>
           </div>
         </div>
 
-        <button
-          v-for="(item, index) in items"
-          :key="item.id"
-          type="button"
-          class="entry"
-          :class="{ active: selectedItemIndex === index }"
-          @click="selectedItemIndex = index"
-        >
-          {{ item.name }}<small>{{ item.displayCategory || item.type }} / {{ item.displaySubcategory || item.type }}</small>
-        </button>
-      </aside>
+        <div v-if="contentGroups.length === 0" class="empty-panel compact">???????????????????</div>
+        <section v-else class="content-groups">
+          <article v-for="group in contentGroups" :key="group.category" class="content-category">
+            <header class="content-category-title">
+              <span>{{ group.category }}</span>
+              <small>{{ group.subgroups.reduce((sum, sub) => sum + sub.items.length, 0) }} ?</small>
+            </header>
 
-      <main class="editor-panel" v-if="selectedItem">
-        <div class="editor-top">
-          <h2>{{ activeItemWorkbench === 'enchant' ? '附魔台编辑' : '铁匠铺编辑' }}</h2>
-          <button type="button" class="danger" @click="removeSelectedItem">删除物品</button>
-        </div>
-        <label>ID<input :value="selectedItem.id" disabled /></label>
-        <label>名称<input v-model="selectedItem.name" @input="markDirty" /></label>
-        <label>一级菜单（普通分组）
-          <input v-model="selectedItem.displayCategory" list="item-category-list" placeholder="例如：自制魔法物品" @input="markDirty" />
-        </label>
-        <label>二级菜单（普通分组）
-          <input v-model="selectedItem.displaySubcategory" list="item-subcategory-list" placeholder="例如：武器" @input="markDirty" />
-        </label>
-        <datalist id="item-category-list">
-          <option v-for="group in itemMenuGroups" :key="group.id" :value="group.name" />
-        </datalist>
-        <datalist id="item-subcategory-list">
-          <template v-for="group in itemMenuGroups" :key="group.id">
-            <option v-for="child in group.children ?? []" :key="child.id" :value="child.name" />
-          </template>
-        </datalist>
-        <label>加密分组
-          <select v-model="selectedItem.encryptionGroupId" @change="markDirty">
-            <option value="">公开 / 不加入加密分组</option>
-            <option v-for="group in encryptionGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
-          </select>
-        </label>
-        <label>来源<input v-model="selectedItem.source" @input="markDirty" /></label>
-        <label>描述<textarea v-model="selectedItem.description" @input="markDirty"></textarea></label>
-        <div class="placeholder-box">
-          {{ activeItemWorkbench === 'enchant'
-            ? '附魔台入口：当前版本开放魔法字段与加密分组装配位置，详细附魔面板后续继续增强。'
-            : '铁匠铺入口：当前版本可编辑数据包物品基础字段、普通菜单分组与加密分组。' }}
-        </div>
+            <div class="content-subgroups">
+              <section
+                v-for="subgroup in group.subgroups"
+                :key="subgroup.key"
+                class="content-subgroup"
+                @dragover.prevent
+                @drop.prevent="moveContentItemToGroup(subgroup.category, subgroup.subcategory)"
+              >
+                <header
+                  class="content-subgroup-title"
+                  draggable="true"
+                  @dragstart="onContentGroupDragStart(subgroup.key)"
+                  @dragend="onContentGroupDragEnd"
+                  @dragover.prevent
+                  @drop.prevent.stop="moveContentGroupBefore(subgroup.key)"
+                >
+                  <span class="drag-handle">??</span>
+                  <strong>{{ subgroup.subcategory }}</strong>
+                  <small>{{ subgroup.items.length }} ?</small>
+                </header>
+
+                <div class="content-items">
+                  <article
+                    v-for="item in subgroup.items"
+                    :key="item.id"
+                    class="content-item-card"
+                    :class="{ active: selectedItem?.id === item.id }"
+                    draggable="true"
+                    @dragstart="onContentItemDragStart(item.id)"
+                    @dragend="onContentItemDragEnd"
+                    @dragover.prevent
+                    @drop.prevent.stop="moveContentItemToGroup(subgroup.category, subgroup.subcategory, item.id)"
+                    @click="selectedItemIndex = items.findIndex(entry => entry.id === item.id)"
+                  >
+                    <span class="drag-handle">??</span>
+                    <div class="content-item-main">
+                      <strong>{{ item.name }}</strong>
+                      <small>{{ item.type }} / {{ item.source || pack.manifest.name }}</small>
+                    </div>
+                    <div class="content-item-actions">
+                      <button type="button" class="small" @click.stop="openForgeEditorForDraftItem(item)">DIY ??</button>
+                      <button type="button" class="small" @click.stop="openEnchantEditorForDraftItem(item)">??</button>
+                      <button type="button" class="danger small" @click.stop="removeDraftItem(item.id)">??</button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </article>
+        </section>
       </main>
-
-      <main v-else class="empty-panel">从右侧物品库拖拽物品到铁匠铺或附魔台。</main>
     </div>
 
     <div v-else-if="activeSection === 'spells'" class="maker-grid">
@@ -624,7 +836,12 @@ button.small { padding: 4px 7px; font-size: 0.78rem; }
 .diagnostic-details { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
 .diagnostic-details span { padding: 2px 6px; border-radius: 999px; background: rgba(126, 160, 214, 0.18); color: #bdd0ef; font-size: 0.76rem; }
 .maker-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; }
+.maker-grid-content { grid-template-columns: 330px minmax(0, 1fr); }
 .list-panel, .editor-panel, .empty-panel { background: white; border: 1px solid #d8ded8; border-radius: 14px; padding: 14px; }
+.content-panel { background: white; border: 1px solid #d8ded8; border-radius: 14px; padding: 14px; min-height: 520px; }
+.workbench-panel { align-self: start; }
+.workbench-hint { border: 1px solid #dbe5db; border-radius: 12px; padding: 10px; display: grid; gap: 5px; color: #596359; background: #f8fbf6; }
+.workbench-hint span { line-height: 1.5; }
 .drop-grid { display: grid; gap: 10px; margin-bottom: 12px; }
 .drop-card { border: 2px dashed #b78945; background: #fff8e7; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 5px; color: #6a4a1f; transition: transform 0.15s ease, box-shadow 0.15s ease; }
 .drop-card.hovering { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(183, 137, 69, 0.22); background: #fff1c7; }
@@ -653,5 +870,20 @@ textarea { min-height: 96px; resize: vertical; }
 .managed-group small { grid-column: 1 / -1; color: #788178; }
 .hint { color: #7b847b; font-size: 0.85rem; }
 .empty-panel { display: flex; align-items: center; justify-content: center; color: #778077; min-height: 280px; }
+.empty-panel.compact { min-height: 180px; }
+.content-groups { display: grid; gap: 14px; }
+.content-category { border: 1px solid #e0e6df; border-radius: 12px; overflow: hidden; background: #fbfdfa; }
+.content-category-title { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: #edf3ea; color: #354333; font-weight: 900; }
+.content-category-title small, .content-subgroup-title small { color: #718071; }
+.content-subgroups { display: grid; gap: 10px; padding: 10px; }
+.content-subgroup { border: 1px dashed #cbd8c8; border-radius: 12px; padding: 8px; background: #fff; }
+.content-subgroup-title { display: flex; align-items: center; gap: 8px; padding: 5px 6px 9px; color: #55614f; cursor: grab; }
+.content-items { display: grid; gap: 7px; }
+.content-item-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; padding: 9px; border: 1px solid #dde6db; border-radius: 10px; background: #fbfcfa; cursor: grab; }
+.content-item-card.active { border-color: #263126; box-shadow: 0 0 0 2px rgba(38, 49, 38, 0.12); }
+.content-item-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.content-item-main small { color: #798379; }
+.content-item-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.drag-handle { color: #9ba89b; font-weight: 900; letter-spacing: -0.18em; cursor: grab; }
 @media (max-width: 900px) { .maker-grid, .groups-panel { grid-template-columns: 1fr; } .group-card.encrypted { grid-column: auto; } .maker-header { flex-direction: column; } }
 </style>
