@@ -401,16 +401,9 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
 
       &.load-red {
         color: #e74c3c;
-        animation: pulse 2s infinite;
       }
     }
   }
-
-  @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
-}
 
   .wallet-row {
     display: grid;

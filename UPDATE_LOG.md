@@ -1,5 +1,33 @@
 # UPDATE_LOG
 
+## [0.13.4] - 2026-04-29
+- 类型：UI 实装 / 附魔系统 / 测试
+- 条目：实装附魔制作界面
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/composables/useEnchanting.ts`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `tests/enchantingModal.ui.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.3` 自增长到 `0.13.4`。
+  - 附魔制作界面从单页表单升级为侧栏 + 分区编辑：基础、选择词条、新建词条、管理词条。
+  - 侧栏增加当前附魔目标、行囊物品项预览、攻击项预览和已选词条摘要。
+  - 选择词条区支持搜索、已选高亮、词条类别/触发方式/充能或伤害摘要展示。
+  - 新建词条区保留伤害词条与附带法术两套表单，并在保存后自动加入角色级自定义词条库、绑定到当前物品。
+  - 管理词条区允许编辑自定义词条的类型、触发方式、伤害参数、法术、描述和充能信息，并支持删除。
+  - 修正附魔目标状态为模块级共享，确保从 DIY 按钮或右侧拖拽入口打开时，悬浮窗能看到同一个目标物品。
+  - 移除行囊标题超重红色状态的呼吸动画，仅保留颜色提示。
+- 验证结果：
+  - `npm run test -- tests/enchantingModal.ui.test.ts tests/inventoryItemRow.ui.test.ts tests/useCombatLogic.test.ts` 通过：3 个测试文件，31 个用例。
+  - `npm run test` 通过：30 个测试文件，123 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.4` 安装包与便携版。
+
 ## [0.13.3] - 2026-04-29
 - 类型：功能增强 / 附魔系统 / 攻击计算 / 同调 / 测试
 - 条目：制作第一版附魔系统

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import { useEnchanting } from '../../../composables/useEnchanting';
 import { DAMAGE_TYPE_OPTIONS } from '../../../data/rules/damageTypes';
@@ -9,8 +9,11 @@ import {
   DEFAULT_MAGIC_NAME_COLOR,
   PRESET_MAGIC_TRAITS,
 } from '../../../data/rules/magicTraits';
-import { SPELL_LIBRARY } from '../../../data/spells';
+import { SPELL_LIBRARY, getSpellById } from '../../../data/spells';
+import { formatMagicItemName } from '../../../utils/magicItems';
 import type { ItemMagicTrait, ItemRarity } from '../../../types/Library';
+
+type EnchantTab = 'basic' | 'traits' | 'create' | 'manage';
 
 const store = useActiveSheetStore();
 const {
@@ -25,9 +28,27 @@ const {
   closeEnchanting,
 } = useEnchanting();
 
-const rarityOptions: ItemRarity[] = ['common', 'uncommon', 'rare', 'very_rare', 'legendary', 'artifact', 'varies'];
+const activeTab = ref<EnchantTab>('basic');
+const traitKeyword = ref('');
+const spellKeyword = ref('');
 
-const spellSearch = reactive({ value: '' });
+const rarityOptions: Array<{ value: ItemRarity; label: string }> = [
+  { value: 'common', label: '普通 common' },
+  { value: 'uncommon', label: '非普通 uncommon' },
+  { value: 'rare', label: '稀有 rare' },
+  { value: 'very_rare', label: '珍稀 very rare' },
+  { value: 'legendary', label: '传奇 legendary' },
+  { value: 'artifact', label: '神器 artifact' },
+  { value: 'varies', label: '可变 varies' },
+];
+
+const tabs: Array<{ key: EnchantTab; label: string; note: string }> = [
+  { key: 'basic', label: '基础', note: '加值 / 同调 / 视觉' },
+  { key: 'traits', label: '选择词条', note: '为当前物品选择' },
+  { key: 'create', label: '新建词条', note: '保存为可复用' },
+  { key: 'manage', label: '管理词条', note: '修改或删除自定义词条' },
+];
+
 const customDraft = reactive({
   type: 'damage' as ItemMagicTrait['type'],
   name: '',
@@ -45,20 +66,49 @@ const customDraft = reactive({
   resetFormula: '',
 });
 
-const availableTraits = computed<ItemMagicTrait[]>(() => [
+const allTraits = computed<ItemMagicTrait[]>(() => [
   ...PRESET_MAGIC_TRAITS,
   ...(store.character?.customMagicTraits ?? []),
 ]);
 
+const selectedTraits = computed<ItemMagicTrait[]>(() => {
+  const selected = new Set(targetItem.value?.magic?.selectedTraitIds ?? []);
+  return allTraits.value.filter(trait => selected.has(trait.id));
+});
+
+const filteredTraits = computed(() => {
+  const keyword = traitKeyword.value.trim().toLowerCase();
+  if (!keyword) return allTraits.value;
+  return allTraits.value.filter(trait =>
+    `${trait.name} ${trait.description} ${trait.spellExtraDescription ?? ''}`.toLowerCase().includes(keyword)
+  );
+});
+
 const filteredSpells = computed(() => {
-  const keyword = spellSearch.value.trim().toLowerCase();
+  const keyword = spellKeyword.value.trim().toLowerCase();
   const spells = keyword
     ? SPELL_LIBRARY.filter(spell => `${spell.name} ${spell.id}`.toLowerCase().includes(keyword))
     : SPELL_LIBRARY;
-  return spells.slice(0, 80);
+  return spells.slice(0, 100);
 });
 
+const targetDisplayName = computed(() =>
+  targetItem.value ? formatMagicItemName(targetItem.value) : '未选择物品'
+);
+
+const inventoryPreviewStyle = computed(() => ({
+  backgroundColor: targetItem.value?.magic?.visuals?.inventoryBackground || DEFAULT_MAGIC_INVENTORY_BACKGROUND,
+  color: targetItem.value?.magic?.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
+}));
+
+const attackPreviewStyle = computed(() => ({
+  backgroundColor: targetItem.value?.magic?.visuals?.attackBackground || DEFAULT_MAGIC_ATTACK_BACKGROUND,
+  color: targetItem.value?.magic?.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
+}));
+
 const isTraitSelected = (id: string) => targetItem.value?.magic?.selectedTraitIds?.includes(id) ?? false;
+
+const getSpellName = (spellId?: string) => (spellId ? getSpellById(spellId)?.name ?? spellId : '未指定法术');
 
 const ensureVisualDefaults = () => {
   if (!targetItem.value?.magic) return;
@@ -67,6 +117,33 @@ const ensureVisualDefaults = () => {
     attackBackground: targetItem.value.magic.visuals?.attackBackground || DEFAULT_MAGIC_ATTACK_BACKGROUND,
     nameColor: targetItem.value.magic.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
   };
+};
+
+const resetVisualDefaults = () => {
+  if (!targetItem.value?.magic) return;
+  targetItem.value.magic.visuals = {
+    inventoryBackground: DEFAULT_MAGIC_INVENTORY_BACKGROUND,
+    attackBackground: DEFAULT_MAGIC_ATTACK_BACKGROUND,
+    nameColor: DEFAULT_MAGIC_NAME_COLOR,
+  };
+};
+
+const clearMagicBonus = () => {
+  if (!targetItem.value?.magic) return;
+  targetItem.value.magic.magicBonus = undefined;
+};
+
+const ensureTraitCharges = (trait: ItemMagicTrait) => {
+  if (!trait.charges) {
+    trait.charges = { current: 0, max: 0 };
+  }
+  return trait.charges;
+};
+
+const syncTraitMode = (trait: ItemMagicTrait) => {
+  if (trait.activationMode === 'charged' || trait.type === 'spell') {
+    ensureTraitCharges(trait);
+  }
 };
 
 const buildCharges = () =>
@@ -78,6 +155,19 @@ const buildCharges = () =>
         resetFormula: customDraft.resetFormula.trim() || undefined,
       }
     : undefined;
+
+const resetCustomDraft = () => {
+  customDraft.name = '';
+  customDraft.description = '';
+  customDraft.damageDice = '';
+  customDraft.damageBonus = 0;
+  customDraft.spellId = '';
+  customDraft.spellExtraDescription = '';
+  customDraft.chargesCurrent = 0;
+  customDraft.chargesMax = 0;
+  customDraft.resetCondition = '';
+  customDraft.resetFormula = '';
+};
 
 const saveNewCustomTrait = () => {
   const trait = addCustomTrait({
@@ -96,18 +186,10 @@ const saveNewCustomTrait = () => {
 
   if (trait && targetItem.value) {
     toggleTraitSelection(trait.id);
+    activeTab.value = 'traits';
   }
 
-  customDraft.name = '';
-  customDraft.description = '';
-  customDraft.damageDice = '';
-  customDraft.damageBonus = 0;
-  customDraft.spellId = '';
-  customDraft.spellExtraDescription = '';
-  customDraft.chargesCurrent = 0;
-  customDraft.chargesMax = 0;
-  customDraft.resetCondition = '';
-  customDraft.resetFormula = '';
+  resetCustomDraft();
 };
 </script>
 
@@ -125,222 +207,336 @@ const saveNewCustomTrait = () => {
           </header>
 
           <div class="enchant-body">
-            <div class="target-summary">
-              <div class="placeholder-rune">✦</div>
-              <div>
-                <p>{{ targetItem ? `正在附魔：${targetItem.name}` : '附魔制作界面占位中。' }}</p>
-                <small>
-                  来源：{{ entrySource === 'drop' ? '右侧栏拖拽目标区' : '自定义物品按钮' }}
-                  <template v-if="targetPayload">
-                    · 目标：{{ targetPayload.type === 'inventory-item' ? targetPayload.instanceId : targetPayload.id }}
-                  </template>
-                </small>
+            <aside class="enchant-sidebar">
+              <div class="target-card" :class="{ empty: !targetItem }">
+                <div class="rune-mark">✦</div>
+                <div>
+                  <strong>{{ targetDisplayName }}</strong>
+                  <small>{{ targetItem ? targetItem.type : '拖拽物品或从 DIY 打开' }}</small>
+                </div>
               </div>
-            </div>
 
-            <div v-if="targetItem" class="magic-form">
-              <section class="form-section">
-                <h4>基础附魔</h4>
-                <div class="check-row">
-                  <label class="check-option">
-                    <input type="checkbox" v-model="targetItem.magic!.isMagic" @change="ensureVisualDefaults">
-                    <span>魔法物品</span>
-                  </label>
-                  <label class="check-option">
-                    <input type="checkbox" v-model="targetItem.magic!.attunement!.requires">
-                    <span>需要同调</span>
-                  </label>
+              <div v-if="targetItem" class="preview-stack">
+                <div class="preview-row" :style="inventoryPreviewStyle">
+                  <span>{{ targetDisplayName }}</span>
+                  <em>行囊预览</em>
                 </div>
-
-                <div class="field-grid">
-                  <label>
-                    <span>魔法加值</span>
-                    <input type="number" v-model.number="targetItem.magic!.magicBonus" placeholder="留空则不显示 +0">
-                  </label>
-                  <label>
-                    <span>稀有度</span>
-                    <select v-model="targetItem.magic!.rarity">
-                      <option :value="undefined">未设置</option>
-                      <option v-for="rarity in rarityOptions" :key="rarity" :value="rarity">{{ rarity }}</option>
-                    </select>
-                  </label>
-                  <label class="full-field">
-                    <span>同调条件</span>
-                    <input type="text" v-model="targetItem.magic!.attunement!.condition" placeholder="例如：需要由法师同调">
-                  </label>
+                <div class="preview-row attack" :style="attackPreviewStyle">
+                  <span>{{ targetDisplayName }}</span>
+                  <em>攻击项预览</em>
                 </div>
-              </section>
+              </div>
 
-              <section class="form-section">
-                <h4>魔法视觉</h4>
-                <div class="field-grid color-grid">
-                  <label>
-                    <span>行囊背景</span>
-                    <input type="color" v-model="targetItem.magic!.visuals!.inventoryBackground">
-                  </label>
-                  <label>
-                    <span>攻击项背景</span>
-                    <input type="color" v-model="targetItem.magic!.visuals!.attackBackground">
-                  </label>
-                  <label>
-                    <span>名字字体颜色</span>
-                    <input type="color" v-model="targetItem.magic!.visuals!.nameColor">
-                  </label>
-                </div>
-              </section>
+              <nav class="tab-nav" aria-label="附魔编辑分区">
+                <button
+                  v-for="tab in tabs"
+                  :key="tab.key"
+                  type="button"
+                  :data-test="`enchant-tab-${tab.key}`"
+                  :class="{ active: activeTab === tab.key }"
+                  @click="activeTab = tab.key"
+                >
+                  <span>{{ tab.label }}</span>
+                  <small>{{ tab.note }}</small>
+                </button>
+              </nav>
 
-              <section class="form-section">
-                <h4>可选魔法词条</h4>
-                <div class="trait-list">
-                  <label v-for="trait in availableTraits" :key="trait.id" class="trait-option">
-                    <input type="checkbox" :checked="isTraitSelected(trait.id)" @change="toggleTraitSelection(trait.id)">
-                    <span class="trait-main">
-                      <strong>{{ trait.name }}</strong>
-                      <small>
-                        {{ trait.type === 'spell' ? '附带法术' : '伤害词条' }} ·
-                        {{ trait.activationMode === 'charged' ? '消耗充能' : '默认生效' }}
-                      </small>
-                      <em>{{ trait.description || trait.spellExtraDescription || '暂无描述' }}</em>
-                    </span>
-                    <button
-                      v-if="trait.source === 'custom'"
-                      type="button"
-                      class="btn-delete-trait"
-                      title="删除自定义词条"
-                      @click.prevent="deleteCustomTrait(trait.id)"
-                    >
-                      删除
-                    </button>
-                  </label>
-                </div>
-              </section>
+              <div class="selected-summary">
+                <strong>已选词条 {{ selectedTraits.length }}</strong>
+                <span v-if="selectedTraits.length === 0">暂无词条</span>
+                <span v-for="trait in selectedTraits" :key="trait.id">{{ trait.name }}</span>
+              </div>
+            </aside>
 
-              <section class="form-section custom-trait-editor">
-                <h4>新建自定义词条</h4>
-                <div class="field-grid">
-                  <label>
-                    <span>词条类别</span>
-                    <select v-model="customDraft.type">
-                      <option value="damage">伤害词条</option>
-                      <option value="spell">附带法术</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>触发方式</span>
-                    <select v-model="customDraft.activationMode">
-                      <option value="always">默认作用</option>
-                      <option value="charged">消耗充能</option>
-                    </select>
-                  </label>
+            <main class="enchant-content">
+              <div class="source-line">
+                来源：{{ entrySource === 'drop' ? '右侧栏拖拽目标区' : '自定义物品按钮' }}
+                <template v-if="targetPayload">
+                  · 目标：{{ targetPayload.type === 'inventory-item' ? targetPayload.instanceId : targetPayload.id }}
+                </template>
+              </div>
+
+              <div v-if="!targetItem" class="empty-state">
+                <div class="empty-rune">✧</div>
+                <h4>等待附魔目标</h4>
+                <p>把行囊物品拖到右侧附魔台，或在自定义物品界面点击“附魔制作”。</p>
+              </div>
+
+              <template v-else>
+                <section v-show="activeTab === 'basic'" class="form-section">
+                  <div class="section-title">
+                    <h4>基础附魔</h4>
+                    <p>控制物品是否为魔法物品、加值是否显示、以及是否需要同调。</p>
+                  </div>
+
+                  <div class="check-row">
+                    <label class="check-option">
+                      <input type="checkbox" v-model="targetItem.magic!.isMagic" @change="ensureVisualDefaults">
+                      <span>魔法物品</span>
+                    </label>
+                    <label class="check-option">
+                      <input type="checkbox" v-model="targetItem.magic!.attunement!.requires">
+                      <span>需要同调</span>
+                    </label>
+                  </div>
+
+                  <div class="field-grid">
+                    <label>
+                      <span>魔法加值</span>
+                      <input type="number" v-model.number="targetItem.magic!.magicBonus" placeholder="留空则不显示 +0">
+                    </label>
+                    <label>
+                      <span>稀有度</span>
+                      <select v-model="targetItem.magic!.rarity">
+                        <option :value="undefined">未设置</option>
+                        <option v-for="rarity in rarityOptions" :key="rarity.value" :value="rarity.value">
+                          {{ rarity.label }}
+                        </option>
+                      </select>
+                    </label>
+                    <label class="full-field">
+                      <span>同调条件</span>
+                      <input type="text" v-model="targetItem.magic!.attunement!.condition" placeholder="例如：需要由法师同调">
+                    </label>
+                  </div>
+
+                  <div class="quick-actions">
+                    <button type="button" @click="clearMagicBonus">清除加值显示</button>
+                    <button type="button" @click="resetVisualDefaults">恢复默认魔法视觉</button>
+                  </div>
+
+                  <div class="section-title visual-title">
+                    <h4>魔法视觉</h4>
+                    <p>未设置时使用浅紫色背景与深红色字体；这里可自由替换颜色。</p>
+                  </div>
+                  <div class="field-grid color-grid">
+                    <label>
+                      <span>行囊背景</span>
+                      <input type="color" v-model="targetItem.magic!.visuals!.inventoryBackground">
+                    </label>
+                    <label>
+                      <span>攻击项背景</span>
+                      <input type="color" v-model="targetItem.magic!.visuals!.attackBackground">
+                    </label>
+                    <label>
+                      <span>名字字体颜色</span>
+                      <input type="color" v-model="targetItem.magic!.visuals!.nameColor">
+                    </label>
+                  </div>
+                </section>
+
+                <section v-show="activeTab === 'traits'" class="form-section">
+                  <div class="section-title">
+                    <h4>选择魔法词条</h4>
+                    <p>选择的词条会绑定到当前物品；默认伤害词条参与攻击计算，充能/法术词条进入说明。</p>
+                  </div>
+                  <input class="search-input" type="search" v-model="traitKeyword" placeholder="搜索词条名或描述">
+                  <div class="trait-list">
+                    <label v-for="trait in filteredTraits" :key="trait.id" class="trait-option" :class="{ selected: isTraitSelected(trait.id) }">
+                      <input type="checkbox" :checked="isTraitSelected(trait.id)" @change="toggleTraitSelection(trait.id)">
+                      <span class="trait-main">
+                        <strong>{{ trait.name }}</strong>
+                        <small>
+                          {{ trait.source === 'preset' ? '预设' : '自定义' }} ·
+                          {{ trait.type === 'spell' ? `附带法术：${getSpellName(trait.spellId)}` : '伤害词条' }} ·
+                          {{ trait.activationMode === 'charged' ? '消耗充能' : '默认生效' }}
+                        </small>
+                        <em>{{ trait.description || trait.spellExtraDescription || '暂无描述' }}</em>
+                      </span>
+                      <span v-if="trait.type === 'damage' && trait.participatesInDamage" class="trait-pill">
+                        {{ trait.damageDice || '无骰' }} {{ trait.damageBonus ? `+${trait.damageBonus}` : '' }}
+                      </span>
+                      <span v-else-if="trait.charges" class="trait-pill">
+                        {{ trait.charges.current }}/{{ trait.charges.max }} 充能
+                      </span>
+                    </label>
+                  </div>
+                </section>
+
+                <section v-show="activeTab === 'create'" class="form-section custom-trait-editor">
+                  <div class="section-title">
+                    <h4>新建自定义词条</h4>
+                    <p>保存后会进入角色级词条库，并自动绑定到当前物品。</p>
+                  </div>
+                  <div class="field-grid">
+                    <label>
+                      <span>词条类别</span>
+                      <select v-model="customDraft.type">
+                        <option value="damage">伤害词条</option>
+                        <option value="spell">附带法术</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>触发方式</span>
+                      <select v-model="customDraft.activationMode">
+                        <option value="always">默认作用</option>
+                        <option value="charged">消耗充能</option>
+                      </select>
+                    </label>
                   <label class="full-field">
                     <span>词条名</span>
-                    <input type="text" v-model="customDraft.name" placeholder="例如：烈焰">
+                    <input data-test="custom-trait-name" type="text" v-model="customDraft.name" placeholder="例如：烈焰">
                   </label>
-                  <label class="full-field">
-                    <span>词条描述</span>
-                    <textarea v-model="customDraft.description" rows="2" placeholder="描述该词条的规则文本"></textarea>
-                  </label>
-                </div>
+                    <label class="full-field">
+                      <span>词条描述</span>
+                      <textarea v-model="customDraft.description" rows="3" placeholder="描述该词条的规则文本"></textarea>
+                    </label>
+                  </div>
 
-                <div v-if="customDraft.type === 'damage'" class="field-grid nested-grid">
-                  <label class="check-option full-field">
-                    <input type="checkbox" v-model="customDraft.participatesInDamage">
-                    <span>参与每次攻击的伤害计算</span>
-                  </label>
-                  <label>
-                    <span>伤害骰</span>
-                    <input type="text" v-model="customDraft.damageDice" placeholder="例如：1d6">
-                  </label>
-                  <label>
-                    <span>伤害加值</span>
-                    <input type="number" v-model.number="customDraft.damageBonus">
-                  </label>
-                  <label>
-                    <span>伤害类型</span>
-                    <select v-model="customDraft.damageType">
-                      <option v-for="type in DAMAGE_TYPE_OPTIONS" :key="type.key" :value="type.key">{{ type.label }}</option>
-                    </select>
-                  </label>
-                </div>
+                  <div v-if="customDraft.type === 'damage'" class="field-grid nested-grid">
+                    <label class="check-option full-field">
+                      <input data-test="custom-trait-participates" type="checkbox" v-model="customDraft.participatesInDamage">
+                      <span>参与每次攻击的伤害计算</span>
+                    </label>
+                    <label>
+                      <span>伤害骰</span>
+                      <input data-test="custom-trait-dice" type="text" v-model="customDraft.damageDice" placeholder="例如：1d6">
+                    </label>
+                    <label>
+                      <span>伤害加值</span>
+                      <input type="number" v-model.number="customDraft.damageBonus">
+                    </label>
+                    <label>
+                      <span>伤害类型</span>
+                      <select v-model="customDraft.damageType">
+                        <option v-for="type in DAMAGE_TYPE_OPTIONS" :key="type.key" :value="type.key">{{ type.label }}</option>
+                      </select>
+                    </label>
+                  </div>
 
-                <div v-else class="field-grid nested-grid">
-                  <label class="full-field">
-                    <span>搜索法术</span>
-                    <input type="search" v-model="spellSearch.value" placeholder="输入中文法术名搜索">
-                  </label>
-                  <label class="full-field">
-                    <span>指定法术</span>
-                    <select v-model="customDraft.spellId">
-                      <option value="">未指定</option>
-                      <option v-for="spell in filteredSpells" :key="spell.id" :value="spell.id">
-                        {{ spell.name }}（{{ spell.level === 0 ? '戏法' : `${spell.level}环` }}）
-                      </option>
-                    </select>
-                  </label>
-                  <label class="full-field">
-                    <span>法术额外描述</span>
-                    <textarea v-model="customDraft.spellExtraDescription" rows="2" placeholder="记录该物品施展该法术时的额外规则"></textarea>
-                  </label>
-                </div>
+                  <div v-else class="field-grid nested-grid">
+                    <label class="full-field">
+                      <span>搜索法术</span>
+                      <input type="search" v-model="spellKeyword" placeholder="输入中文法术名搜索">
+                    </label>
+                    <label class="full-field">
+                      <span>指定法术</span>
+                      <select v-model="customDraft.spellId">
+                        <option value="">未指定</option>
+                        <option v-for="spell in filteredSpells" :key="spell.id" :value="spell.id">
+                          {{ spell.name }}（{{ spell.level === 0 ? '戏法' : `${spell.level}环` }}）
+                        </option>
+                      </select>
+                    </label>
+                    <label class="full-field">
+                      <span>法术额外描述</span>
+                      <textarea v-model="customDraft.spellExtraDescription" rows="3" placeholder="记录该物品施展该法术时的额外规则"></textarea>
+                    </label>
+                  </div>
 
-                <div v-if="customDraft.activationMode === 'charged' || customDraft.type === 'spell'" class="field-grid nested-grid">
-                  <label>
-                    <span>当前充能</span>
-                    <input type="number" min="0" v-model.number="customDraft.chargesCurrent">
-                  </label>
-                  <label>
-                    <span>最大充能</span>
-                    <input type="number" min="0" v-model.number="customDraft.chargesMax">
-                  </label>
-                  <label>
-                    <span>恢复条件</span>
-                    <input type="text" v-model="customDraft.resetCondition" placeholder="例如：每日黎明">
-                  </label>
-                  <label>
-                    <span>恢复公式</span>
-                    <input type="text" v-model="customDraft.resetFormula" placeholder="例如：1d3">
-                  </label>
-                </div>
+                  <div v-if="customDraft.activationMode === 'charged' || customDraft.type === 'spell'" class="field-grid nested-grid">
+                    <label>
+                      <span>当前充能</span>
+                      <input type="number" min="0" v-model.number="customDraft.chargesCurrent">
+                    </label>
+                    <label>
+                      <span>最大充能</span>
+                      <input type="number" min="0" v-model.number="customDraft.chargesMax">
+                    </label>
+                    <label>
+                      <span>恢复条件</span>
+                      <input type="text" v-model="customDraft.resetCondition" placeholder="例如：每日黎明">
+                    </label>
+                    <label>
+                      <span>恢复公式</span>
+                      <input type="text" v-model="customDraft.resetFormula" placeholder="例如：1d3">
+                    </label>
+                  </div>
 
-                <button type="button" class="btn-add-trait" @click="saveNewCustomTrait">保存为可选词条</button>
-              </section>
+                  <button data-test="save-custom-trait" type="button" class="btn-add-trait" @click="saveNewCustomTrait">保存为可选词条</button>
+                </section>
 
-              <section v-if="store.character?.customMagicTraits?.length" class="form-section custom-trait-editor">
-                <h4>编辑已保存的自定义词条</h4>
-                <div v-for="trait in store.character.customMagicTraits" :key="trait.id" class="saved-trait-edit">
-                  <input v-model="trait.name" aria-label="词条名">
-                  <select v-model="trait.type" aria-label="词条类别">
-                    <option value="damage">伤害词条</option>
-                    <option value="spell">附带法术</option>
-                  </select>
-                  <select v-model="trait.activationMode" aria-label="触发方式">
-                    <option value="always">默认作用</option>
-                    <option value="charged">消耗充能</option>
-                  </select>
-                  <label v-if="trait.type === 'damage'" class="inline-check">
-                    <input type="checkbox" v-model="trait.participatesInDamage">
-                    参与伤害
-                  </label>
-                  <input v-if="trait.type === 'damage'" v-model="trait.damageDice" placeholder="伤害骰，如 1d6">
-                  <input v-if="trait.type === 'damage'" v-model.number="trait.damageBonus" type="number" placeholder="伤害加值">
-                  <select v-if="trait.type === 'damage'" v-model="trait.damageType">
-                    <option v-for="type in DAMAGE_TYPE_OPTIONS" :key="type.key" :value="type.key">{{ type.label }}</option>
-                  </select>
-                  <select v-if="trait.type === 'spell'" v-model="trait.spellId" aria-label="指定法术">
-                    <option value="">未指定</option>
-                    <option v-for="spell in SPELL_LIBRARY" :key="spell.id" :value="spell.id">
-                      {{ spell.name }}（{{ spell.level === 0 ? '戏法' : `${spell.level}环` }}）
-                    </option>
-                  </select>
-                  <textarea v-model="trait.description" rows="2" aria-label="词条描述"></textarea>
-                  <textarea v-if="trait.type === 'spell'" v-model="trait.spellExtraDescription" rows="2" placeholder="法术额外描述"></textarea>
-                </div>
-              </section>
-            </div>
+                <section v-show="activeTab === 'manage'" class="form-section custom-trait-editor">
+                  <div class="section-title">
+                    <h4>管理自定义词条</h4>
+                    <p>这些词条保存在当前角色数据中，可被任意物品复用。</p>
+                  </div>
+                  <div v-if="!store.character?.customMagicTraits?.length" class="empty-inline">
+                    尚未创建自定义词条。
+                  </div>
+                  <div v-for="trait in store.character?.customMagicTraits ?? []" :key="trait.id" class="saved-trait-edit">
+                    <div class="saved-trait-head">
+                      <strong>{{ trait.name || '未命名词条' }}</strong>
+                      <button type="button" class="btn-delete-trait" @click="deleteCustomTrait(trait.id)">删除</button>
+                    </div>
+                    <div class="field-grid">
+                      <label>
+                        <span>词条名</span>
+                        <input v-model="trait.name">
+                      </label>
+                      <label>
+                        <span>词条类别</span>
+                        <select v-model="trait.type" @change="syncTraitMode(trait)">
+                          <option value="damage">伤害词条</option>
+                          <option value="spell">附带法术</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>触发方式</span>
+                        <select v-model="trait.activationMode" @change="syncTraitMode(trait)">
+                          <option value="always">默认作用</option>
+                          <option value="charged">消耗充能</option>
+                        </select>
+                      </label>
+                      <label v-if="trait.type === 'damage'" class="check-option">
+                        <input type="checkbox" v-model="trait.participatesInDamage">
+                        <span>参与伤害</span>
+                      </label>
+                      <label v-if="trait.type === 'damage'">
+                        <span>伤害骰</span>
+                        <input v-model="trait.damageDice" placeholder="例如：1d6">
+                      </label>
+                      <label v-if="trait.type === 'damage'">
+                        <span>伤害加值</span>
+                        <input v-model.number="trait.damageBonus" type="number">
+                      </label>
+                      <label v-if="trait.type === 'damage'">
+                        <span>伤害类型</span>
+                        <select v-model="trait.damageType">
+                          <option v-for="type in DAMAGE_TYPE_OPTIONS" :key="type.key" :value="type.key">{{ type.label }}</option>
+                        </select>
+                      </label>
+                      <label v-if="trait.type === 'spell'" class="full-field">
+                        <span>指定法术</span>
+                        <select v-model="trait.spellId">
+                          <option value="">未指定</option>
+                          <option v-for="spell in SPELL_LIBRARY" :key="spell.id" :value="spell.id">
+                            {{ spell.name }}（{{ spell.level === 0 ? '戏法' : `${spell.level}环` }}）
+                          </option>
+                        </select>
+                      </label>
+                      <label class="full-field">
+                        <span>词条描述</span>
+                        <textarea v-model="trait.description" rows="3"></textarea>
+                      </label>
+                      <label v-if="trait.type === 'spell'" class="full-field">
+                        <span>法术额外描述</span>
+                        <textarea v-model="trait.spellExtraDescription" rows="3"></textarea>
+                      </label>
+                    </div>
 
-            <div v-else class="empty-note">
-              当前未绑定具体物品，后续附魔内容将在这里扩展。
-            </div>
+                    <div v-if="trait.activationMode === 'charged' || trait.type === 'spell'" class="field-grid nested-grid">
+                      <label>
+                        <span>当前充能</span>
+                        <input type="number" min="0" v-model.number="ensureTraitCharges(trait).current">
+                      </label>
+                      <label>
+                        <span>最大充能</span>
+                        <input type="number" min="0" v-model.number="ensureTraitCharges(trait).max">
+                      </label>
+                      <label>
+                        <span>恢复条件</span>
+                        <input type="text" v-model="ensureTraitCharges(trait).resetCondition">
+                      </label>
+                      <label>
+                        <span>恢复公式</span>
+                        <input type="text" v-model="ensureTraitCharges(trait).resetFormula">
+                      </label>
+                    </div>
+                  </div>
+                </section>
+              </template>
+            </main>
           </div>
 
           <footer class="enchant-footer">
@@ -366,12 +562,13 @@ const saveNewCustomTrait = () => {
 }
 
 .enchant-panel {
-  width: min(760px, 94vw);
+  width: min(980px, 96vw);
   max-height: 92vh;
   border: 1px solid rgba(245, 197, 96, 0.45);
-  border-radius: 16px;
+  border-radius: 18px;
   background:
-    radial-gradient(circle at top left, rgba(245, 197, 96, 0.18), transparent 35%),
+    radial-gradient(circle at 12% 0%, rgba(245, 197, 96, 0.18), transparent 34%),
+    radial-gradient(circle at 92% 20%, rgba(129, 95, 255, 0.16), transparent 30%),
     linear-gradient(145deg, #1c2531, #121821);
   color: #f5f0df;
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
@@ -416,60 +613,207 @@ const saveNewCustomTrait = () => {
 }
 
 .enchant-body {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  min-height: 560px;
   max-height: calc(92vh - 132px);
-  padding: 16px 20px;
-  overflow-y: auto;
 }
 
-.target-summary {
+.enchant-sidebar {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 14px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-right: 1px solid rgba(245, 197, 96, 0.16);
+  background: rgba(0, 0, 0, 0.16);
+}
 
-  p {
-    margin: 0 0 4px;
-    font-weight: 800;
+.target-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(245, 197, 96, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+
+  &.empty {
+    opacity: 0.72;
+  }
+
+  strong,
+  small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   small {
     color: #b7c2d2;
+    margin-top: 3px;
   }
 }
 
-.placeholder-rune {
-  width: 48px;
-  height: 48px;
+.rune-mark,
+.empty-rune {
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: rgba(245, 197, 96, 0.14);
   color: #f5c560;
-  font-size: 1.6rem;
-  flex-shrink: 0;
 }
 
-.magic-form {
+.rune-mark {
+  width: 42px;
+  height: 42px;
+  font-size: 1.45rem;
+}
+
+.preview-stack {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
-.form-section {
-  padding: 12px;
-  border: 1px solid rgba(245, 197, 96, 0.18);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.055);
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-weight: 800;
 
-  h4 {
-    margin: 0 0 10px;
-    color: #f7d58a;
-    font-size: 0.9rem;
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  em {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-style: normal;
+    opacity: 0.72;
   }
 }
 
+.tab-nav {
+  display: grid;
+  gap: 8px;
+
+  button {
+    display: grid;
+    gap: 2px;
+    text-align: left;
+    border: 1px solid rgba(245, 197, 96, 0.16);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.055);
+    color: #d6dfef;
+    cursor: pointer;
+
+    &.active {
+      border-color: rgba(245, 197, 96, 0.64);
+      background: rgba(245, 197, 96, 0.14);
+      color: #f9df9c;
+    }
+  }
+
+  span {
+    font-weight: 900;
+  }
+
+  small {
+    color: #aeb9c8;
+  }
+}
+
+.selected-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  color: #d6dfef;
+
+  strong {
+    flex-basis: 100%;
+    color: #f7d58a;
+  }
+
+  span {
+    border-radius: 999px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.74rem;
+  }
+}
+
+.enchant-content {
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+}
+
+.source-line {
+  margin-bottom: 12px;
+  color: #b7c2d2;
+  font-size: 0.78rem;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 430px;
+  text-align: center;
+  color: #c7d2e2;
+
+  h4,
+  p {
+    margin: 0;
+  }
+}
+
+.empty-rune {
+  width: 72px;
+  height: 72px;
+  font-size: 2rem;
+}
+
+.form-section {
+  padding: 14px;
+  border: 1px solid rgba(245, 197, 96, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.section-title {
+  margin-bottom: 12px;
+
+  h4,
+  p {
+    margin: 0;
+  }
+
+  h4 {
+    color: #f7d58a;
+    font-size: 0.98rem;
+  }
+
+  p {
+    margin-top: 4px;
+    color: #b7c2d2;
+    font-size: 0.78rem;
+  }
+}
+
+.visual-title {
+  margin-top: 16px;
+}
+
 .check-row,
-.field-grid,
-.saved-trait-edit {
+.field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
@@ -484,8 +828,7 @@ const saveNewCustomTrait = () => {
 }
 
 .check-option,
-.trait-option,
-.inline-check {
+.trait-option {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -507,8 +850,7 @@ const saveNewCustomTrait = () => {
   letter-spacing: 0.04em;
 }
 
-.full-field,
-.saved-trait-edit textarea {
+.full-field {
   grid-column: 1 / -1;
 }
 
@@ -528,6 +870,11 @@ input[type='color'] {
   padding: 3px;
 }
 
+.search-input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
 .trait-list {
   display: grid;
   gap: 8px;
@@ -535,6 +882,11 @@ input[type='color'] {
 
 .trait-option {
   align-items: flex-start;
+
+  &.selected {
+    border-color: rgba(245, 197, 96, 0.64);
+    background: rgba(245, 197, 96, 0.13);
+  }
 }
 
 .trait-main {
@@ -553,19 +905,64 @@ input[type='color'] {
   }
 }
 
+.trait-pill {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.24);
+  color: #f7d58a;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.saved-trait-edit {
+  padding: 12px;
+  border: 1px solid rgba(245, 197, 96, 0.18);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.14);
+
+  & + & {
+    margin-top: 10px;
+  }
+}
+
+.saved-trait-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.empty-inline {
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #b7c2d2;
+}
+
 .btn-delete-trait,
 .btn-add-trait,
 .btn-cancel,
-.btn-save {
+.btn-save,
+.quick-actions button {
   border: 0;
   border-radius: 8px;
-  padding: 7px 10px;
+  padding: 8px 12px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .btn-delete-trait,
-.btn-cancel {
+.btn-cancel,
+.quick-actions button {
   background: rgba(255, 255, 255, 0.08);
   color: #d6dfef;
 }
@@ -582,12 +979,6 @@ input[type='color'] {
   color: #20242c;
 }
 
-.empty-note {
-  margin-top: 18px;
-  color: #b7c2d2;
-  font-size: 0.9rem;
-}
-
 .enchant-fade-enter-active,
 .enchant-fade-leave-active {
   transition: opacity 0.2s ease;
@@ -598,11 +989,26 @@ input[type='color'] {
   opacity: 0;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 860px) {
+  .enchant-body {
+    grid-template-columns: 1fr;
+  }
+
+  .enchant-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(245, 197, 96, 0.16);
+  }
+
+  .tab-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
   .field-grid,
   .check-row,
   .color-grid,
-  .saved-trait-edit {
+  .tab-nav {
     grid-template-columns: 1fr;
   }
 }

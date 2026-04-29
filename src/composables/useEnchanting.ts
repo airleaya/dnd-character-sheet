@@ -13,11 +13,11 @@ type EnchantingEntrySource = 'button' | 'drop';
 const isEnchantingOpen = ref(false);
 const entrySource = ref<EnchantingEntrySource>('button');
 const targetPayload = ref<ReturnType<typeof parseDragPayload> | null>(null);
+const targetItem = ref<InventoryItem | null>(null);
 const logger = createRendererLogger('composables/useEnchanting');
 
 export function useEnchanting() {
   const activeSheet = useActiveSheetStore();
-  const targetItem = ref<InventoryItem | null>(null);
 
   const openEnchanting = (source: EnchantingEntrySource = 'button') => {
     entrySource.value = source;
