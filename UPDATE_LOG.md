@@ -1,5 +1,25 @@
 # UPDATE_LOG
 
+## [0.13.10] - 2026-04-29
+- 类型：UI 排序 / 物品库 / 测试
+- 条目：空白模板菜单排序到最后
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/data/libraries/itemLibrary.ts`
+  - `tests/itemLibraryAudit.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.9` 自增长到 `0.13.10`。
+  - 物品库运行时顺序改为先列出结构化来源物品，再追加内置空白模板。
+  - `getLibraryGroups()` 中“空白模板”顶层分组现在排在最后，保持真实物品分类优先展示。
+  - 无搜索条件的 Forge 模板下拉也随库顺序把空白模板放到普通物品之后。
+- 验证结果：
+  - `npm run test -- tests/itemLibraryAudit.test.ts` 通过：1 个测试文件，4 个用例。
+  - `npm run typecheck` 通过。
+
 ## [0.13.9] - 2026-04-29
 - 类型：功能增强 / 物品库 / Forge / 测试
 - 条目：为每个物品类别添加空白模板

@@ -41,4 +41,21 @@ describe('item library deep audit', () => {
     expect(labels).not.toContain('trade_good');
     expect(labels).not.toContain('trinket');
   });
+
+  it('sorts blank templates as the last top-level item library group', () => {
+    const groups = getLibraryGroups();
+
+    expect(groups.at(-1)?.label).toBe('空白模板');
+    expect(groups.at(-1)?.subGroups.map((subGroup) => subGroup.title)).toEqual([
+      '武器',
+      '护甲',
+      '冒险装备',
+      '工具',
+      '消耗品',
+      '财宝',
+      '容器',
+      '套组',
+      '其他',
+    ]);
+  });
 });

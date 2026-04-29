@@ -565,8 +565,8 @@ const validateRuntimeLibrary = (items: LibraryItem[]) => {
 };
 
 export const ITEM_LIBRARY: LibraryItem[] = [
-  ...BLANK_ITEM_TEMPLATES,
   ...STRUCTURED_MUNDANE_ITEM_LIBRARY.map(toRuntimeItem),
+  ...BLANK_ITEM_TEMPLATES,
 ];
 
 validateRuntimeLibrary(ITEM_LIBRARY);
