@@ -1,5 +1,32 @@
 # UPDATE_LOG
 
+## [0.14.10] - 2026-04-29
+- Type: Feature / Data Pack Maker / Editor Assignment / Storage / Tests
+- Item: Finalize maker editor assignment fields and local data pack save location.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `electron/main.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `src/composables/useForge.ts`
+  - `src/composables/useEnchanting.ts`
+- Completed changes:
+  - Project version grows from `0.14.9` to `0.14.10` because this is an actual maker/storage feature iteration.
+  - Removed the temporary drag diagnostic panel from the GM data pack maker UI.
+  - Maker-launched 铁匠台 and 附魔台 windows now show data pack assignment fields for normal group and encryption group.
+  - Data pack item edits keep writing back through the existing modal save override, including group and encryption group metadata.
+  - Third-party data packs now save under Electron `userData/storage/data-packs/imported/`; character saves use sibling `userData/storage/characters/`. Legacy `userData/data-packs/`, `userData/saves/`, and project `saves/` are copied forward when the new storage root is empty.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/inventoryDropUtils.test.ts tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts tests/enchantingModal.ui.test.ts` passed.
+  - `npm run build` passed and generated `0.14.10` installer/portable artifacts.
+
 ## [0.14.9] - 2026-04-29
 - Type: Feature / Data Pack Maker / UI / Drag Sorting / Forge-Enchant Reuse / Tests
 - Item: Rework maker item area into a grouped data pack content view.

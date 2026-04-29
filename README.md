@@ -19,7 +19,7 @@
 - 通过本地 JSON 文件保存角色数据，适合离线使用
 - 通过本地 JSONL 日志记录关键流程与错误，便于排查本机问题
 
-> 当前版本：`0.14.9`
+> 当前版本：`0.14.10`
 
 ---
 
@@ -31,9 +31,9 @@
 
 - **渲染进程**：Vue 3 应用，负责 UI、交互与状态管理
 - **主进程**：Electron，负责窗口创建、本地文件读写、导出与关闭前保存
-- **本地持久化**：角色以 `.json` 文件形式保存在 `saves/` 目录
+- **本地持久化**：角色以 `.json` 文件形式保存在 Electron `userData/storage/characters/` 目录
 - **本地日志**：运行日志以 `.jsonl` 文件形式保存在 Electron `userData/logs/` 目录，默认保留 7 天
-- **本地数据包**：默认数据包保留在源码/打包资源中，第三方 `.dndpack.json` 保存在 Electron `userData/data-packs/imported/`
+- **本地数据包**：默认数据包保留在源码/打包资源中，第三方 `.dndpack.json` 保存在 Electron `userData/storage/data-packs/imported/`，与角色卡共享 `storage/` 根目录但位于不同子文件夹
 
 这意味着：
 
@@ -147,9 +147,9 @@
 
 - 默认数据包 id 为 `dnd5e-default`，作为锁死静态数据保留在源码/打包资源中
 - 默认数据包允许启用 / 禁用和导出；导出文件 id 改为 `dnd5e-output`，后续视为第三方数据包副本
-- 第三方 `.dndpack.json` 数据包保存在 Electron `userData/data-packs/imported/`
+- 第三方 `.dndpack.json` 数据包保存在 Electron `userData/storage/data-packs/imported/`
 - 数据包管理界面支持第三方包导入、启用 / 禁用、排序、导出和删除
-- GM 数据包制作器会直接占据中间栏，支持新建元数据、编辑第三方包、导入其他包内容快照和从右侧库拖拽内容
+- GM 数据包制作器会直接占据中间栏，支持新建元数据、编辑第三方包、导入其他包内容快照、从右侧库拖拽内容，并可在铁匠台/附魔台编辑时指定普通分组与加密分组
 - 制作器支持物品/法术切换并同步右侧栏，可管理数据包内物品/法术普通一二级菜单
 - 外部包物品 / 法术使用 `packId:localId` 运行时命名空间，避免覆盖默认数据
 - 数据包 schema 已预留 `traits` 词条接口；词条编辑与法术编辑当前为占位，不参与规则计算

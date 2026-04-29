@@ -16,6 +16,10 @@ import type {
 } from '../types/Library';
 
 
+export interface ForgeEditorContext {
+  dataPackMaker?: boolean;
+}
+
 export interface ForgeDraftData {
   cost: {
     value: number;
@@ -26,6 +30,7 @@ export interface ForgeDraftData {
   subcategory?: string;
   displayCategory?: string;
   displaySubcategory?: string;
+  encryptionGroupId?: string;
   source?: string;
   englishName?: string;
   rarity?: string;
@@ -72,6 +77,7 @@ export interface ForgeDraftData {
 
 const draftItem = ref<InventoryItem | null>(null);
 const forgeMode = ref<'create' | 'edit'>('create');
+const editorContext = ref<ForgeEditorContext | null>(null);
 const saveOverride = ref<((item: InventoryItem) => void) | null>(null);
 const logger = createRendererLogger('composables/useForge');
 
@@ -180,6 +186,7 @@ export function useForge() {
         if (newItem) {
           draftItem.value = newItem;
           forgeMode.value = 'create';
+          editorContext.value = null;
           ensureCostStructure();
         } else {
           logger.error('Failed to create library item', undefined, { libraryId: parsedPayload.id });
@@ -194,6 +201,7 @@ export function useForge() {
               data: {},
             };
             forgeMode.value = 'create';
+            editorContext.value = null;
             ensureCostStructure();
           }
         }
@@ -202,6 +210,7 @@ export function useForge() {
         if (original) {
           draftItem.value = JSON.parse(JSON.stringify(original));
           forgeMode.value = 'edit';
+          editorContext.value = null;
           ensureCostStructure();
         } else {
           logger.error('Inventory item not found', undefined, { instanceId: parsedPayload.instanceId });
@@ -217,10 +226,12 @@ export function useForge() {
   const openForgeForItem = (
     item: InventoryItem,
     mode: 'create' | 'edit' = 'edit',
-    onSave?: (item: InventoryItem) => void
+    onSave?: (item: InventoryItem) => void,
+    context?: ForgeEditorContext
   ) => {
     draftItem.value = JSON.parse(JSON.stringify(item));
     forgeMode.value = mode;
+    editorContext.value = context ?? null;
     saveOverride.value = onSave ?? null;
     ensureCostStructure();
   };
@@ -250,6 +261,10 @@ export function useForge() {
     data.weight = draftItem.value.weight;
     data.description = draftItem.value.description ?? '';
     data.magic = draftItem.value.magic ?? { isMagic: false };
+    draftItem.value.magic = data.magic;
+    if (data.displayCategory === '') data.displayCategory = undefined;
+    if (data.displaySubcategory === '') data.displaySubcategory = undefined;
+    if (data.encryptionGroupId === '') data.encryptionGroupId = undefined;
   };
 
     // --- 动作：保存 ---
@@ -281,6 +296,7 @@ export function useForge() {
   // --- 动作：关闭 ---
   const close = () => {
     draftItem.value = null;
+    editorContext.value = null;
     saveOverride.value = null;
   };
 
@@ -288,6 +304,7 @@ export function useForge() {
     draftItem,
     draftData,
     forgeMode,
+    editorContext,
     openForgeForItem,
     handleDropData,
     updateItemType,

@@ -47,7 +47,6 @@ const importablePacks = computed(() =>
 const itemMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.items ?? []);
 const spellMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.spells ?? []);
 const encryptionGroups = computed(() => pack.value?.editorMeta?.encryptionGroups ?? []);
-const diagnosticEvents = computed(() => store.makerDragDiagnostics);
 const contentGroups = computed(() => {
   const groups: Array<{
     category: string;
@@ -158,7 +157,7 @@ const openForgeEditorForDraftItem = (item: LibraryItem) => {
   selectedItemIndex.value = items.value.findIndex(entry => entry.id === item.id);
   openForgeForItem(libraryItemToInventoryItem(item), 'edit', updated => {
     updateDraftItemFromInventory(item.id, updated);
-  });
+  }, { dataPackMaker: true });
 };
 
 const openEnchantEditorForDraftItem = (item: LibraryItem) => {
@@ -166,15 +165,11 @@ const openEnchantEditorForDraftItem = (item: LibraryItem) => {
   selectedItemIndex.value = items.value.findIndex(entry => entry.id === item.id);
   openEnchantingForItem(libraryItemToInventoryItem(item), 'button', updated => {
     updateDraftItemFromInventory(item.id, updated);
-  });
+  }, { dataPackMaker: true });
 };
 
 const importItemIntoWorkbench = async (runtimeItemId: string, target: 'forge' | 'enchant') => {
   store.clearMakerWorkbenchDropCandidate();
-  store.recordMakerDragDiagnostic('maker.import-start', 'info', 'Maker starts importing dropped item', {
-    runtimeItemId,
-    target,
-  });
   activeSection.value = 'items';
   activeItemWorkbench.value = target;
   const importedItem = store.importItemToDraft(runtimeItemId, target);
@@ -183,14 +178,6 @@ const importItemIntoWorkbench = async (runtimeItemId: string, target: 'forge' | 
     ? items.value.findIndex(item => item.id === importedItem.id)
     : -1;
   selectedItemIndex.value = importedIndex >= 0 ? importedIndex : Math.max(0, items.value.length - 1);
-  store.recordMakerDragDiagnostic(importedItem ? 'maker.select-item' : 'maker.select-fallback', importedItem ? 'ok' : 'warn', importedItem ? 'Maker selected imported item' : 'Maker did not get imported item back; selected fallback index', {
-    runtimeItemId,
-    target,
-    importedItemId: importedItem?.id,
-    selectedItemIndex: selectedItemIndex.value,
-    selectedItemId: selectedItem.value?.id,
-    itemCount: items.value.length,
-  });
   if (importedItem) {
     if (target === 'enchant') {
       openEnchantEditorForDraftItem(importedItem);
@@ -204,23 +191,13 @@ watch(
   () => store.makerItemWorkbenchRequest,
   request => {
     if (!request) return;
-    store.recordMakerDragDiagnostic('maker.request-received', 'info', 'Maker received right-sidebar workbench request', {
-      runtimeItemId: request.runtimeItemId,
-      target: request.target,
-      token: request.token,
-    });
     void importItemIntoWorkbench(request.runtimeItemId, request.target);
   }
 );
 
 const onWorkbenchDragEnter = (target: 'forge' | 'enchant') => {
   hoveringWorkbench.value = target;
-  store.recordMakerDragDiagnostic('maker.card-dragenter', 'info', 'Pointer entered center maker workbench card', {
-    target,
-  });
 };
-
-let lastDragOverDiagnosticAt = 0;
 
 const onWorkbenchDragOver = (event: DragEvent, target: 'forge' | 'enchant') => {
   event.preventDefault();
@@ -232,14 +209,6 @@ const onWorkbenchDragOver = (event: DragEvent, target: 'forge' | 'enchant') => {
   const payload = getDragPayloadFromEvent(event);
   if (payload?.type === 'library-item') {
     store.armMakerWorkbenchDropCandidate(payload.id, target, 'maker-card');
-  }
-  const now = Date.now();
-  if (now - lastDragOverDiagnosticAt > 800) {
-    lastDragOverDiagnosticAt = now;
-    store.recordMakerDragDiagnostic('maker.card-dragover', 'info', 'Center maker workbench dragover is firing', {
-      target,
-      dataTransferTypes: event.dataTransfer ? Array.from(event.dataTransfer.types) : [],
-    });
   }
 };
 
@@ -258,13 +227,6 @@ const activateItemWorkbenchFromDrop = async (event: DragEvent, target: 'forge' |
   event.stopPropagation();
   hoveringWorkbench.value = null;
   const payload = getDragPayloadFromEvent(event);
-  store.recordMakerDragDiagnostic('maker.activate-drop', payload?.type === 'library-item' ? 'ok' : 'warn', payload?.type === 'library-item' ? 'Maker resolved a library item payload' : 'Maker drop did not resolve a library item payload', {
-    target,
-    payloadType: payload?.type,
-    payloadId: payload?.type === 'library-item' ? payload.id : undefined,
-    instanceId: payload?.type === 'inventory-item' ? payload.instanceId : undefined,
-    dataTransferTypes: event.dataTransfer ? Array.from(event.dataTransfer.types) : [],
-  });
   if (payload?.type === 'library-item') {
     await importItemIntoWorkbench(payload.id, target);
   }
@@ -272,9 +234,6 @@ const activateItemWorkbenchFromDrop = async (event: DragEvent, target: 'forge' |
 
 const onItemDrop = async (event: MakerDragEvent, target: 'forge' | 'enchant') => {
   event.__makerWorkbenchDropHandled = true;
-  store.recordMakerDragDiagnostic('maker.card-drop', 'info', 'Center maker workbench card received drop', {
-    target,
-  });
   await activateItemWorkbenchFromDrop(event, target);
 };
 
@@ -298,14 +257,6 @@ const onDocumentDragOver = (event: DragEvent) => {
   if (payload?.type === 'library-item') {
     store.armMakerWorkbenchDropCandidate(payload.id, target, 'maker-document');
   }
-  const now = Date.now();
-  if (now - lastDragOverDiagnosticAt > 800) {
-    lastDragOverDiagnosticAt = now;
-    store.recordMakerDragDiagnostic('maker.document-dragover', 'info', 'Document capture dragover matched maker workbench', {
-      target,
-      dataTransferTypes: event.dataTransfer ? Array.from(event.dataTransfer.types) : [],
-    });
-  }
 };
 
 const onDocumentDrop = (event: MakerDragEvent) => {
@@ -313,9 +264,6 @@ const onDocumentDrop = (event: MakerDragEvent) => {
   const target = getWorkbenchTargetFromEvent(event);
   if (!target) return;
   event.__makerWorkbenchDropHandled = true;
-  store.recordMakerDragDiagnostic('maker.document-drop', 'info', 'Document capture drop matched maker workbench', {
-    target,
-  });
   void activateItemWorkbenchFromDrop(event, target);
 };
 
@@ -471,15 +419,6 @@ const saveLock = async () => {
   lockDraft.password = '';
 };
 
-const formatDiagnosticTime = (timestamp: string) =>
-  new Date(timestamp).toLocaleTimeString('zh-CN', { hour12: false });
-
-const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
-  if (!details) return [];
-  return Object.entries(details)
-    .filter(([, value]) => value !== undefined && value !== '')
-    .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`);
-};
 </script>
 
 <template>
@@ -519,35 +458,7 @@ const formatDiagnosticDetails = (details?: Record<string, unknown>) => {
       </button>
     </section>
 
-    <section class="diagnostic-panel">
-      <div class="diagnostic-head">
-        <div>
-          <strong>拖拽诊断面板</strong>
-          <span>记录 dragstart / dragover / drop / route / import / select 关键节点。</span>
-        </div>
-        <button type="button" class="small" @click="store.clearMakerDragDiagnostics">清空诊断</button>
-      </div>
-      <div v-if="diagnosticEvents.length === 0" class="diagnostic-empty">
-        暂无事件。请从右侧物品库拖拽物品到中间铁匠台/附魔台，或右侧底部铁匠台/附魔台。
-      </div>
-      <div v-else class="diagnostic-list">
-        <article
-          v-for="event in diagnosticEvents"
-          :key="event.id"
-          class="diagnostic-row"
-          :class="event.status"
-        >
-          <div class="diagnostic-main">
-            <span class="time">{{ formatDiagnosticTime(event.timestamp) }}</span>
-            <span class="step">{{ event.step }}</span>
-            <span class="message">{{ event.message }}</span>
-          </div>
-          <div v-if="formatDiagnosticDetails(event.details).length" class="diagnostic-details">
-            <span v-for="detail in formatDiagnosticDetails(event.details)" :key="detail">{{ detail }}</span>
-          </div>
-        </article>
-      </div>
-    </section>
+
 
     <div v-if="activeSection === 'items'" class="maker-grid maker-grid-content">
       <aside class="list-panel workbench-panel">
@@ -816,25 +727,6 @@ button.small { padding: 4px 7px; font-size: 0.78rem; }
   background: #eef4ef; border: 1px solid #d8ded8; border-radius: 12px; color: #536052; font-weight: 800;
   select { min-width: 260px; }
 }
-.diagnostic-panel {
-  margin-bottom: 14px; padding: 12px; border: 1px solid #31496a; border-radius: 14px;
-  background: linear-gradient(135deg, #101722, #172235); color: #dbe8ff;
-}
-.diagnostic-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
-.diagnostic-head div { display: flex; flex-direction: column; gap: 3px; }
-.diagnostic-head strong { font-size: 0.95rem; letter-spacing: 0.04em; }
-.diagnostic-head span, .diagnostic-empty { color: #9fb2d0; font-size: 0.82rem; }
-.diagnostic-list { display: grid; gap: 6px; max-height: 180px; overflow: auto; }
-.diagnostic-row { border-left: 4px solid #6d86aa; border-radius: 8px; padding: 7px 8px; background: rgba(255, 255, 255, 0.06); }
-.diagnostic-row.ok { border-left-color: #57c785; }
-.diagnostic-row.warn { border-left-color: #f5b84b; }
-.diagnostic-row.error { border-left-color: #f06b6b; }
-.diagnostic-main { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
-.diagnostic-main .time { color: #8fb0df; font-variant-numeric: tabular-nums; }
-.diagnostic-main .step { color: #f7df9a; font-weight: 800; }
-.diagnostic-main .message { color: #edf4ff; }
-.diagnostic-details { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-.diagnostic-details span { padding: 2px 6px; border-radius: 999px; background: rgba(126, 160, 214, 0.18); color: #bdd0ef; font-size: 0.76rem; }
 .maker-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; }
 .maker-grid-content { grid-template-columns: 330px minmax(0, 1fr); }
 .list-panel, .editor-panel, .empty-panel { background: white; border: 1px solid #d8ded8; border-radius: 14px; padding: 14px; }

@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-29 version iteration update:
+> Current baseline grows from `0.14.9` to `0.14.10`; this round removes the temporary maker diagnostics panel, adds data-pack group assignment fields to maker-launched item/enchant editors, and moves user data packs and character saves under one storage root.
+> 2026-04-29 data pack saving update:
+> The GM maker save flow now persists third-party packs under Electron `userData/storage/data-packs/imported/`; character saves live under `userData/storage/characters/`. Maker-launched 铁匠台 and 附魔台 modals expose 普通分组 and 加密分组 assignment fields, while the visual diagnostic panel has been removed.
+
+> 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.8` to `0.14.9`; this round reworks the GM maker item area into a grouped data pack content view with drag sorting and existing DIY/enchant editor reuse.
 > 2026-04-29 maker content UI update:
 > The maker now displays data pack items grouped by normal menu fields, supports item/group drag ordering, routes DIY item edits through the existing item window, routes enchant edits through the existing enchant window, and renames visible 铁匠铺 labels to 铁匠台.

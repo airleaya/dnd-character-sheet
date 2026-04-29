@@ -31,11 +31,14 @@ const createErrorResult = (error: unknown): IpcFailureResult => ({
 const logger = createMainLogger('electron/main');
 
 const getLegacySavesDir = (): string => path.join(process.cwd(), 'saves');
+const getLegacyUserDataSavesDir = (): string => path.join(getUserDataRoot(), 'saves');
+const getLegacyUserDataDataPacksRoot = (): string => path.join(getUserDataRoot(), 'data-packs');
 const getLegacyWindowConfigPath = (): string => path.join(process.cwd(), 'window-config.json');
 const getUserDataRoot = (): string => app.getPath('userData');
-const getSavesDir = (): string => path.join(getUserDataRoot(), 'saves');
+const getStorageRoot = (): string => path.join(getUserDataRoot(), 'storage');
+const getSavesDir = (): string => path.join(getStorageRoot(), 'characters');
 const getWindowConfigPath = (): string => path.join(getUserDataRoot(), 'window-config.json');
-const getDataPacksRoot = (): string => path.join(getUserDataRoot(), 'data-packs');
+const getDataPacksRoot = (): string => path.join(getStorageRoot(), 'data-packs');
 const getImportedDataPacksDir = (): string => path.join(getDataPacksRoot(), 'imported');
 const getDataPackSettingsPath = (): string => path.join(getDataPacksRoot(), 'data-pack-settings.json');
 const getLocalEditorIdPath = (): string => path.join(getDataPacksRoot(), 'local-editor-id');
@@ -49,6 +52,11 @@ const ensureDirectoryExists = (dirPath: string): void => {
 const directoryHasJsonFiles = (dirPath: string): boolean => {
   if (!fs.existsSync(dirPath)) return false;
   return fs.readdirSync(dirPath).some(file => file.endsWith('.json'));
+};
+
+const directoryHasDataPackFiles = (dirPath: string): boolean => {
+  const importedDir = path.join(dirPath, 'imported');
+  return fs.existsSync(importedDir) && fs.readdirSync(importedDir).some(file => file.endsWith(DATA_PACK_EXTENSION));
 };
 
 const copyDirectoryContents = (sourceDir: string, targetDir: string): void => {
@@ -79,9 +87,18 @@ const migrateLegacyStorageIfNeeded = (): void => {
   const legacyWindowConfigPath = getLegacyWindowConfigPath();
 
   ensureDirectoryExists(savesDir);
+  ensureDirectoryExists(getImportedDataPacksDir());
 
-  if (!directoryHasJsonFiles(savesDir) && directoryHasJsonFiles(legacySavesDir)) {
-    copyDirectoryContents(legacySavesDir, savesDir);
+  if (!directoryHasJsonFiles(savesDir)) {
+    if (directoryHasJsonFiles(getLegacyUserDataSavesDir())) {
+      copyDirectoryContents(getLegacyUserDataSavesDir(), savesDir);
+    } else if (directoryHasJsonFiles(legacySavesDir)) {
+      copyDirectoryContents(legacySavesDir, savesDir);
+    }
+  }
+
+  if (!directoryHasDataPackFiles(getDataPacksRoot()) && directoryHasDataPackFiles(getLegacyUserDataDataPacksRoot())) {
+    copyDirectoryContents(getLegacyUserDataDataPacksRoot(), getDataPacksRoot());
   }
 
   if (!fs.existsSync(windowConfigPath) && fs.existsSync(legacyWindowConfigPath)) {
@@ -478,10 +495,8 @@ app.whenReady().then(() => {
   ipcMain.handle('load-all-characters', async (): Promise<IpcResult<Character[]>> => {
     try {
       const preferredSavesDir = getSavesDir();
-      const fallbackSavesDir = getLegacySavesDir();
-      const activeSavesDir = directoryHasJsonFiles(preferredSavesDir)
-        ? preferredSavesDir
-        : fallbackSavesDir;
+      const activeSavesDir = [preferredSavesDir, getLegacyUserDataSavesDir(), getLegacySavesDir()]
+        .find(directoryHasJsonFiles) ?? preferredSavesDir;
 
       ensureDirectoryExists(preferredSavesDir);
       const files = fs.existsSync(activeSavesDir)

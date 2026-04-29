@@ -25,6 +25,7 @@ const {
   draftItem,
   draftData,
   forgeMode,
+  editorContext,
   save,
   close,
   updateItemType,
@@ -97,6 +98,30 @@ const templateOptions = computed(() => {
 
 const selectedTemplateName = computed(() => getRuntimeLibraryItemById(draftItem.value?.templateId ?? '')?.name ?? '');
 
+const isDataPackMakerEditor = computed(() => editorContext.value?.dataPackMaker === true);
+const dataPackMenuGroups = computed(() => dataPackStore.activeDraftPack?.editorMeta?.menuGroups?.items ?? []);
+const dataPackEncryptionGroups = computed(() => dataPackStore.activeDraftPack?.editorMeta?.encryptionGroups ?? []);
+const groupKeySeparator = '\u001f';
+const normalGroupOptions = computed(() =>
+  dataPackMenuGroups.value.flatMap(group => {
+    const children = group.children?.length ? group.children : [{ id: `${group.id}__self`, name: group.name }];
+    return children.map(child => ({
+      key: `${group.name}${groupKeySeparator}${child.name}`,
+      label: `${group.name} / ${child.name}`,
+      category: group.name,
+      subcategory: child.name,
+    }));
+  })
+);
+const selectedNormalGroupKey = computed({
+  get: () => `${draftData.value.displayCategory ?? ''}${groupKeySeparator}${draftData.value.displaySubcategory ?? ''}`,
+  set: (value: string) => {
+    const option = normalGroupOptions.value.find(entry => entry.key === value);
+    draftData.value.displayCategory = option?.category || undefined;
+    draftData.value.displaySubcategory = option?.subcategory || undefined;
+  },
+});
+
 const tagsText = computed({
   get: () => (Array.isArray(draftData.value.tags) ? draftData.value.tags.join(', ') : ''),
   set: (value: string) => {
@@ -159,6 +184,13 @@ const safeClose = async () => {
   close(); // 执行真正的关闭
 };
 
+const openEnchantFromForge = () => {
+  if (!draftItem.value) return;
+  openEnchantingForItem(draftItem.value, 'button', updated => {
+    draftItem.value = updated;
+  }, editorContext.value ?? undefined);
+};
+
 const onBackdropMousedown = () => {
   isMouseDownOnBackdrop.value = true;
 };
@@ -177,20 +209,20 @@ const onBackdropMouseup = async () => {
   <Teleport to="body">
     <Transition name="modal-fade">
       <div class="modal-backdrop" v-if="draftItem" @mousedown.self="onBackdropMousedown" @mouseup.self="onBackdropMouseup">
-        
+
         <div class="modal-content">
-          
+
           <div class="modal-header">
             <div class="title-group">
               <span class="emoji">🔨</span>
               <h3>{{ forgeMode === 'create' ? '自定义物品' : '改造物品' }}</h3>
             </div>
-            <button v-if="draftItem" class="btn-enchant" @click="openEnchantingForItem(draftItem, 'button')">✨ 附魔制作</button>
+            <button v-if="draftItem" class="btn-enchant" @click="openEnchantFromForge">✨ 附魔制作</button>
             <button class="btn-close" @click="safeClose" title="关闭 (Esc)">×</button>
           </div>
 
           <div class="modal-body custom-scrollbar">
-            
+
             <div class="form-section highlight">
               <div class="form-row main-name">
                 <label>物品名称</label>
@@ -242,6 +274,32 @@ const onBackdropMouseup = async () => {
                       <option v-for="unit in currencyOptions" :key="unit" :value="unit">{{ unit }}</option>
                     </select>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="isDataPackMakerEditor" class="form-section maker-assignment">
+              <div class="section-header">
+                <h4>数据包归档</h4>
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label>分组</label>
+                  <select v-model="selectedNormalGroupKey" class="input-std">
+                    <option :value="groupKeySeparator">未分组</option>
+                    <option v-for="option in normalGroupOptions" :key="option.key" :value="option.key">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>加密分组</label>
+                  <select v-model="draftData.encryptionGroupId" class="input-std">
+                    <option :value="undefined">公开 / 不加入加密分组</option>
+                    <option v-for="group in dataPackEncryptionGroups" :key="group.id" :value="group.id">
+                      {{ group.name }}
+                    </option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -487,7 +545,7 @@ const onBackdropMouseup = async () => {
 </template>
 
 <style scoped lang="scss">
-/* 1. 背景遮罩层 
+/* 1. 背景遮罩层
   必须 fixed 铺满全屏，负责模糊背景和点击关闭
 */
 .modal-backdrop {
@@ -499,7 +557,7 @@ const onBackdropMouseup = async () => {
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   z-index: 2000;
-  
+
   /* Flex 布局确保内容居中 */
   display: flex;
   justify-content: center;
@@ -532,7 +590,7 @@ const onBackdropMouseup = async () => {
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  
+
   .title-group {
     display: flex; align-items: center; gap: 12px;
     h3 { margin: 0; font-size: 1.2rem; letter-spacing: 0.5px; font-weight: 600; }
@@ -553,7 +611,7 @@ const onBackdropMouseup = async () => {
       color: #fff1c4;
     }
   }
-  .btn-close { 
+  .btn-close {
     background: none; border: none; color: #bdc3c7; font-size: 2rem; line-height: 1; cursor: pointer; padding: 0;
     &:hover { color: #fff; }
   }
@@ -571,24 +629,31 @@ const onBackdropMouseup = async () => {
 /* 表单区域通用样式 */
 .form-section {
   display: flex; flex-direction: column; gap: 8px;
-  
+
   &.highlight {
     background: #f1f2f6;
     padding: 14px;
     border-radius: 8px;
     border: 1px solid #e1e2e6;
   }
-  
+
+  &.maker-assignment {
+    background: #eef4ef;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #cfe0d1;
+  }
+
   &.type-specific {
     position: relative;
     padding: 14px;
     border-radius: 8px;
     background: #fff8f3;
     border: 1px solid #ffeaa7;
-    
+
     &.weapon { border-left: 4px solid #d35400; }
     &.armor { border-left: 4px solid #2980b9; background: #f0f8ff; border-color: #d6eaf8; }
-    
+
     h4 { margin: 0 0 4px 0; color: #555; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.8px; }
   }
 
@@ -610,7 +675,7 @@ const onBackdropMouseup = async () => {
   font-size: 1rem;
   transition: all 0.2s;
   background: #fff;
-  
+
   &:focus {
     border-color: #d35400;
     outline: none;
@@ -628,7 +693,7 @@ const onBackdropMouseup = async () => {
   padding: 5px 0;
   background: transparent;
   width: 100%;
-  
+
   &:focus {
     border-bottom-color: #d35400;
     box-shadow: none;
@@ -648,7 +713,7 @@ const onBackdropMouseup = async () => {
     flex-direction: column; /* 确保 Label 永远在 Input 上方 */
     gap: 5px;
   }
-  
+
   /* ⚡️ 修复宽度问题：缩短数字输入框 */
   /* 只影响第一层级的 input，不影响 text 等其他类型 */
   .field input[type="number"] {
@@ -661,14 +726,14 @@ const onBackdropMouseup = async () => {
 .cost-input-group {
   display: flex;
   gap: 5px;
-  
-  input { 
+
+  input {
     /* 缩短价值输入框 */
-    min-width: 60px; 
+    min-width: 60px;
     max-width: 80px; /* 特别限制价值输入框的宽度 */
   }
-  select { 
-    width: 70px; flex-shrink: 0; cursor: pointer; background-color: #f8f9fa; 
+  select {
+    width: 70px; flex-shrink: 0; cursor: pointer; background-color: #f8f9fa;
   }
 }
 
@@ -749,8 +814,8 @@ const onBackdropMouseup = async () => {
 .tags-container {
   display: flex; flex-wrap: wrap; gap: 8px;
   min-height: 34px; align-items: center;
-  .tag { 
-    background: #e9ecef; color: #2c3e50; padding: 4px 10px; 
+  .tag {
+    background: #e9ecef; color: #2c3e50; padding: 4px 10px;
     border-radius: 15px; font-size: 0.85rem; font-weight: 500;
   }
   .hint { color: #bdc3c7; font-style: italic; font-size: 0.9rem; }
@@ -766,7 +831,7 @@ const onBackdropMouseup = async () => {
   justify-content: flex-end;
   gap: 12px;
   flex-shrink: 0;
-  
+
   button {
     padding: 8px 18px;
     border-radius: 6px;
@@ -775,16 +840,16 @@ const onBackdropMouseup = async () => {
     border: none;
     font-size: 0.95rem;
     transition: transform 0.1s, box-shadow 0.2s;
-    
+
     &:active { transform: translateY(1px); }
   }
-  
-  .btn-cancel { 
-    background: #fff; border: 1px solid #ced4da; color: #495057; 
+
+  .btn-cancel {
+    background: #fff; border: 1px solid #ced4da; color: #495057;
     &:hover { background: #f1f3f5; }
   }
-  
-  .btn-save { 
+
+  .btn-save {
     background: #d35400; color: white; box-shadow: 0 4px 6px rgba(211, 84, 0, 0.2);
     &:hover { background: #e67e22; box-shadow: 0 6px 8px rgba(211, 84, 0, 0.3); }
   }

@@ -14,10 +14,15 @@ import { generateUUID } from '../utils/idGenerator';
 
 type EnchantingEntrySource = 'button' | 'drop';
 
+export interface EnchantingEditorContext {
+  dataPackMaker?: boolean;
+}
+
 const isEnchantingOpen = ref(false);
 const entrySource = ref<EnchantingEntrySource>('button');
 const targetPayload = ref<ReturnType<typeof parseDragPayload> | null>(null);
 const targetItem = ref<InventoryItem | null>(null);
+const editorContext = ref<EnchantingEditorContext | null>(null);
 const saveOverride = ref<((item: InventoryItem) => void) | null>(null);
 const logger = createRendererLogger('composables/useEnchanting');
 
@@ -35,9 +40,11 @@ export function useEnchanting() {
   const openEnchantingForItem = (
     item: InventoryItem,
     source: EnchantingEntrySource = 'button',
-    onSave?: (item: InventoryItem) => void
+    onSave?: (item: InventoryItem) => void,
+    context?: EnchantingEditorContext
   ) => {
     targetItem.value = item;
+    editorContext.value = context ?? null;
     saveOverride.value = onSave ?? null;
     targetPayload.value = {
       type: 'inventory-item',
@@ -55,6 +62,7 @@ export function useEnchanting() {
     }
 
     targetPayload.value = payload;
+    editorContext.value = null;
     targetItem.value =
       payload.type === 'inventory-item'
         ? activeSheet.character?.inventory.find(item => item.instanceId === payload.instanceId) ?? null
@@ -69,6 +77,7 @@ export function useEnchanting() {
     isEnchantingOpen.value = false;
     targetPayload.value = null;
     targetItem.value = null;
+    editorContext.value = null;
     saveOverride.value = null;
   };
 
@@ -145,6 +154,7 @@ export function useEnchanting() {
     entrySource,
     targetPayload,
     targetItem,
+    editorContext,
     openEnchanting,
     openEnchantingForItem,
     openEnchantingWithDropData,

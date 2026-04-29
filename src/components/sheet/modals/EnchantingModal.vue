@@ -15,6 +15,11 @@ import { formatMagicItemName, resolveMagicTraitsForItem } from '../../../utils/m
 import type { ItemMagicTrait, ItemRarity } from '../../../types/Library';
 
 type EnchantTab = 'basic' | 'traits' | 'create' | 'manage';
+type DataPackAssignmentData = {
+  displayCategory?: string;
+  displaySubcategory?: string;
+  encryptionGroupId?: string;
+};
 
 const store = useActiveSheetStore();
 const dataPackStore = useDataPackStore();
@@ -23,6 +28,7 @@ const {
   entrySource,
   targetPayload,
   targetItem,
+  editorContext,
   saveEnchanting,
   addCustomTrait,
   deleteCustomTrait,
@@ -31,6 +37,39 @@ const {
 } = useEnchanting();
 
 const activeTab = ref<EnchantTab>('basic');
+
+const isDataPackMakerEditor = computed(() => editorContext.value?.dataPackMaker === true);
+const dataPackMenuGroups = computed(() => dataPackStore.activeDraftPack?.editorMeta?.menuGroups?.items ?? []);
+const dataPackEncryptionGroups = computed(() => dataPackStore.activeDraftPack?.editorMeta?.encryptionGroups ?? []);
+const groupKeySeparator = '\u001f';
+const targetData = computed(() => targetItem.value?.data as DataPackAssignmentData | undefined);
+const normalGroupOptions = computed(() =>
+  dataPackMenuGroups.value.flatMap(group => {
+    const children = group.children?.length ? group.children : [{ id: `${group.id}__self`, name: group.name }];
+    return children.map(child => ({
+      key: `${group.name}${groupKeySeparator}${child.name}`,
+      label: `${group.name} / ${child.name}`,
+      category: group.name,
+      subcategory: child.name,
+    }));
+  })
+);
+const selectedNormalGroupKey = computed({
+  get: () => `${targetData.value?.displayCategory ?? ''}${groupKeySeparator}${targetData.value?.displaySubcategory ?? ''}`,
+  set: (value: string) => {
+    if (!targetData.value) return;
+    const option = normalGroupOptions.value.find(entry => entry.key === value);
+    targetData.value.displayCategory = option?.category || undefined;
+    targetData.value.displaySubcategory = option?.subcategory || undefined;
+  },
+});
+const selectedEncryptionGroupId = computed({
+  get: () => targetData.value?.encryptionGroupId,
+  set: (value: string | undefined) => {
+    if (!targetData.value) return;
+    targetData.value.encryptionGroupId = value || undefined;
+  },
+});
 const traitKeyword = ref('');
 const spellKeyword = ref('');
 
@@ -260,7 +299,36 @@ const saveNewCustomTrait = () => {
             </aside>
 
             <main class="enchant-content">
+              <section v-if="targetItem && isDataPackMakerEditor" class="form-section maker-assignment">
+                <div class="section-title">
+                  <h4>数据包归档</h4>
+                  <p>从数据包编辑器进入时，可直接指定普通分组和加密分组。</p>
+                </div>
+                <div class="field-grid">
+                  <label>
+                    <span>分组</span>
+                    <select v-model="selectedNormalGroupKey">
+                      <option :value="groupKeySeparator">未分组</option>
+                      <option v-for="option in normalGroupOptions" :key="option.key" :value="option.key">
+                        {{ option.label }}
+                      </option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>加密分组</span>
+                    <select v-model="selectedEncryptionGroupId">
+                      <option :value="undefined">公开 / 不加入加密分组</option>
+                      <option v-for="group in dataPackEncryptionGroups" :key="group.id" :value="group.id">
+                        {{ group.name }}
+                      </option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+
               <div class="source-line">
+
                 来源：{{ entrySource === 'drop' ? '右侧栏拖拽目标区' : '自定义物品按钮' }}
                 <template v-if="targetPayload">
                   · 目标：{{ targetPayload.type === 'inventory-item' ? targetPayload.instanceId : targetPayload.id }}
@@ -770,6 +838,10 @@ const saveNewCustomTrait = () => {
 .enchant-content {
   padding: 16px 18px 18px;
   overflow-y: auto;
+}
+
+.maker-assignment {
+  margin-bottom: 12px;
 }
 
 .source-line {
