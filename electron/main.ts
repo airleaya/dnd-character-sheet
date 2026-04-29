@@ -33,9 +33,12 @@ const logger = createMainLogger('electron/main');
 const getLegacySavesDir = (): string => path.join(process.cwd(), 'saves');
 const getLegacyUserDataSavesDir = (): string => path.join(getUserDataRoot(), 'saves');
 const getLegacyUserDataDataPacksRoot = (): string => path.join(getUserDataRoot(), 'data-packs');
+const getLegacyStorageRoot = (): string => path.join(getUserDataRoot(), 'storage');
+const getLegacyStorageSavesDir = (): string => path.join(getLegacyStorageRoot(), 'characters');
+const getLegacyStorageDataPacksRoot = (): string => path.join(getLegacyStorageRoot(), 'data-packs');
 const getLegacyWindowConfigPath = (): string => path.join(process.cwd(), 'window-config.json');
 const getUserDataRoot = (): string => app.getPath('userData');
-const getStorageRoot = (): string => path.join(getUserDataRoot(), 'storage');
+const getStorageRoot = (): string => path.join(getUserDataRoot(), 'dnd_5e_characters');
 const getSavesDir = (): string => path.join(getStorageRoot(), 'characters');
 const getWindowConfigPath = (): string => path.join(getUserDataRoot(), 'window-config.json');
 const getDataPacksRoot = (): string => path.join(getStorageRoot(), 'data-packs');
@@ -90,15 +93,21 @@ const migrateLegacyStorageIfNeeded = (): void => {
   ensureDirectoryExists(getImportedDataPacksDir());
 
   if (!directoryHasJsonFiles(savesDir)) {
-    if (directoryHasJsonFiles(getLegacyUserDataSavesDir())) {
+    if (directoryHasJsonFiles(getLegacyStorageSavesDir())) {
+      copyDirectoryContents(getLegacyStorageSavesDir(), savesDir);
+    } else if (directoryHasJsonFiles(getLegacyUserDataSavesDir())) {
       copyDirectoryContents(getLegacyUserDataSavesDir(), savesDir);
     } else if (directoryHasJsonFiles(legacySavesDir)) {
       copyDirectoryContents(legacySavesDir, savesDir);
     }
   }
 
-  if (!directoryHasDataPackFiles(getDataPacksRoot()) && directoryHasDataPackFiles(getLegacyUserDataDataPacksRoot())) {
-    copyDirectoryContents(getLegacyUserDataDataPacksRoot(), getDataPacksRoot());
+  if (!directoryHasDataPackFiles(getDataPacksRoot())) {
+    if (directoryHasDataPackFiles(getLegacyStorageDataPacksRoot())) {
+      copyDirectoryContents(getLegacyStorageDataPacksRoot(), getDataPacksRoot());
+    } else if (directoryHasDataPackFiles(getLegacyUserDataDataPacksRoot())) {
+      copyDirectoryContents(getLegacyUserDataDataPacksRoot(), getDataPacksRoot());
+    }
   }
 
   if (!fs.existsSync(windowConfigPath) && fs.existsSync(legacyWindowConfigPath)) {
@@ -495,7 +504,7 @@ app.whenReady().then(() => {
   ipcMain.handle('load-all-characters', async (): Promise<IpcResult<Character[]>> => {
     try {
       const preferredSavesDir = getSavesDir();
-      const activeSavesDir = [preferredSavesDir, getLegacyUserDataSavesDir(), getLegacySavesDir()]
+      const activeSavesDir = [preferredSavesDir, getLegacyStorageSavesDir(), getLegacyUserDataSavesDir(), getLegacySavesDir()]
         .find(directoryHasJsonFiles) ?? preferredSavesDir;
 
       ensureDirectoryExists(preferredSavesDir);

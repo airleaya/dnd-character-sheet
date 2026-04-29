@@ -69,7 +69,7 @@ const createPack = async () => {
           <button type="button" class="primary-btn" :disabled="store.isBusy" @click="store.importPack">
             导入数据包
           </button>
-          <span class="hint">第三方包保存在本机 userData/storage/data-packs/imported；角色卡保存在同级 storage/characters。</span>
+          <span class="hint">第三方包保存在本机 userData/dnd_5e_characters/data-packs/imported；角色卡保存在同级 dnd_5e_characters/characters。</span>
         </div>
 
         <form v-if="showCreateForm" class="create-form" @submit.prevent="createPack">

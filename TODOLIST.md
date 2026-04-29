@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-29 version iteration update:
+> Current baseline grows from `0.14.10` to `0.14.11`; this round adds the shared `dnd_5e_characters` parent directory for local character and data-pack storage.
+> 2026-04-29 storage parent update:
+> Character saves now live under Electron `userData/dnd_5e_characters/characters/`, while third-party data packs live under `userData/dnd_5e_characters/data-packs/imported/`. Existing `userData/storage/*`, `userData/saves`, `userData/data-packs`, and project `saves/` paths remain migration sources.
+
+> 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.9` to `0.14.10`; this round removes the temporary maker diagnostics panel, adds data-pack group assignment fields to maker-launched item/enchant editors, and moves user data packs and character saves under one storage root.
 > 2026-04-29 data pack saving update:
 > The GM maker save flow now persists third-party packs under Electron `userData/storage/data-packs/imported/`; character saves live under `userData/storage/characters/`. Maker-launched 铁匠台 and 附魔台 modals expose 普通分组 and 加密分组 assignment fields, while the visual diagnostic panel has been removed.

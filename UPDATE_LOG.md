@@ -1,5 +1,26 @@
 # UPDATE_LOG
 
+## [0.14.11] - 2026-04-29
+- Type: Feature / Storage / Data Pack Maker / Migration / Tests
+- Item: Add shared `dnd_5e_characters` parent folder for local saved data.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `electron/main.ts`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+- Completed changes:
+  - Project version grows from `0.14.10` to `0.14.11` for the storage-path adjustment.
+  - Local character saves now use Electron `userData/dnd_5e_characters/characters/`.
+  - Third-party data packs now use Electron `userData/dnd_5e_characters/data-packs/imported/`.
+  - Startup migration now checks the previous `userData/storage/characters/` and `userData/storage/data-packs/` locations before older legacy paths.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts` passed.
+  - `npm run build` passed and generated `0.14.11` installer/portable artifacts.
+
 ## [0.14.10] - 2026-04-29
 - Type: Feature / Data Pack Maker / Editor Assignment / Storage / Tests
 - Item: Finalize maker editor assignment fields and local data pack save location.
