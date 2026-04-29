@@ -95,5 +95,23 @@ describe('data pack passphrase unlock store', () => {
 
     expect(store.itemLibraryItems.map(item => item.id)).toEqual(['campaign:torch', 'campaign:secret-blade']);
   });
-});
 
+  it('can relock one pack or clear all runtime unlocks without changing pack data', () => {
+    const store = useDataPackStore();
+    store.packs = [createPack()];
+    store.settings = { enabledPackIds: ['campaign'], packOrder: ['campaign'] };
+
+    store.unlockByPassphrase('dragon');
+    expect(store.getUnlockedGroupCount('campaign')).toBe(1);
+    expect(store.itemLibraryItems.map(item => item.id)).toContain('campaign:secret-blade');
+
+    expect(store.clearPackUnlocks('campaign')).toBe(1);
+    expect(store.getUnlockedGroupCount('campaign')).toBe(0);
+    expect(store.itemLibraryItems.map(item => item.id)).toEqual(['campaign:torch']);
+
+    store.unlockByPassphrase('dragon');
+    expect(store.clearAllUnlocks()).toEqual({ clearedPackCount: 1, clearedGroupCount: 1 });
+    expect(store.itemLibraryItems.map(item => item.id)).toEqual(['campaign:torch']);
+    expect(store.packs[0]?.items.map(item => item.id)).toEqual(['campaign:torch', 'campaign:secret-blade']);
+  });
+});

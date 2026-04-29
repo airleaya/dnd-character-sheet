@@ -38,6 +38,10 @@ const unlockPack = (packId: string) => {
   unlockResults.value = store.unlockByPassphrase(unlockPassphrases[packId] ?? '');
   unlockPassphrases[packId] = '';
 };
+const relockPack = (packId: string) => {
+  store.clearPackUnlocks(packId);
+  unlockResults.value = [];
+};
 const createPack = async () => {
   await store.createDraftPack({
     schemaVersion: 1,
@@ -128,6 +132,14 @@ const createPack = async () => {
               >
                 <input v-model="unlockPassphrases[pack.id]" type="password" autocomplete="off" placeholder="输入 GM 口令" />
                 <button type="submit" :disabled="!unlockPassphrases[pack.id]?.trim()">解锁非公开内容</button>
+                <button
+                  v-if="store.getUnlockedGroupCount(pack.id) > 0"
+                  type="button"
+                  class="secondary"
+                  @click="relockPack(pack.id)"
+                >
+                  重新锁定本包
+                </button>
               </form>
             </div>
 
@@ -348,6 +360,12 @@ const createPack = async () => {
   color: #c8e6ff;
   border-radius: 8px;
   padding: 7px 10px;
+}
+
+.unlock-inline button.secondary {
+  border-color: rgba(236, 112, 99, 0.35);
+  background: rgba(236, 112, 99, 0.1);
+  color: #ffc5be;
 }
 
 .unlock-result-bar {

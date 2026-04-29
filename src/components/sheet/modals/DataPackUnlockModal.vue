@@ -13,10 +13,17 @@ const emit = defineEmits<{
 const store = useDataPackStore();
 const passphrase = ref('');
 const results = ref<ReturnType<typeof store.unlockByPassphrase>>([]);
+const clearResult = ref<{ clearedPackCount: number; clearedGroupCount: number } | null>(null);
 
 const submit = () => {
   results.value = store.unlockByPassphrase(passphrase.value);
+  clearResult.value = null;
   passphrase.value = '';
+};
+
+const clearAll = () => {
+  clearResult.value = store.clearAllUnlocks();
+  results.value = [];
 };
 </script>
 
@@ -39,6 +46,9 @@ const submit = () => {
             <input v-model="passphrase" type="password" autocomplete="off" placeholder="输入口令" />
           </label>
           <button type="submit" :disabled="!passphrase.trim()">解锁</button>
+          <button type="button" class="clear-btn" :disabled="Object.keys(store.unlockedGroupIdsByPack).length === 0" @click="clearAll">
+            清空本次解锁
+          </button>
         </form>
 
         <div v-if="results.length > 0" class="result-list">
@@ -52,6 +62,13 @@ const submit = () => {
               法术 {{ result.unlockedSpellCount }}，
               词条 {{ result.unlockedTraitCount }}
             </span>
+          </article>
+        </div>
+
+        <div v-else-if="clearResult" class="result-list">
+          <article class="result-card warning">
+            <strong>已重新锁定</strong>
+            <span>清空 {{ clearResult.clearedPackCount }} 个数据包、{{ clearResult.clearedGroupCount }} 个口令组的本次解锁状态。</span>
           </article>
         </div>
 
@@ -108,7 +125,7 @@ const submit = () => {
 
 .unlock-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: end;
   padding: 18px 20px;
@@ -130,6 +147,11 @@ const submit = () => {
     cursor: pointer;
   }
   button:disabled { opacity: 0.42; cursor: not-allowed; }
+  .clear-btn {
+    border-color: rgba(236, 112, 99, 0.4);
+    background: rgba(236, 112, 99, 0.11);
+    color: #ffc5be;
+  }
 }
 
 .result-list {
@@ -151,6 +173,11 @@ const submit = () => {
   span { color: #b7c4ce; font-size: 0.82rem; }
 }
 
+.result-card.warning {
+  border-color: rgba(236, 112, 99, 0.25);
+  background: rgba(236, 112, 99, 0.08);
+}
+
 .hint {
   margin: 0;
   padding: 0 20px 18px;
@@ -163,4 +190,3 @@ const submit = () => {
 .modal-fade-enter-from,
 .modal-fade-leave-to { opacity: 0; }
 </style>
-

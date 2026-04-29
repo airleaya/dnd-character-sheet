@@ -1,5 +1,30 @@
 # UPDATE_LOG
 
+## [0.14.15] - 2026-04-30
+- Type: Feature / Data Pack Unlock / Session Relock / UI / Tests / Logging
+- Item: Add runtime relock controls for passphrase-unlocked data-pack content.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `src/components/sheet/modals/DataPackUnlockModal.vue`
+  - `tests/dataPackStoreUnlock.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.14` to `0.14.15` because this adds runtime unlock-state controls.
+  - Data Pack Manager now shows a per-pack relock action whenever the pack has session-unlocked passphrase groups.
+  - The `Shift + K + L` passphrase window now includes a session-wide "??????" action and reports how many packs/groups were relocked.
+  - Store-level unlock state can now be cleared per pack or globally without mutating the underlying data-pack files.
+  - Logging records relock counts and pack ids only; no passphrases or raw data-pack content are written.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/dataPackStoreUnlock.test.ts tests/dataPackMakerPanel.ui.test.ts` passed during focused verification.
+  - `npm run test` passed: 35 files / 159 tests.
+  - `npm run build` passed and generated `0.14.15` installer/portable artifacts.
+
 ## [0.14.14] - 2026-04-30
 - Type: Feature / Data Pack Maker / Passphrase Groups / Visibility Metadata / Tests / Logging
 - Item: Make passphrase groups editable in the GM maker and write explicit visibility metadata from maker editors.

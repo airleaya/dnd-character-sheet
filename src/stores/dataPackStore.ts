@@ -330,6 +330,39 @@ export const useDataPackStore = defineStore('dataPack', () => {
     return results;
   };
 
+  const clearPackUnlocks = (packId: string) => {
+    const existing = unlockedGroupIdsByPack.value[packId] ?? [];
+    if (existing.length === 0) return 0;
+    const next = { ...unlockedGroupIdsByPack.value };
+    delete next[packId];
+    unlockedGroupIdsByPack.value = next;
+    syncRuntimePacks();
+    logger.info('Data pack runtime unlocks cleared', {
+      packId,
+      clearedGroupCount: existing.length,
+    });
+    feedback.showToast('已重新锁定该数据包的非公开内容', 'success', 2800);
+    return existing.length;
+  };
+
+  const clearAllUnlocks = () => {
+    const clearedPackCount = Object.keys(unlockedGroupIdsByPack.value).length;
+    const clearedGroupCount = Object.values(unlockedGroupIdsByPack.value)
+      .reduce((sum, groupIds) => sum + groupIds.length, 0);
+    if (clearedGroupCount === 0) return { clearedPackCount: 0, clearedGroupCount: 0 };
+    unlockedGroupIdsByPack.value = {};
+    syncRuntimePacks();
+    logger.info('All data pack runtime unlocks cleared', {
+      clearedPackCount,
+      clearedGroupCount,
+    });
+    feedback.showToast('已清空本次运行的全部数据包解锁状态', 'success', 3200);
+    return { clearedPackCount, clearedGroupCount };
+  };
+
+  const getUnlockedGroupCount = (packId: string) =>
+    unlockedGroupIdsByPack.value[packId]?.length ?? 0;
+
   const setIgnoreUnlockInMaker = (enabled: boolean) => {
     ignoreUnlockInMaker.value = enabled;
     syncRuntimePacks();
@@ -1178,6 +1211,9 @@ export const useDataPackStore = defineStore('dataPack', () => {
     togglePackEnabled,
     getPackVisibilitySummary,
     unlockByPassphrase,
+    clearPackUnlocks,
+    clearAllUnlocks,
+    getUnlockedGroupCount,
     setIgnoreUnlockInMaker,
     movePack,
     importPack,
