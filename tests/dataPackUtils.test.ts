@@ -39,6 +39,13 @@ const minimalPack: DataPackFile = {
       payload: { note: 'reserved' },
     },
   ],
+  editorMeta: {
+    menuGroups: {
+      items: [{ id: 'magic', name: '魔法物品', children: [{ id: 'weapon', name: '武器' }] }],
+      spells: [{ id: 'forbidden', name: '禁术', children: [{ id: 'ritual', name: '仪式' }] }],
+    },
+    encryptionGroups: [{ id: 'gm-only', name: 'GM 可见', lockedByDefault: true }],
+  },
 };
 
 describe('data pack utilities', () => {
@@ -51,6 +58,8 @@ describe('data pack utilities', () => {
       kind: 'custom',
       payload: { note: 'reserved' },
     });
+    expect(pack.editorMeta?.menuGroups?.items?.[0]?.name).toBe('魔法物品');
+    expect(pack.editorMeta?.encryptionGroups?.[0]?.id).toBe('gm-only');
   });
 
   it('rejects duplicate local ids inside the same section', () => {
@@ -76,6 +85,7 @@ describe('data pack utilities', () => {
     );
 
     expect(runtimePack.items[0]?.id).toBe('homebrew:longsword');
+    expect(runtimePack.editorMeta?.encryptionGroups?.[0]?.name).toBe('GM 可见');
     expect(defaultRuntimePack.items[0]?.id).toBe(DEFAULT_DND5E_DATA_PACK.items[0]?.id);
   });
 

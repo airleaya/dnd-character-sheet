@@ -2,7 +2,7 @@ import type { LibraryItem } from './Library';
 import type { SpellDefinition } from './Spell';
 
 export type DataPackId = string;
-export type SpellGroupingMode = 'level' | 'school' | 'class';
+export type SpellGroupingMode = 'level' | 'school' | 'class' | 'custom';
 export type DataPackSourceKind = 'builtin' | 'imported';
 export type DataPackTraitKind =
   | 'enchantment'
@@ -59,6 +59,24 @@ export interface DataPackEditLock {
 
 export interface DataPackEditorMeta {
   editLock?: DataPackEditLock;
+  menuGroups?: {
+    items?: DataPackMenuGroup[];
+    spells?: DataPackMenuGroup[];
+  };
+  encryptionGroups?: DataPackEncryptionGroup[];
+}
+
+export interface DataPackMenuGroup {
+  id: string;
+  name: string;
+  children?: DataPackMenuGroup[];
+}
+
+export interface DataPackEncryptionGroup {
+  id: string;
+  name: string;
+  description?: string;
+  lockedByDefault?: boolean;
 }
 
 export interface DataPackSettings {
@@ -74,6 +92,7 @@ export interface RuntimeDataPack {
   enabled: boolean;
   sourceKind: DataPackSourceKind;
   manifest: DataPackManifest;
+  editorMeta?: DataPackEditorMeta;
   itemMenuName: string;
   spellMenuName: string;
   items: LibraryItem[];

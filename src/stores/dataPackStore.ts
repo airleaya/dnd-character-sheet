@@ -16,7 +16,7 @@ import {
   stripRuntimePrefix,
 } from '../utils/dataPackUtils';
 import { getRuntimeLibraryItemById, getRuntimeSpellById } from '../data/dataPacks/runtimeDataPacks';
-import type { DataPackFile, DataPackManifest, DataPackSettings, RuntimeDataPack } from '../types/DataPack';
+import type { DataPackFile, DataPackManifest, DataPackMenuGroup, DataPackSettings, RuntimeDataPack } from '../types/DataPack';
 import type { LibraryItem } from '../types/Library';
 import type { SpellDefinition } from '../types/Spell';
 
@@ -32,6 +32,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
   const isMakerOpen = ref(false);
   const activeDraftPack = ref<DataPackFile | null>(null);
   const draftDirty = ref(false);
+  const makerLibraryTab = ref<'items' | 'spells'>('items');
 
   const feedback = useUiFeedbackStore();
 
@@ -326,6 +327,115 @@ export const useDataPackStore = defineStore('dataPack', () => {
     draftDirty.value = true;
   };
 
+  const setMakerLibraryTab = (tab: 'items' | 'spells') => {
+    makerLibraryTab.value = tab;
+  };
+
+  const ensureEditorMeta = () => {
+    if (!activeDraftPack.value) return undefined;
+    activeDraftPack.value.editorMeta ??= {};
+    return activeDraftPack.value.editorMeta;
+  };
+
+  const ensureMenuGroups = (domain: 'items' | 'spells'): DataPackMenuGroup[] => {
+    const editorMeta = ensureEditorMeta();
+    if (!editorMeta) return [];
+    editorMeta.menuGroups ??= {};
+    editorMeta.menuGroups[domain] ??= [];
+    return editorMeta.menuGroups[domain]!;
+  };
+
+  const ensureEncryptionGroups = () => {
+    const editorMeta = ensureEditorMeta();
+    if (!editorMeta) return [];
+    editorMeta.encryptionGroups ??= [];
+    return editorMeta.encryptionGroups;
+  };
+
+  const mergeMenuGroups = (domain: 'items' | 'spells', sourceGroups: DataPackMenuGroup[] | undefined) => {
+    if (!sourceGroups?.length) return;
+    const targetGroups = ensureMenuGroups(domain);
+    sourceGroups.forEach(sourceGroup => {
+      let targetGroup = targetGroups.find(group => group.name === sourceGroup.name);
+      if (!targetGroup) {
+        targetGroup = {
+          id: makeUniqueLocalId(sourceGroup.id || sourceGroup.name, targetGroups.map(group => group.id)),
+          name: sourceGroup.name,
+          children: [],
+        };
+        targetGroups.push(targetGroup);
+      }
+
+      const targetChildren = targetGroup.children ?? (targetGroup.children = []);
+      sourceGroup.children?.forEach(sourceChild => {
+        if (!targetChildren.some(child => child.name === sourceChild.name)) {
+          targetChildren.push({
+            id: makeUniqueLocalId(sourceChild.id || sourceChild.name, targetChildren.map(child => child.id)),
+            name: sourceChild.name,
+          });
+        }
+      });
+    });
+  };
+
+  const addMenuGroup = (domain: 'items' | 'spells', name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const groups = ensureMenuGroups(domain);
+    if (groups.some(group => group.name === trimmed)) return;
+    groups.push({ id: makeUniqueLocalId(trimmed, groups.map(group => group.id)), name: trimmed, children: [] });
+    draftDirty.value = true;
+  };
+
+  const addMenuSubgroup = (domain: 'items' | 'spells', parentId: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const parent = ensureMenuGroups(domain).find(group => group.id === parentId);
+    if (!parent) return;
+    parent.children ??= [];
+    if (parent.children.some(child => child.name === trimmed)) return;
+    parent.children.push({ id: makeUniqueLocalId(trimmed, parent.children.map(child => child.id)), name: trimmed });
+    draftDirty.value = true;
+  };
+
+  const removeMenuGroup = (domain: 'items' | 'spells', groupId: string) => {
+    const groups = ensureMenuGroups(domain);
+    const target = groups.find(group => group.id === groupId);
+    const editorMeta = ensureEditorMeta();
+    if (!target || !editorMeta?.menuGroups) return;
+    editorMeta.menuGroups[domain] = groups.filter(group => group.id !== groupId);
+    draftDirty.value = true;
+  };
+
+  const addEncryptionGroup = (name: string, description = '') => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const groups = ensureEncryptionGroups();
+    if (groups.some(group => group.name === trimmed)) return;
+    groups.push({
+      id: makeUniqueLocalId(trimmed, groups.map(group => group.id)),
+      name: trimmed,
+      description: description.trim() || undefined,
+      lockedByDefault: true,
+    });
+    draftDirty.value = true;
+  };
+
+  const removeEncryptionGroup = (groupId: string) => {
+    if (!activeDraftPack.value) return;
+    const groups = ensureEncryptionGroups();
+    const editorMeta = ensureEditorMeta();
+    if (!editorMeta) return;
+    editorMeta.encryptionGroups = groups.filter(group => group.id !== groupId);
+    activeDraftPack.value.items?.forEach(item => {
+      if (item.encryptionGroupId === groupId) item.encryptionGroupId = undefined;
+    });
+    activeDraftPack.value.spells?.forEach(spell => {
+      if (spell.encryptionGroupId === groupId) spell.encryptionGroupId = undefined;
+    });
+    draftDirty.value = true;
+  };
+
   const importItemToDraft = (runtimeItemId: string, target?: 'forge' | 'enchant') => {
     if (!activeDraftPack.value) return;
     const source = getRuntimeLibraryItemById(runtimeItemId);
@@ -366,6 +476,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     const draftItems = activeDraftPack.value.items ?? (activeDraftPack.value.items = []);
     const draftSpells = activeDraftPack.value.spells ?? (activeDraftPack.value.spells = []);
     const draftTraits = activeDraftPack.value.traits ?? (activeDraftPack.value.traits = []);
+    const sourceMeta = sourcePack.editorMeta;
 
     sourcePack.items.forEach(source => {
       const item = clonePlain(source) as LibraryItem;
@@ -387,6 +498,20 @@ export const useDataPackStore = defineStore('dataPack', () => {
       draftTraits.push(trait);
     });
 
+    mergeMenuGroups('items', sourceMeta?.menuGroups?.items);
+    mergeMenuGroups('spells', sourceMeta?.menuGroups?.spells);
+    if (sourceMeta?.encryptionGroups?.length) {
+      const groups = ensureEncryptionGroups();
+      sourceMeta.encryptionGroups.forEach(sourceGroup => {
+        if (!groups.some(group => group.name === sourceGroup.name)) {
+          groups.push({
+            ...clonePlain(sourceGroup),
+            id: makeUniqueLocalId(sourceGroup.id, groups.map(group => group.id)),
+          });
+        }
+      });
+    }
+
     draftDirty.value = true;
     feedback.showToast(`已导入 ${sourcePack.name} 的内容快照`, 'success');
   };
@@ -394,21 +519,23 @@ export const useDataPackStore = defineStore('dataPack', () => {
   const updateDraftEditLock = async (options: { enabled: boolean; password?: string; hint?: string; localOnly?: boolean }) => {
     if (!activeDraftPack.value) return;
     if (!options.enabled) {
-      activeDraftPack.value.editorMeta = undefined;
+      if (activeDraftPack.value.editorMeta) {
+        activeDraftPack.value.editorMeta.editLock = undefined;
+      }
       draftDirty.value = true;
       return;
     }
 
     const salt = options.password ? crypto.randomUUID() : undefined;
-    activeDraftPack.value.editorMeta = {
-      editLock: {
-        enabled: true,
-        salt,
-        passwordHash: options.password && salt ? await hashText(options.password, salt) : undefined,
-        hint: options.hint,
-        localOnly: options.localOnly,
-        localEditorIdHash: options.localOnly ? await getLocalEditorHash() : undefined,
-      },
+    const editorMeta = ensureEditorMeta();
+    if (!editorMeta) return;
+    editorMeta.editLock = {
+      enabled: true,
+      salt,
+      passwordHash: options.password && salt ? await hashText(options.password, salt) : undefined,
+      hint: options.hint,
+      localOnly: options.localOnly,
+      localEditorIdHash: options.localOnly ? await getLocalEditorHash() : undefined,
     };
     draftDirty.value = true;
   };
@@ -432,6 +559,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     isMakerOpen,
     activeDraftPack,
     draftDirty,
+    makerLibraryTab,
     orderedDataPacks,
     enabledDataPacks,
     itemLibraryItems,
@@ -450,6 +578,12 @@ export const useDataPackStore = defineStore('dataPack', () => {
     saveDraftPack,
     closeMaker,
     markDraftDirty,
+    setMakerLibraryTab,
+    addMenuGroup,
+    addMenuSubgroup,
+    removeMenuGroup,
+    addEncryptionGroup,
+    removeEncryptionGroup,
     importItemToDraft,
     importSpellToDraft,
     importPackContentsToDraft,

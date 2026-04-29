@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, ref } from 'vue';
+import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 import type { LibraryItem } from '../../types/Library';
 import type { SpellDefinition } from '../../types/Spell';
@@ -9,6 +9,7 @@ import LibraryTooltip from '../sidebar/LibraryTooltip.vue';
 import ForgeDropZone from '../sidebar/ForgeDropZone.vue';
 import EnchantDropZone from '../sidebar/EnchantDropZone.vue';
 import DataPackManagerModal from '../sheet/modals/DataPackManagerModal.vue';
+import { useDataPackStore } from '../../stores/dataPackStore';
 
 const LibraryItemsPanel = defineAsyncComponent(() => import('../sheet/library/LibraryItemsPanel.vue'));
 const LibrarySpellsPanel = defineAsyncComponent(() => import('../sheet/library/LibrarySpellsPanel.vue'));
@@ -23,6 +24,7 @@ const activeTab = ref<RootTab>('items');
 const searchQuery = ref('');
 const hasVisitedSpellsTab = ref(false);
 const isDataPackManagerOpen = ref(false);
+const dataPackStore = useDataPackStore();
 
 const shouldRenderItemsPanel = computed(() => activeTab.value === 'items');
 const shouldRenderSpellsPanel = computed(() => activeTab.value === 'spells' || hasVisitedSpellsTab.value);
@@ -136,6 +138,14 @@ const setActiveTab = (tab: RootTab) => {
     hasVisitedSpellsTab.value = true;
   }
 };
+
+watch(
+  () => dataPackStore.makerLibraryTab,
+  tab => {
+    if (!dataPackStore.isMakerOpen) return;
+    setActiveTab(tab);
+  }
+);
 </script>
 
 <template>

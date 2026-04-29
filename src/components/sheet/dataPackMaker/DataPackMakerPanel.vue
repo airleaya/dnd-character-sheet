@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useDataPackStore } from '../../../stores/dataPackStore';
-import { parseDragPayload } from '../../../utils/inventoryDropUtils';
+import { getGlobalDragPayload, parseDragPayload } from '../../../utils/inventoryDropUtils';
 import type { DataPackTraitDefinition } from '../../../types/DataPack';
 import type { LibraryItem } from '../../../types/Library';
 import type { SpellDefinition } from '../../../types/Spell';
 
 const store = useDataPackStore();
-const activeSection = ref<'items' | 'spells' | 'traits' | 'meta'>('items');
+const activeSection = ref<'items' | 'spells' | 'traits' | 'groups' | 'meta'>('items');
 const selectedItemIndex = ref(0);
 const selectedSpellIndex = ref(0);
 const sourcePackId = ref('');
+const activeItemWorkbench = ref<'forge' | 'enchant'>('forge');
+const newItemGroupName = ref('');
+const newItemSubgroupName = ref('');
+const newItemSubgroupParentId = ref('');
+const newSpellGroupName = ref('');
+const newSpellSubgroupName = ref('');
+const newSpellSubgroupParentId = ref('');
+const newEncryptionGroupName = ref('');
+const newEncryptionGroupDescription = ref('');
 const lockDraft = reactive({
   enabled: false,
   password: '',
@@ -27,6 +36,9 @@ const selectedSpell = computed(() => spells.value[selectedSpellIndex.value] as S
 const importablePacks = computed(() =>
   store.orderedDataPacks.filter(entry => entry.id !== pack.value?.manifest.id)
 );
+const itemMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.items ?? []);
+const spellMenuGroups = computed(() => pack.value?.editorMeta?.menuGroups?.spells ?? []);
+const encryptionGroups = computed(() => pack.value?.editorMeta?.encryptionGroups ?? []);
 
 watch(pack, next => {
   const lock = next?.editorMeta?.editLock;
@@ -37,16 +49,22 @@ watch(pack, next => {
 }, { immediate: true });
 
 const markDirty = () => store.markDraftDirty();
+const switchLibraryTab = (tab: 'items' | 'spells') => {
+  activeSection.value = tab;
+  store.setMakerLibraryTab(tab);
+};
 
 const parseDrop = (event: DragEvent) => {
   event.preventDefault();
-  const raw = event.dataTransfer?.getData('text/plain');
+  const raw = event.dataTransfer?.getData('text/plain') || getGlobalDragPayload();
   return raw ? parseDragPayload(raw) : null;
 };
 
 const onItemDrop = (event: DragEvent, target: 'forge' | 'enchant') => {
   const payload = parseDrop(event);
   if (payload?.type === 'library-item') {
+    activeSection.value = 'items';
+    activeItemWorkbench.value = target;
     store.importItemToDraft(payload.id, target);
     selectedItemIndex.value = Math.max(0, items.value.length - 1);
   }
@@ -56,8 +74,36 @@ const onNativeSpellDrop = (event: DragEvent) => {
   event.preventDefault();
   const rawSpellId = event.dataTransfer?.getData('application/x-dnd-spell-id');
   if (rawSpellId) {
+    activeSection.value = 'spells';
     store.importSpellToDraft(rawSpellId);
+    selectedSpellIndex.value = Math.max(0, spells.value.length - 1);
   }
+};
+
+const addNormalGroup = (domain: 'items' | 'spells') => {
+  if (domain === 'items') {
+    store.addMenuGroup('items', newItemGroupName.value);
+    newItemGroupName.value = '';
+    return;
+  }
+  store.addMenuGroup('spells', newSpellGroupName.value);
+  newSpellGroupName.value = '';
+};
+
+const addNormalSubgroup = (domain: 'items' | 'spells') => {
+  if (domain === 'items') {
+    store.addMenuSubgroup('items', newItemSubgroupParentId.value, newItemSubgroupName.value);
+    newItemSubgroupName.value = '';
+    return;
+  }
+  store.addMenuSubgroup('spells', newSpellSubgroupParentId.value, newSpellSubgroupName.value);
+  newSpellSubgroupName.value = '';
+};
+
+const addEncryptionGroup = () => {
+  store.addEncryptionGroup(newEncryptionGroupName.value, newEncryptionGroupDescription.value);
+  newEncryptionGroupName.value = '';
+  newEncryptionGroupDescription.value = '';
 };
 
 const addTrait = () => {
@@ -107,15 +153,18 @@ const saveLock = async () => {
         <p class="meta">ID: {{ pack.manifest.id }}（创建后不可修改） · 版本 {{ pack.manifest.version }}</p>
       </div>
       <div class="header-actions">
+        <button type="button" :class="{ active: activeSection === 'items' }" @click="switchLibraryTab('items')">物品制作</button>
+        <button type="button" :class="{ active: activeSection === 'spells' }" @click="switchLibraryTab('spells')">法术制作</button>
         <button type="button" @click="store.saveDraftPack('update')">保存</button>
         <button type="button" class="ghost" @click="store.closeMaker">关闭制作器</button>
       </div>
     </header>
 
     <nav class="maker-tabs">
-      <button :class="{ active: activeSection === 'items' }" @click="activeSection = 'items'">物品 / 工作台</button>
-      <button :class="{ active: activeSection === 'spells' }" @click="activeSection = 'spells'">法术编辑（占位）</button>
+      <button :class="{ active: activeSection === 'items' }" @click="switchLibraryTab('items')">物品 / 工作台</button>
+      <button :class="{ active: activeSection === 'spells' }" @click="switchLibraryTab('spells')">法术编辑（占位）</button>
       <button :class="{ active: activeSection === 'traits' }" @click="activeSection = 'traits'">词条编辑（占位）</button>
+      <button :class="{ active: activeSection === 'groups' }" @click="activeSection = 'groups'">分组 / 加密分组</button>
       <button :class="{ active: activeSection === 'meta' }" @click="activeSection = 'meta'">元数据 / 编辑锁</button>
     </nav>
 
@@ -159,16 +208,38 @@ const saveLock = async () => {
 
       <main class="editor-panel" v-if="selectedItem">
         <div class="editor-top">
-          <h2>铁匠铺编辑</h2>
+          <h2>{{ activeItemWorkbench === 'enchant' ? '附魔台编辑' : '铁匠铺编辑' }}</h2>
           <button type="button" class="danger" @click="removeSelectedItem">删除物品</button>
         </div>
         <label>ID<input :value="selectedItem.id" disabled /></label>
         <label>名称<input v-model="selectedItem.name" @input="markDirty" /></label>
-        <label>二级菜单<input v-model="selectedItem.displayCategory" placeholder="例如：自制魔法物品" @input="markDirty" /></label>
-        <label>三级菜单<input v-model="selectedItem.displaySubcategory" placeholder="例如：武器" @input="markDirty" /></label>
+        <label>一级菜单（普通分组）
+          <input v-model="selectedItem.displayCategory" list="item-category-list" placeholder="例如：自制魔法物品" @input="markDirty" />
+        </label>
+        <label>二级菜单（普通分组）
+          <input v-model="selectedItem.displaySubcategory" list="item-subcategory-list" placeholder="例如：武器" @input="markDirty" />
+        </label>
+        <datalist id="item-category-list">
+          <option v-for="group in itemMenuGroups" :key="group.id" :value="group.name" />
+        </datalist>
+        <datalist id="item-subcategory-list">
+          <template v-for="group in itemMenuGroups" :key="group.id">
+            <option v-for="child in group.children ?? []" :key="child.id" :value="child.name" />
+          </template>
+        </datalist>
+        <label>加密分组
+          <select v-model="selectedItem.encryptionGroupId" @change="markDirty">
+            <option value="">公开 / 不加入加密分组</option>
+            <option v-for="group in encryptionGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
+          </select>
+        </label>
         <label>来源<input v-model="selectedItem.source" @input="markDirty" /></label>
         <label>描述<textarea v-model="selectedItem.description" @input="markDirty"></textarea></label>
-        <div class="placeholder-box">附魔编辑入口：当前版本作为内置占位，魔法加值、同调、视觉和词条仍保存在物品 magic 字段中。</div>
+        <div class="placeholder-box">
+          {{ activeItemWorkbench === 'enchant'
+            ? '附魔台入口：当前版本开放魔法字段与加密分组装配位置，详细附魔面板后续继续增强。'
+            : '铁匠铺入口：当前版本可编辑数据包物品基础字段、普通菜单分组与加密分组。' }}
+        </div>
       </main>
 
       <main v-else class="empty-panel">从右侧物品库拖拽物品到铁匠铺或附魔台。</main>
@@ -198,8 +269,22 @@ const saveLock = async () => {
         </div>
         <label>ID<input :value="selectedSpell.id" disabled /></label>
         <label>名称<input v-model="selectedSpell.name" @input="markDirty" /></label>
-        <label>自定义二级菜单<input v-model="selectedSpell.libraryCategory" @input="markDirty" /></label>
-        <label>自定义三级菜单<input v-model="selectedSpell.librarySubcategory" @input="markDirty" /></label>
+        <label>一级菜单（普通分组）<input v-model="selectedSpell.libraryCategory" list="spell-category-list" @input="markDirty" /></label>
+        <label>二级菜单（普通分组）<input v-model="selectedSpell.librarySubcategory" list="spell-subcategory-list" @input="markDirty" /></label>
+        <datalist id="spell-category-list">
+          <option v-for="group in spellMenuGroups" :key="group.id" :value="group.name" />
+        </datalist>
+        <datalist id="spell-subcategory-list">
+          <template v-for="group in spellMenuGroups" :key="group.id">
+            <option v-for="child in group.children ?? []" :key="child.id" :value="child.name" />
+          </template>
+        </datalist>
+        <label>加密分组
+          <select v-model="selectedSpell.encryptionGroupId" @change="markDirty">
+            <option value="">公开 / 不加入加密分组</option>
+            <option v-for="group in encryptionGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
+          </select>
+        </label>
         <label>描述<textarea v-model="selectedSpell.description" @input="markDirty"></textarea></label>
         <div class="placeholder-box">法术字段完整编辑器将在后续版本展开；当前可复制、命名、归类和保存。</div>
       </main>
@@ -223,6 +308,65 @@ const saveLock = async () => {
         </select>
         <textarea v-model="trait.description" placeholder="描述" @input="markDirty"></textarea>
       </div>
+    </div>
+
+    <div v-else-if="activeSection === 'groups'" class="groups-panel">
+      <section class="group-card">
+        <h2>物品普通分组（一二级菜单）</h2>
+        <div class="inline-form">
+          <input v-model="newItemGroupName" placeholder="新增一级菜单" />
+          <button type="button" @click="addNormalGroup('items')">新增</button>
+        </div>
+        <div class="inline-form">
+          <select v-model="newItemSubgroupParentId">
+            <option value="">选择一级菜单</option>
+            <option v-for="group in itemMenuGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
+          </select>
+          <input v-model="newItemSubgroupName" placeholder="新增二级菜单" />
+          <button type="button" @click="addNormalSubgroup('items')">新增子菜单</button>
+        </div>
+        <div v-for="group in itemMenuGroups" :key="group.id" class="managed-group">
+          <strong>{{ group.name }}</strong>
+          <button type="button" class="danger small" @click="store.removeMenuGroup('items', group.id)">删除</button>
+          <small>{{ (group.children ?? []).map(child => child.name).join(' / ') || '暂无子菜单' }}</small>
+        </div>
+      </section>
+
+      <section class="group-card">
+        <h2>法术普通分组（一二级菜单）</h2>
+        <div class="inline-form">
+          <input v-model="newSpellGroupName" placeholder="新增一级菜单" />
+          <button type="button" @click="addNormalGroup('spells')">新增</button>
+        </div>
+        <div class="inline-form">
+          <select v-model="newSpellSubgroupParentId">
+            <option value="">选择一级菜单</option>
+            <option v-for="group in spellMenuGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
+          </select>
+          <input v-model="newSpellSubgroupName" placeholder="新增二级菜单" />
+          <button type="button" @click="addNormalSubgroup('spells')">新增子菜单</button>
+        </div>
+        <div v-for="group in spellMenuGroups" :key="group.id" class="managed-group">
+          <strong>{{ group.name }}</strong>
+          <button type="button" class="danger small" @click="store.removeMenuGroup('spells', group.id)">删除</button>
+          <small>{{ (group.children ?? []).map(child => child.name).join(' / ') || '暂无子菜单' }}</small>
+        </div>
+      </section>
+
+      <section class="group-card encrypted">
+        <h2>加密分组（阶段四预留）</h2>
+        <p class="hint">当前仅记录物品/法术所属加密分组，不执行内容加密；阶段四会基于这些分组做密码解锁。</p>
+        <div class="inline-form">
+          <input v-model="newEncryptionGroupName" placeholder="加密分组名" />
+          <input v-model="newEncryptionGroupDescription" placeholder="描述（可选）" />
+          <button type="button" @click="addEncryptionGroup">新增加密分组</button>
+        </div>
+        <div v-for="group in encryptionGroups" :key="group.id" class="managed-group">
+          <strong>{{ group.name }}</strong>
+          <button type="button" class="danger small" @click="store.removeEncryptionGroup(group.id)">删除</button>
+          <small>{{ group.description || '无描述' }}</small>
+        </div>
+      </section>
     </div>
 
     <div v-else class="editor-panel single">
@@ -255,8 +399,10 @@ const saveLock = async () => {
 }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 button { border: 1px solid #95a38d; background: #fffdf6; color: #263126; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
+button.active { background: #263126; color: white; }
 button.ghost { background: transparent; }
 button.danger { border-color: #c86f66; color: #9c3026; }
+button.small { padding: 4px 7px; font-size: 0.78rem; }
 .maker-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; button.active { background: #263126; color: white; } }
 .import-strip {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 14px;
@@ -282,7 +428,14 @@ textarea { min-height: 96px; resize: vertical; }
 .placeholder-box { border: 1px dashed #9a79bd; color: #5d4775; background: #faf6ff; border-radius: 10px; padding: 12px; }
 .trait-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; padding: 10px; border: 1px solid #e0e5df; border-radius: 10px; }
 .trait-row textarea { grid-column: 1 / -1; }
+.groups-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.group-card { background: white; border: 1px solid #d8ded8; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.group-card.encrypted { grid-column: 1 / -1; border-color: #c7b4df; background: #fcf8ff; }
+.inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inline-form input, .inline-form select { min-width: 180px; }
+.managed-group { border: 1px solid #e3e8e3; border-radius: 10px; padding: 9px; display: grid; grid-template-columns: 1fr auto; gap: 5px 8px; align-items: center; }
+.managed-group small { grid-column: 1 / -1; color: #788178; }
 .hint { color: #7b847b; font-size: 0.85rem; }
 .empty-panel { display: flex; align-items: center; justify-content: center; color: #778077; min-height: 280px; }
-@media (max-width: 900px) { .maker-grid { grid-template-columns: 1fr; } .maker-header { flex-direction: column; } }
+@media (max-width: 900px) { .maker-grid, .groups-panel { grid-template-columns: 1fr; } .group-card.encrypted { grid-column: auto; } .maker-header { flex-direction: column; } }
 </style>

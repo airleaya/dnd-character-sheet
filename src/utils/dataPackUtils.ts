@@ -116,6 +116,7 @@ export const toRuntimeDataPack = (
     enabled,
     sourceKind: builtin ? 'builtin' : 'imported',
     manifest: dataPackFile.manifest,
+    editorMeta: dataPackFile.editorMeta,
     itemMenuName: dataPackFile.manifest.name,
     spellMenuName: dataPackFile.manifest.name,
     items: (dataPackFile.items ?? []).map(item => ({

@@ -1,5 +1,37 @@
 # UPDATE_LOG
 
+## [0.14.4] - 2026-04-29
+- 类型：UI 优化 / 数据包制作器 / 分组 / 阶段四预备 / 测试
+- 条目：数据包制作器分组与拖拽入口增强
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/types/DataPack.ts`
+  - `src/types/Library.ts`
+  - `src/types/Spell.ts`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/layout/SidebarRight.vue`
+  - `src/components/sheet/library/LibrarySpellsPanel.vue`
+  - `src/data/dataPacks/runtimeDataPacks.ts`
+  - `tests/dataPackUtils.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.14.3` 自增长到 `0.14.4`。
+  - 制作器顶部新增物品/法术切换按钮，切换制作器编辑区时同步切换右侧栏物品/法术库。
+  - 强化制作器内铁匠铺与附魔台拖拽接收，支持从右侧物品库拖入后复制为当前数据包物品并进入对应工作台语境。
+  - 从其他数据包导入内容时，额外合并来源包的物品/法术普通分组和加密分组元数据。
+  - 新增数据包内普通分组管理：物品、法术均可维护一二级菜单，并可在编辑物品/法术时选择或输入对应分组。
+  - 新增加密分组管理入口，物品和法术可同时记录普通分组与加密分组；当前只记录分组归属，为阶段四加密解锁做准备。
+  - 法术库运行时新增“自定义目录”分支，展示带自定义法术菜单字段的法术。
+- 验证结果：
+  - `npm run test -- tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts tests/spellRitualBadges.ui.test.ts` 通过：4 个测试文件，14 个用例。
+  - `npm run test` 通过：32 个测试文件，145 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.14.4` 安装包与便携版。
+
 ## [0.14.3] - 2026-04-29
 - 类型：功能迭代 / 数据包系统 / GM 制作器 / 编辑锁 / 测试
 - 条目：数据包系统阶段三

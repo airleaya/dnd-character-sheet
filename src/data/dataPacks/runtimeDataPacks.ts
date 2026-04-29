@@ -115,6 +115,17 @@ export const buildSpellClassGroups = (spells: SpellDefinition[]): DataPackSpellS
     [...Object.values(SPELL_CLASS_LABELS), '无职业数据']
   );
 
+export const buildSpellCustomGroups = (spells: SpellDefinition[]): DataPackSpellSubGroup[] =>
+  groupSpellsBy(
+    spells.filter(spell => spell.libraryCategory || spell.librarySubcategory),
+    spell => {
+      const category = spell.libraryCategory?.trim() || '未命名目录';
+      const subcategory = spell.librarySubcategory?.trim();
+      return [subcategory ? `${category} / ${subcategory}` : category];
+    },
+    []
+  );
+
 export const getItemLibraryDataPackGroups = (
   visibleIds?: Set<string>,
   packs: RuntimeDataPack[] = getEnabledDataPacks()
@@ -157,6 +168,7 @@ export const getSpellLibraryDataPackGroups = (
         { mode: 'level', label: '按环级', groups: buildSpellLevelGroups(spells) },
         { mode: 'school', label: '按学派', groups: buildSpellSchoolGroups(spells) },
         { mode: 'class', label: '按职业', groups: buildSpellClassGroups(spells) },
+        { mode: 'custom', label: '自定义目录', groups: buildSpellCustomGroups(spells) },
       ];
 
       return {

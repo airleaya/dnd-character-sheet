@@ -164,6 +164,7 @@ export interface ItemDefinition {
   subcategory?: string;
   displayCategory?: string;
   displaySubcategory?: string;
+  encryptionGroupId?: string;
   cost?: ItemCost;       
   weight: number;        
   description: string;   

@@ -48,6 +48,7 @@ export interface SpellDefinition {
   source?: string;        // 数据包或规则来源
   libraryCategory?: string;
   librarySubcategory?: string;
+  encryptionGroupId?: string;
   level: number;          // 0-9 (0=戏法)
   school: SpellSchool;
   ritual: boolean;        // 是否仪式
