@@ -1,5 +1,8 @@
 # CODE_HEALTH_PLAN
 
+> 2026-04-29 新功能日志准入规则：
+> 后续所有生产功能必须自带日志接入方案。渲染进程统一使用 `createRendererLogger(namespace)`，主进程统一使用 `createMainLogger(namespace)`；记录用户操作入口、IPC/文件读写结果、失败原因和安全摘要，禁止写入完整角色 JSON、完整数据包内容、密码或大对象。
+
 > 用途：记录当前项目的代码健康度评估结果，以及后续的治理计划。  
 > 与其他文档的区别：
 > - `TODOLIST.md`：记录功能问题与待办事项

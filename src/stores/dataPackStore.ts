@@ -27,6 +27,16 @@ const applyPackRuntime = (packs: RuntimeDataPack[]) => {
   setRuntimeDataPacks(packs);
 };
 
+const summarizeDraftPack = (packFile: DataPackFile) => ({
+  packId: packFile.manifest.id,
+  packName: packFile.manifest.name,
+  itemCount: packFile.items?.length ?? 0,
+  spellCount: packFile.spells?.length ?? 0,
+  traitCount: packFile.traits?.length ?? 0,
+  encryptionGroupCount: packFile.editorMeta?.encryptionGroups?.length ?? 0,
+  hasEditLock: Boolean(packFile.editorMeta?.editLock?.enabled),
+});
+
 type MakerDragDiagnostic = {
   id: number;
   timestamp: string;
@@ -147,6 +157,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     if (!window.electronAPI?.readDataPackState) {
       setState([DEFAULT_DND5E_DATA_PACK], createDefaultDataPackSettings());
       isLoaded.value = true;
+      logger.warn('Data pack state API unavailable; using builtin default pack only');
       return;
     }
 
@@ -156,8 +167,13 @@ export const useDataPackStore = defineStore('dataPack', () => {
       if (!result.success) throw new Error(result.error);
       setState(result.data.packs, result.data.settings);
       isLoaded.value = true;
+      logger.info('Data pack state loaded', {
+        packCount: result.data.packs.length,
+        enabledCount: result.data.settings.enabledPackIds.length,
+      });
     } catch (e) {
       setState([DEFAULT_DND5E_DATA_PACK], createDefaultDataPackSettings());
+      logger.error('Failed to load data pack state; using builtin default pack only', e);
       feedback.showToast(`数据包读取失败：${e instanceof Error ? e.message : String(e)}`, 'warning', 4000);
     } finally {
       isBusy.value = false;
@@ -175,12 +191,20 @@ export const useDataPackStore = defineStore('dataPack', () => {
 
     if (!window.electronAPI?.updateDataPackSettings) {
       setState(packs.value, normalized);
+      logger.warn('Data pack settings API unavailable; settings only updated in memory', {
+        enabledCount: normalized.enabledPackIds.length,
+        orderCount: normalized.packOrder.length,
+      });
       return;
     }
 
     const result = await window.electronAPI.updateDataPackSettings(normalized);
     if (!result.success) throw new Error(result.error);
     setState(packs.value, result.data);
+    logger.info('Data pack settings persisted', {
+      enabledCount: result.data.enabledPackIds.length,
+      orderCount: result.data.packOrder.length,
+    });
   };
 
   const togglePackEnabled = async (packId: string) => {
@@ -195,6 +219,10 @@ export const useDataPackStore = defineStore('dataPack', () => {
       ...settings.value,
       enabledPackIds: Array.from(enabled),
     });
+    logger.info('Data pack enabled state changed', {
+      packId,
+      enabled: enabled.has(packId),
+    });
   };
 
   const movePack = async (packId: string, direction: -1 | 1) => {
@@ -207,19 +235,25 @@ export const useDataPackStore = defineStore('dataPack', () => {
 
     [packOrder[index], packOrder[target]] = [packOrder[target], packOrder[index]];
     await persistSettings({ ...settings.value, packOrder });
+    logger.info('Data pack order changed', { packId, direction, fromIndex: index, toIndex: target });
   };
 
   const importPack = async () => {
-    if (!window.electronAPI?.importDataPack) return;
+    if (!window.electronAPI?.importDataPack) {
+      logger.warn('Import data pack API unavailable');
+      return;
+    }
     isBusy.value = true;
     try {
       const result = await window.electronAPI.importDataPack();
       if (!result.success) throw new Error(result.error);
       if (result.data) {
+        logger.info('Data pack imported', result.data);
         feedback.showToast(`已导入数据包：${result.data.name}`, 'success');
         await refresh();
       }
     } catch (e) {
+      logger.error('Failed to import data pack', e);
       feedback.showToast(`导入失败：${e instanceof Error ? e.message : String(e)}`, 'danger', 4200);
     } finally {
       isBusy.value = false;
@@ -227,30 +261,47 @@ export const useDataPackStore = defineStore('dataPack', () => {
   };
 
   const exportPack = async (packId: string) => {
-    if (!window.electronAPI?.exportDataPack) return;
+    if (!window.electronAPI?.exportDataPack) {
+      logger.warn('Export data pack API unavailable', { packId });
+      return;
+    }
     const result = await window.electronAPI.exportDataPack(packId);
     if (!result.success) {
+      logger.warn('Failed to export data pack', { packId, error: result.error });
       feedback.showToast(`导出失败：${result.error}`, 'danger', 4200);
       return;
     }
+    logger.info('Data pack exported', { packId, builtin: packId === DEFAULT_DATA_PACK_ID });
     feedback.showToast(packId === DEFAULT_DATA_PACK_ID ? '已导出默认数据包副本' : '已导出数据包', 'success');
   };
 
   const deletePack = async (packId: string) => {
-    if (packId === DEFAULT_DATA_PACK_ID) return;
+    if (packId === DEFAULT_DATA_PACK_ID) {
+      logger.warn('Ignored delete request for builtin data pack', { packId });
+      return;
+    }
     const confirmed = await feedback.confirm({
       title: '删除数据包',
       message: '删除后需要重新导入才能恢复。是否继续？',
       tone: 'danger',
       confirmText: '删除',
     });
-    if (!confirmed || !window.electronAPI?.deleteDataPack) return;
+    if (!confirmed) {
+      logger.info('Data pack delete cancelled by user', { packId });
+      return;
+    }
+    if (!window.electronAPI?.deleteDataPack) {
+      logger.warn('Delete data pack API unavailable', { packId });
+      return;
+    }
 
     const result = await window.electronAPI.deleteDataPack(packId);
     if (!result.success) {
+      logger.warn('Failed to delete data pack', { packId, error: result.error });
       feedback.showToast(`删除失败：${result.error}`, 'danger', 4200);
       return;
     }
+    logger.info('Data pack deleted', { packId });
     feedback.showToast('已删除数据包', 'success');
     await refresh();
   };
@@ -262,6 +313,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     if (lock.localOnly) {
       const localHash = await getLocalEditorHash();
       if (!localHash || localHash !== lock.localEditorIdHash) {
+        logger.warn('Data pack edit blocked by local-only edit lock', { packId: packFile.manifest.id });
         await feedback.alert({
           title: '不能编辑数据包',
           message: '该数据包设置为仅创建它的本机可编辑。本机可以使用、导出或复制其中内容，但不能进入编辑模式。',
@@ -273,19 +325,35 @@ export const useDataPackStore = defineStore('dataPack', () => {
 
     if (lock.passwordHash) {
       const input = window.prompt(lock.hint ? `请输入编辑密码（提示：${lock.hint}）` : '请输入编辑密码');
-      if (input === null) return false;
+      if (input === null) {
+        logger.info('Data pack edit password prompt cancelled', { packId: packFile.manifest.id });
+        return false;
+      }
       const inputHash = await hashText(input, lock.salt ?? '');
       if (inputHash !== lock.passwordHash) {
+        logger.warn('Data pack edit blocked by invalid password', { packId: packFile.manifest.id });
         feedback.showToast('编辑密码错误', 'danger');
         return false;
       }
     }
 
+    logger.info('Data pack edit lock passed', {
+      packId: packFile.manifest.id,
+      hasPassword: Boolean(lock.passwordHash),
+      localOnly: Boolean(lock.localOnly),
+    });
     return true;
   };
 
   const openMaker = async (packId: string) => {
-    if (packId === DEFAULT_DATA_PACK_ID || !window.electronAPI?.readEditableDataPack) return;
+    if (packId === DEFAULT_DATA_PACK_ID) {
+      logger.warn('Ignored maker open request for builtin data pack', { packId });
+      return;
+    }
+    if (!window.electronAPI?.readEditableDataPack) {
+      logger.warn('Read editable data pack API unavailable', { packId });
+      return;
+    }
     isBusy.value = true;
     try {
       const result = await window.electronAPI.readEditableDataPack(packId);
@@ -294,7 +362,9 @@ export const useDataPackStore = defineStore('dataPack', () => {
       activeDraftPack.value = clonePlain(result.data);
       draftDirty.value = false;
       isMakerOpen.value = true;
+      logger.info('Data pack maker opened', summarizeDraftPack(result.data));
     } catch (e) {
+      logger.error('Failed to open data pack maker', e, { packId });
       feedback.showToast(`无法打开制作器：${e instanceof Error ? e.message : String(e)}`, 'danger', 4200);
     } finally {
       isBusy.value = false;
@@ -306,10 +376,12 @@ export const useDataPackStore = defineStore('dataPack', () => {
     options: { password?: string; passwordHint?: string; localOnly?: boolean } = {}
   ) => {
     if (!isValidDataPackId(manifest.id) || manifest.id === DEFAULT_DATA_PACK_ID) {
+      logger.warn('Rejected invalid data pack draft id', { packId: manifest.id });
       feedback.showToast('数据包 ID 不合法或为保留 ID', 'danger');
       return;
     }
     if (packs.value.some(pack => pack.id === manifest.id)) {
+      logger.warn('Rejected duplicate data pack draft id', { packId: manifest.id });
       feedback.showToast(`已存在同 ID 数据包：${manifest.id}`, 'danger');
       return;
     }
@@ -341,15 +413,18 @@ export const useDataPackStore = defineStore('dataPack', () => {
     activeDraftPack.value = draft;
     draftDirty.value = true;
     isMakerOpen.value = true;
+    logger.info('Data pack draft created', summarizeDraftPack(draft));
     await saveDraftPack('create');
   };
 
   const saveDraftPack = async (mode: 'create' | 'update' = 'update'): Promise<boolean> => {
     if (!activeDraftPack.value) {
+      logger.warn('Save draft requested without an active data pack draft');
       feedback.showToast('当前没有可保存的数据包草稿', 'warning');
       return false;
     }
     if (!window.electronAPI?.saveEditableDataPack) {
+      logger.warn('Save editable data pack API unavailable', summarizeDraftPack(activeDraftPack.value));
       feedback.showToast('当前运行环境不支持保存数据包', 'danger', 4200);
       return false;
     }
@@ -360,12 +435,21 @@ export const useDataPackStore = defineStore('dataPack', () => {
     try {
       const result = await window.electronAPI.saveEditableDataPack(activeDraftPack.value, mode);
       if (!result.success) {
+        logger.warn('Data pack draft save failed', {
+          ...summarizeDraftPack(activeDraftPack.value),
+          mode,
+          error: result.error,
+        });
         activeDraftPack.value.manifest.updatedAt = previousUpdatedAt;
         feedback.showToast(`保存失败：${result.error}`, 'danger', 4200);
         return false;
       }
       activeDraftPack.value = clonePlain(result.data);
       draftDirty.value = false;
+      logger.info('Data pack draft saved', {
+        ...summarizeDraftPack(result.data),
+        mode,
+      });
       feedback.showToast('数据包已保存', 'success');
       await refresh();
       return true;
@@ -387,8 +471,17 @@ export const useDataPackStore = defineStore('dataPack', () => {
         message: '当前数据包有未保存修改，确认关闭吗？',
         tone: 'warning',
       });
-      if (!confirmed) return;
+      if (!confirmed) {
+        logger.info('Data pack maker close cancelled due to dirty draft', {
+          packId: activeDraftPack.value?.manifest.id,
+        });
+        return;
+      }
     }
+    logger.info('Data pack maker closed', {
+      packId: activeDraftPack.value?.manifest.id,
+      wasDirty: draftDirty.value,
+    });
     isMakerOpen.value = false;
     activeDraftPack.value = null;
     draftDirty.value = false;
@@ -531,6 +624,11 @@ export const useDataPackStore = defineStore('dataPack', () => {
     if (groups.some(group => group.name === trimmed)) return;
     groups.push({ id: makeUniqueLocalId(trimmed, groups.map(group => group.id)), name: trimmed, children: [] });
     draftDirty.value = true;
+    logger.info('Data pack menu group added', {
+      packId: activeDraftPack.value?.manifest.id,
+      domain,
+      groupName: trimmed,
+    });
   };
 
   const addMenuSubgroup = (domain: 'items' | 'spells', parentId: string, name: string) => {
@@ -542,6 +640,12 @@ export const useDataPackStore = defineStore('dataPack', () => {
     if (parent.children.some(child => child.name === trimmed)) return;
     parent.children.push({ id: makeUniqueLocalId(trimmed, parent.children.map(child => child.id)), name: trimmed });
     draftDirty.value = true;
+    logger.info('Data pack menu subgroup added', {
+      packId: activeDraftPack.value?.manifest.id,
+      domain,
+      parentId,
+      subgroupName: trimmed,
+    });
   };
 
   const removeMenuGroup = (domain: 'items' | 'spells', groupId: string) => {
@@ -551,6 +655,12 @@ export const useDataPackStore = defineStore('dataPack', () => {
     if (!target || !editorMeta?.menuGroups) return;
     editorMeta.menuGroups[domain] = groups.filter(group => group.id !== groupId);
     draftDirty.value = true;
+    logger.info('Data pack menu group removed', {
+      packId: activeDraftPack.value?.manifest.id,
+      domain,
+      groupId,
+      groupName: target.name,
+    });
   };
 
   const addEncryptionGroup = (name: string, description = '') => {
@@ -565,11 +675,17 @@ export const useDataPackStore = defineStore('dataPack', () => {
       lockedByDefault: true,
     });
     draftDirty.value = true;
+    logger.info('Data pack encryption group added', {
+      packId: activeDraftPack.value?.manifest.id,
+      groupName: trimmed,
+      hasDescription: Boolean(description.trim()),
+    });
   };
 
   const removeEncryptionGroup = (groupId: string) => {
     if (!activeDraftPack.value) return;
     const groups = ensureEncryptionGroups();
+    const target = groups.find(group => group.id === groupId);
     const editorMeta = ensureEditorMeta();
     if (!editorMeta) return;
     editorMeta.encryptionGroups = groups.filter(group => group.id !== groupId);
@@ -580,12 +696,21 @@ export const useDataPackStore = defineStore('dataPack', () => {
       if (spell.encryptionGroupId === groupId) spell.encryptionGroupId = undefined;
     });
     draftDirty.value = true;
+    logger.info('Data pack encryption group removed', {
+      packId: activeDraftPack.value.manifest.id,
+      groupId,
+      groupName: target?.name,
+    });
   };
 
   const importItemToDraft = (runtimeItemId: string, target?: 'forge' | 'enchant') => {
-    if (!activeDraftPack.value) return;
+    if (!activeDraftPack.value) {
+      logger.warn('Import item requested without an active data pack draft', { runtimeItemId, target });
+      return;
+    }
     const source = getRuntimeLibraryItemById(runtimeItemId);
     if (!source) {
+      logger.warn('Runtime item not found for data pack draft import', { runtimeItemId, target });
       feedback.showToast('未找到要导入的物品', 'danger');
       recordMakerDragDiagnostic('store.import-item', 'error', 'Runtime item not found', { runtimeItemId, target });
       return;
@@ -596,6 +721,14 @@ export const useDataPackStore = defineStore('dataPack', () => {
     item.source = activeDraftPack.value.manifest.name;
     items.push(item);
     draftDirty.value = true;
+    logger.info('Item copied into data pack draft', {
+      packId: activeDraftPack.value.manifest.id,
+      runtimeItemId,
+      localItemId: item.id,
+      itemName: item.name,
+      target,
+      draftItemCount: items.length,
+    });
     feedback.showToast(target === 'enchant' ? `已复制到附魔入口：${item.name}` : `已复制到铁匠台：${item.name}`, 'success');
     recordMakerDragDiagnostic('store.import-item', 'ok', 'Item copied into active draft pack', {
       runtimeItemId,
@@ -608,9 +741,13 @@ export const useDataPackStore = defineStore('dataPack', () => {
   };
 
   const importSpellToDraft = (runtimeSpellId: string) => {
-    if (!activeDraftPack.value) return;
+    if (!activeDraftPack.value) {
+      logger.warn('Import spell requested without an active data pack draft', { runtimeSpellId });
+      return;
+    }
     const source = getRuntimeSpellById(runtimeSpellId);
     if (!source) {
+      logger.warn('Runtime spell not found for data pack draft import', { runtimeSpellId });
       feedback.showToast('未找到要导入的法术', 'danger');
       return;
     }
@@ -620,18 +757,40 @@ export const useDataPackStore = defineStore('dataPack', () => {
     spell.source = activeDraftPack.value.manifest.name;
     spells.push(spell);
     draftDirty.value = true;
+    logger.info('Spell copied into data pack draft', {
+      packId: activeDraftPack.value.manifest.id,
+      runtimeSpellId,
+      localSpellId: spell.id,
+      spellName: spell.name,
+      draftSpellCount: spells.length,
+    });
     feedback.showToast(`已复制到法术编辑占位：${spell.name}`, 'success');
   };
 
   const importPackContentsToDraft = (sourcePackId: string) => {
-    if (!activeDraftPack.value || sourcePackId === activeDraftPack.value.manifest.id) return;
+    if (!activeDraftPack.value) {
+      logger.warn('Import pack contents requested without an active data pack draft', { sourcePackId });
+      return;
+    }
+    if (sourcePackId === activeDraftPack.value.manifest.id) {
+      logger.warn('Ignored self import for data pack draft', { sourcePackId });
+      return;
+    }
     const sourcePack = packs.value.find(pack => pack.id === sourcePackId);
-    if (!sourcePack) return;
+    if (!sourcePack) {
+      logger.warn('Source data pack not found for draft content import', { sourcePackId });
+      return;
+    }
 
     const draftItems = activeDraftPack.value.items ?? (activeDraftPack.value.items = []);
     const draftSpells = activeDraftPack.value.spells ?? (activeDraftPack.value.spells = []);
     const draftTraits = activeDraftPack.value.traits ?? (activeDraftPack.value.traits = []);
     const sourceMeta = sourcePack.editorMeta;
+    const beforeCounts = {
+      itemCount: draftItems.length,
+      spellCount: draftSpells.length,
+      traitCount: draftTraits.length,
+    };
 
     sourcePack.items.forEach(source => {
       const item = clonePlain(source) as LibraryItem;
@@ -668,16 +827,27 @@ export const useDataPackStore = defineStore('dataPack', () => {
     }
 
     draftDirty.value = true;
+    logger.info('Data pack contents imported into draft', {
+      targetPackId: activeDraftPack.value.manifest.id,
+      sourcePackId,
+      importedItemCount: draftItems.length - beforeCounts.itemCount,
+      importedSpellCount: draftSpells.length - beforeCounts.spellCount,
+      importedTraitCount: draftTraits.length - beforeCounts.traitCount,
+    });
     feedback.showToast(`已导入 ${sourcePack.name} 的内容快照`, 'success');
   };
 
   const updateDraftEditLock = async (options: { enabled: boolean; password?: string; hint?: string; localOnly?: boolean }) => {
-    if (!activeDraftPack.value) return;
+    if (!activeDraftPack.value) {
+      logger.warn('Edit lock update requested without an active data pack draft');
+      return;
+    }
     if (!options.enabled) {
       if (activeDraftPack.value.editorMeta) {
         activeDraftPack.value.editorMeta.editLock = undefined;
       }
       draftDirty.value = true;
+      logger.info('Data pack edit lock disabled', { packId: activeDraftPack.value.manifest.id });
       return;
     }
 
@@ -693,10 +863,19 @@ export const useDataPackStore = defineStore('dataPack', () => {
       localEditorIdHash: options.localOnly ? await getLocalEditorHash() : undefined,
     };
     draftDirty.value = true;
+    logger.info('Data pack edit lock updated', {
+      packId: activeDraftPack.value.manifest.id,
+      hasPassword: Boolean(options.password),
+      hasHint: Boolean(options.hint),
+      localOnly: Boolean(options.localOnly),
+    });
   };
 
   const openReservedEditor = async (pack: RuntimeDataPack) => {
-    if (pack.builtin) return;
+    if (pack.builtin) {
+      logger.warn('Ignored reserved editor request for builtin data pack', { packId: pack.id });
+      return;
+    }
     await openMaker(pack.id);
   };
 

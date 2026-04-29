@@ -175,6 +175,16 @@ const ensureEditableDataPackInCurrentStorage = (packId: string): string | undefi
 
 const readJsonFile = (filePath: string): unknown => JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
+const summarizeDataPackFile = (dataPack: DataPackFile) => ({
+  packId: dataPack.manifest.id,
+  packName: dataPack.manifest.name,
+  itemCount: dataPack.items?.length ?? 0,
+  spellCount: dataPack.spells?.length ?? 0,
+  traitCount: dataPack.traits?.length ?? 0,
+  encryptionGroupCount: dataPack.editorMeta?.encryptionGroups?.length ?? 0,
+  hasEditLock: Boolean(dataPack.editorMeta?.editLock?.enabled),
+});
+
 const sha256 = (value: string): string => crypto.createHash('sha256').update(value).digest('hex');
 
 const getLocalEditorIdHash = (): string => {
@@ -285,6 +295,10 @@ const saveEditableDataPackFile = (packFile: DataPackFile, mode: DataPackSaveMode
   }
 
   fs.writeFileSync(filePath, JSON.stringify(dataPack, null, 2), 'utf-8');
+  logger.info('Editable data pack saved to local storage', {
+    ...summarizeDataPackFile(dataPack),
+    mode,
+  });
 
   const importedFiles = readImportedDataPackFiles();
   const knownPackIds = [DEFAULT_DATA_PACK_ID, ...importedFiles.map(file => file.manifest.id)];
@@ -361,7 +375,12 @@ app.whenReady().then(() => {
 
   ipcMain.handle('read-data-pack-state', async (): Promise<IpcResult<DataPackState>> => {
     try {
-      return { success: true, data: readDataPackState() };
+      const state = readDataPackState();
+      logger.info('Data pack state read', {
+        packCount: state.packs.length,
+        enabledCount: state.settings.enabledPackIds.length,
+      });
+      return { success: true, data: state };
     } catch (e) {
       logger.error('Failed to read data pack state', e);
       return createErrorResult(e);
@@ -398,6 +417,7 @@ app.whenReady().then(() => {
         JSON.stringify(dataPack, null, 2),
         'utf-8'
       );
+      logger.info('Data pack imported into local storage', summarizeDataPackFile(dataPack));
 
       const knownPackIds = [DEFAULT_DATA_PACK_ID, ...importedFiles.map(file => file.manifest.id), dataPack.manifest.id];
       const settings = readDataPackSettings(knownPackIds);
@@ -438,6 +458,10 @@ app.whenReady().then(() => {
       }
 
       fs.writeFileSync(result.filePath, JSON.stringify(dataPack, null, 2), 'utf-8');
+      logger.info('Data pack exported', {
+        ...summarizeDataPackFile(dataPack),
+        fileName: path.basename(result.filePath),
+      });
       return { success: true, data: null };
     } catch (e) {
       logger.error('Failed to export data pack', e, { packId });
@@ -461,6 +485,7 @@ app.whenReady().then(() => {
       if (fs.existsSync(resolvedFile)) {
         fs.unlinkSync(resolvedFile);
       }
+      logger.info('Data pack deleted from local storage', { packId });
 
       const remainingIds = [DEFAULT_DATA_PACK_ID, ...readImportedDataPackFiles().map(file => file.manifest.id)];
       const settings = readDataPackSettings(remainingIds);
@@ -475,7 +500,12 @@ app.whenReady().then(() => {
   ipcMain.handle('update-data-pack-settings', async (_event, settings: DataPackSettings): Promise<IpcResult<DataPackSettings>> => {
     try {
       const knownPackIds = [DEFAULT_DATA_PACK_ID, ...readImportedDataPackFiles().map(file => file.manifest.id)];
-      return { success: true, data: writeDataPackSettings(settings, knownPackIds) };
+      const normalized = writeDataPackSettings(settings, knownPackIds);
+      logger.info('Data pack settings updated', {
+        enabledCount: normalized.enabledPackIds.length,
+        orderCount: normalized.packOrder.length,
+      });
+      return { success: true, data: normalized };
     } catch (e) {
       logger.error('Failed to update data pack settings', e);
       return createErrorResult(e);
@@ -484,7 +514,9 @@ app.whenReady().then(() => {
 
   ipcMain.handle('read-editable-data-pack', async (_event, packId: string): Promise<IpcResult<DataPackFile>> => {
     try {
-      return { success: true, data: readEditableDataPackFile(packId) };
+      const dataPack = readEditableDataPackFile(packId);
+      logger.info('Editable data pack read', summarizeDataPackFile(dataPack));
+      return { success: true, data: dataPack };
     } catch (e) {
       logger.error('Failed to read editable data pack', e, { packId });
       return createErrorResult(e);
