@@ -20,6 +20,38 @@ const ignoresContentWeight = (item: InventoryItem): boolean => {
 
 const isContainerDefinition = (item: LibraryItem | undefined): boolean => item?.type === 'container';
 
+const canMergeLibraryDefinition = (item: LibraryItem | undefined): boolean => {
+  const mode = item?.multiplicity?.mode;
+  return mode === 'split' || mode === 'split_grouped' || mode === 'split_custom_rule';
+};
+
+const hasInstanceMagicOrCustomization = (item: InventoryItem): boolean => {
+  const magic = item.magic;
+  if (!magic) return false;
+
+  return Boolean(
+    magic.isMagic ||
+    magic.magicBonus !== undefined ||
+    magic.rarity !== undefined ||
+    magic.attunement?.requires ||
+    magic.attunement?.attuned ||
+    magic.enchantmentEffects?.length ||
+    magic.selectedTraitIds?.length ||
+    magic.customTraits?.length ||
+    magic.isCursed
+  );
+};
+
+const isPristineMergeTarget = (item: InventoryItem, definition: LibraryItem | undefined): boolean => {
+  if (!definition) return false;
+  return (
+    item.type === definition.type &&
+    item.name === definition.name &&
+    item.description === definition.description &&
+    !hasInstanceMagicOrCustomization(item)
+  );
+};
+
 function computeItemWeightRecursive(item: InventoryItem, allItems: InventoryItem[]): number {
   const weight = (item.weight ?? 0) * (item.quantity ?? 1);
 
@@ -202,14 +234,15 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
 
     const definition = getLibraryItemById(libraryId);
     const isContainer = isContainerDefinition(definition);
-    const neverStack = definition?.magic?.attunement?.requires === true;
+    const allowMerge = canMergeLibraryDefinition(definition);
 
     const existingItem = character.value.inventory.find(
       (item) =>
-        !neverStack &&
+        allowMerge &&
         item.templateId === libraryId &&
         item.parentId === targetParentId &&
         item.containerSlot === targetContainerSlot &&
+        isPristineMergeTarget(item, definition) &&
         (!isContainer || !character.value?.inventory.some((child) => child.parentId === item.instanceId))
     );
 

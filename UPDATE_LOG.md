@@ -1,5 +1,27 @@
 # UPDATE_LOG
 
+## [0.13.6] - 2026-04-29
+- 类型：Bugfix / 行囊 / 物品实例 / 测试
+- 条目：物品库拖入行囊时创建独立实例
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `tests/useInventoryLogic.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.5` 自增长到 `0.13.6`。
+  - 从物品库拖入行囊时，武器、护甲、容器等普通物品默认创建新的库存实例，不再合并并移动已有同模板物品。
+  - 已有附魔、同调、改名、描述修改或词条快照的库存实例不会作为合并目标，避免拖入“长剑”时移动已有附魔长剑。
+  - 仅保留经项目审定的可拆分/成组数量物品合并逻辑，例如 `iron_spikes_10` 这类明确需要数量堆叠的条目。
+- 验证结果：
+  - `npm run test -- tests/useInventoryLogic.test.ts` 通过：1 个测试文件，12 个用例。
+  - `npm run test` 通过：30 个测试文件，126 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.6` 安装包与便携版。
+
 ## [0.13.5] - 2026-04-29
 - 类型：Bugfix / 附魔系统 / 行囊展示 / 测试
 - 条目：附魔词条物品级快照与行囊展示

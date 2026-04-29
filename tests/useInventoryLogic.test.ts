@@ -52,16 +52,35 @@ describe('useInventoryLogic', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
-  it('stacks duplicate non-consumable items in the same inventory location', () => {
+  it('creates independent weapon instances instead of merging with existing inventory items', () => {
     const character = ref(createDefaultCharacter('inventory-2b'));
     const logic = useInventoryLogic(character, ref([]), vi.fn());
 
     logic.addItem('longsword');
+    character.value.inventory[0]!.magic = {
+      isMagic: true,
+      selectedTraitIds: ['flame'],
+      customTraits: [
+        {
+          id: 'flame',
+          source: 'custom',
+          type: 'damage',
+          name: '烈焰',
+          description: '',
+          activationMode: 'always',
+          participatesInDamage: true,
+          damageDice: '1d6',
+          damageType: 'fire',
+        },
+      ],
+    };
     logic.addItem('longsword');
 
     const swords = character.value.inventory.filter((item) => item.templateId === 'longsword');
-    expect(swords).toHaveLength(1);
-    expect(swords[0].quantity).toBe(2);
+    expect(swords).toHaveLength(2);
+    expect(swords.map((item) => item.quantity)).toEqual([1, 1]);
+    expect(swords[0].magic?.customTraits?.[0]?.name).toBe('烈焰');
+    expect(swords[1].magic?.customTraits ?? []).toEqual([]);
   });
 
   it('creates dragged library items at the requested preview index', () => {
@@ -79,19 +98,20 @@ describe('useInventoryLogic', () => {
     ]);
   });
 
-  it('moves a merged stack to the requested preview index', () => {
+  it('moves an explicitly stackable split item to the requested preview index when merging', () => {
     const character = ref(createDefaultCharacter('inventory-drop-merge-index'));
     const logic = useInventoryLogic(character, ref([]), vi.fn());
 
     logic.addItem('dagger');
     logic.addItem('club');
-    logic.addItem('dagger', 2);
+    logic.addItem('iron_spikes_10', 1);
+    logic.addItem('iron_spikes_10', 1);
 
-    expect(character.value.inventory.map((item) => item.templateId)).toEqual(['club', 'dagger']);
-    expect(character.value.inventory.find((item) => item.templateId === 'dagger')?.quantity).toBe(2);
+    expect(character.value.inventory.map((item) => item.templateId)).toEqual(['dagger', 'iron_spikes_10', 'club']);
+    expect(character.value.inventory.find((item) => item.templateId === 'iron_spikes_10')?.quantity).toBe(20);
   });
 
-  it('stacks empty containers but keeps containers with contents separate', () => {
+  it('creates independent container instances instead of stacking empty containers', () => {
     const character = ref(createDefaultCharacter('inventory-2c'));
     const logic = useInventoryLogic(character, ref([]), vi.fn());
 
@@ -99,15 +119,15 @@ describe('useInventoryLogic', () => {
     logic.addItem('backpack');
 
     let backpacks = character.value.inventory.filter((item) => item.templateId === 'backpack');
-    expect(backpacks).toHaveLength(1);
-    expect(backpacks[0].quantity).toBe(2);
+    expect(backpacks).toHaveLength(2);
+    expect(backpacks.map((item) => item.quantity)).toEqual([1, 1]);
 
     logic.addItem('torch', undefined, backpacks[0].instanceId);
     logic.addItem('backpack');
 
     backpacks = character.value.inventory.filter((item) => item.templateId === 'backpack');
-    expect(backpacks).toHaveLength(2);
-    expect(backpacks.map((item) => item.quantity)).toEqual([2, 1]);
+    expect(backpacks).toHaveLength(3);
+    expect(backpacks.map((item) => item.quantity)).toEqual([1, 1, 1]);
   });
 
   it('creates a fresh quiver and adds arrows through the acquisition rule', () => {
