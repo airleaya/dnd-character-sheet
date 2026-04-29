@@ -1,5 +1,34 @@
 # UPDATE_LOG
 
+## [0.14.14] - 2026-04-30
+- Type: Feature / Data Pack Maker / Passphrase Groups / Visibility Metadata / Tests / Logging
+- Item: Make passphrase groups editable in the GM maker and write explicit visibility metadata from maker editors.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/types/Spell.ts`
+  - `tests/dataPackMakerPanel.ui.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.13` to `0.14.14` because this round extends phase-four authoring behavior, not just bug fixes.
+  - Maker UI wording now uses "????" instead of the old "????" for the phase-four unlock workflow.
+  - GM can create, rename, describe, and delete passphrase groups; the passphrase is the group name.
+  - Maker-launched ??? and ??? now assign item visibility explicitly: public entries write `visibility.public = true`, while passphrase entries write `visibility.public = false` and `visibility.unlockGroupId`.
+  - Spell placeholder editor and trait placeholder editor can assign public/passphrase visibility groups.
+  - Deleting a passphrase group clears item/spell/trait assignments back to public visibility.
+  - Logging records group ids and assignment counts only; it does not log passphrases or raw data-pack content.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/dataPackMakerPanel.ui.test.ts tests/dataPackUtils.test.ts tests/dataPackStoreUnlock.test.ts` passed during focused verification.
+  - `npm run test` passed: 35 files / 158 tests.
+  - `npm run build` passed and generated `0.14.14` installer/portable artifacts.
+
 ## [0.14.13] - 2026-04-30
 - Type: Feature / Data Pack Unlock / Library Visibility / Tests / Logging
 - Item: Implement phase-four passphrase unlock visibility for third-party data packs.

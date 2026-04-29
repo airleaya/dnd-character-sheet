@@ -1,6 +1,11 @@
 ﻿# TODOLIST
 
 > 2026-04-30 version iteration update:
+> Current baseline grows from `0.14.13` to `0.14.14`; this round upgrades phase-four authoring so GM can manage passphrase groups and assign explicit visibility from maker editors.
+> 2026-04-30 passphrase authoring update:
+> Maker terminology now uses 口令分组; item forge/enchant editors, spell placeholders, and trait placeholders write public/non-public visibility metadata tied to passphrase groups.
+
+> 2026-04-30 version iteration update:
 > Current baseline grows from `0.14.12` to `0.14.13`; this round starts data-pack phase four with passphrase unlock visibility.
 > 2026-04-30 passphrase unlock update:
 > Third-party data packs can hide entries behind passphrase groups; PL can unlock content from Data Pack Manager or the global `Shift + K + L` dialog, and GM maker can temporarily ignore passphrases while editing.
@@ -204,12 +209,13 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.14.13`
+当前基线版本：`0.14.14`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
 
 - `0.14.N`：数据包系统；`N` 为自增长补丁版本号。
+- `0.14.14`：已完成 GM 制作器口令分组管理、物品/法术/词条公开状态写回与旧“加密分组”文案收敛。
 - `0.14.13`：已完成阶段四第一版口令解锁可见性、数据包管理口令入口、`Shift + K + L` 快捷解锁窗口与编辑时忽视口令开关。
 - `0.14.5`：已修复制作器铁匠铺/附魔台从右侧栏接收物品拖拽的问题。
 - `0.14.4`：已完成制作器物品/法术切换、拖拽入口强化、普通分组管理与加密分组预留。
@@ -258,6 +264,7 @@
 - 阶段四：分级加密与解锁
   - [x] 阶段四预备：制作器已可创建、删除、管理加密分组，并为物品/法术记录加密分组归属。
   - [x] 支持口令分组的非公开内容运行时可见性过滤。
+  - [x] 支持 GM 在制作器中创建、改名、描述、删除口令分组，并为物品/法术/词条写入公开状态。
   - [ ] 如未来需要，再评估 Web Crypto 的 PBKDF2 + AES-GCM 真加密；当前无强密码学加密需求。
   - [x] 支持 PL 在数据包管理界面或 `Shift + K + L` 独立窗口输入 GM 口令解锁更多物品/法术/词条。
   - [ ] 评估是否需要本机保存解锁状态；当前解锁状态仅本次运行有效，且不保存明文口令。
@@ -538,4 +545,5 @@
 3. 完成或确认合并后，将结果写入 `UPDATE_LOG.md`。
 4. `TODOLIST.md` 只保留未完成、待验证、待澄清事项。
 5. 工程进度记录必须使用中文。
+
 

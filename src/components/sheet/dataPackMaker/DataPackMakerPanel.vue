@@ -315,6 +315,17 @@ const addEncryptionGroup = () => {
   newEncryptionGroupDescription.value = '';
 };
 
+const getEntryUnlockGroupId = (entry?: { encryptionGroupId?: string; visibility?: { unlockGroupId?: string } }) =>
+  entry?.visibility?.unlockGroupId ?? entry?.encryptionGroupId ?? '';
+
+const setSpellUnlockGroup = (spell: SpellDefinition, value: string) => {
+  store.assignDraftSpellUnlockGroup(spell.id, value || undefined);
+};
+
+const setTraitUnlockGroup = (trait: DataPackTraitDefinition, value: string) => {
+  store.assignDraftTraitUnlockGroup(trait.id, value || undefined);
+};
+
 const addTrait = () => {
   if (!pack.value) return;
   const id = `trait-${Date.now()}`;
@@ -463,7 +474,7 @@ const saveDraftFromHeader = async () => {
       <button :class="{ active: activeSection === 'items' }" @click="switchLibraryTab('items')">物品 / 工作台</button>
       <button :class="{ active: activeSection === 'spells' }" @click="switchLibraryTab('spells')">法术编辑（占位）</button>
       <button :class="{ active: activeSection === 'traits' }" @click="activeSection = 'traits'">词条编辑（占位）</button>
-      <button :class="{ active: activeSection === 'groups' }" @click="activeSection = 'groups'">分组 / 加密分组</button>
+      <button :class="{ active: activeSection === 'groups' }" @click="activeSection = 'groups'">分组 / 口令分组</button>
       <button :class="{ active: activeSection === 'meta' }" @click="activeSection = 'meta'">元数据 / 编辑锁</button>
     </nav>
 
@@ -619,9 +630,9 @@ const saveDraftFromHeader = async () => {
             <option v-for="child in group.children ?? []" :key="child.id" :value="child.name" />
           </template>
         </datalist>
-        <label>加密分组
-          <select v-model="selectedSpell.encryptionGroupId" @change="markDirty">
-            <option value="">公开 / 不加入加密分组</option>
+        <label>口令分组
+          <select :value="getEntryUnlockGroupId(selectedSpell)" @change="setSpellUnlockGroup(selectedSpell, ($event.target as HTMLSelectElement).value)">
+            <option value="">公开</option>
             <option v-for="group in encryptionGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
           </select>
         </label>
@@ -645,6 +656,10 @@ const saveDraftFromHeader = async () => {
           <option value="spell_trait">法术词条</option>
           <option value="class_feature">职业特性</option>
           <option value="rule_note">规则备注</option>
+        </select>
+        <select :value="getEntryUnlockGroupId(trait)" @change="setTraitUnlockGroup(trait, ($event.target as HTMLSelectElement).value)">
+          <option value="">公开</option>
+          <option v-for="group in encryptionGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
         </select>
         <textarea v-model="trait.description" placeholder="描述" @input="markDirty"></textarea>
       </div>
@@ -694,17 +709,17 @@ const saveDraftFromHeader = async () => {
       </section>
 
       <section class="group-card encrypted">
-        <h2>加密分组（阶段四预留）</h2>
-        <p class="hint">当前仅记录物品/法术所属加密分组，不执行内容加密；阶段四会基于这些分组做密码解锁。</p>
+        <h2>口令分组</h2>
+        <p class="hint">口令本身就是分组名。加入该分组的物品、法术或词条默认非公开；PL 输入匹配口令后，本次运行中显示该组内容。当前不做强密码学加密。</p>
         <div class="inline-form">
-          <input v-model="newEncryptionGroupName" placeholder="加密分组名" />
+          <input v-model="newEncryptionGroupName" placeholder="口令 / 分组名" />
           <input v-model="newEncryptionGroupDescription" placeholder="描述（可选）" />
-          <button type="button" @click="addEncryptionGroup">新增加密分组</button>
+          <button type="button" @click="addEncryptionGroup">新增口令分组</button>
         </div>
         <div v-for="group in encryptionGroups" :key="group.id" class="managed-group">
-          <strong>{{ group.name }}</strong>
+          <input :value="group.name" @change="store.updateEncryptionGroup(group.id, { name: ($event.target as HTMLInputElement).value })" />
           <button type="button" class="danger small" @click="store.removeEncryptionGroup(group.id)">删除</button>
-          <small>{{ group.description || '无描述' }}</small>
+          <input :value="group.description ?? ''" placeholder="描述（可选）" @change="store.updateEncryptionGroup(group.id, { description: ($event.target as HTMLInputElement).value })" />
         </div>
       </section>
     </div>
@@ -723,7 +738,7 @@ const saveDraftFromHeader = async () => {
       <label>新密码<input v-model="lockDraft.password" type="password" placeholder="留空则不设置密码" /></label>
       <label>密码提示<input v-model="lockDraft.hint" /></label>
       <button type="button" @click="saveLock">应用编辑锁设置</button>
-      <p class="hint">编辑锁不是内容加密；数据包仍为明文。真正分级加密将在后续阶段实现。</p>
+      <p class="hint">编辑锁不是内容加密；数据包仍为明文。口令分组只控制应用内可见性，直接阅读数据包 JSON 仍可能看到全部内容。</p>
     </div>
   </section>
 </template>
@@ -786,7 +801,7 @@ label.check { flex-direction: row; align-items: center; }
 input, textarea, select { border: 1px solid #cfd8cf; border-radius: 8px; padding: 8px 10px; font: inherit; }
 textarea { min-height: 96px; resize: vertical; }
 .placeholder-box { border: 1px dashed #9a79bd; color: #5d4775; background: #faf6ff; border-radius: 10px; padding: 12px; }
-.trait-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; padding: 10px; border: 1px solid #e0e5df; border-radius: 10px; }
+.trait-row { display: grid; grid-template-columns: 1fr 160px 180px; gap: 8px; padding: 10px; border: 1px solid #e0e5df; border-radius: 10px; }
 .trait-row textarea { grid-column: 1 / -1; }
 .groups-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .group-card { background: white; border: 1px solid #d8ded8; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }

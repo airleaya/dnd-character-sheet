@@ -40,7 +40,7 @@ const summarizeDraftPack = (packFile: DataPackFile) => ({
   itemCount: packFile.items?.length ?? 0,
   spellCount: packFile.spells?.length ?? 0,
   traitCount: packFile.traits?.length ?? 0,
-  encryptionGroupCount: packFile.editorMeta?.encryptionGroups?.length ?? 0,
+  unlockGroupCount: packFile.editorMeta?.unlockGroups?.length ?? packFile.editorMeta?.encryptionGroups?.length ?? 0,
   hasEditLock: Boolean(packFile.editorMeta?.editLock?.enabled),
 });
 
@@ -705,6 +705,16 @@ export const useDataPackStore = defineStore('dataPack', () => {
     return editorMeta.encryptionGroups;
   };
 
+  const syncEntryUnlockVisibility = (
+    entry: { encryptionGroupId?: string; visibility?: { public: boolean; unlockGroupId?: string } },
+    groupId?: string
+  ) => {
+    entry.encryptionGroupId = groupId || undefined;
+    entry.visibility = groupId
+      ? { public: false, unlockGroupId: groupId }
+      : { public: true };
+  };
+
   const mergeMenuGroups = (domain: 'items' | 'spells', sourceGroups: DataPackMenuGroup[] | undefined) => {
     if (!sourceGroups?.length) return;
     const targetGroups = ensureMenuGroups(domain);
@@ -851,10 +861,45 @@ export const useDataPackStore = defineStore('dataPack', () => {
       }
     }
     draftDirty.value = true;
-    logger.info('Data pack encryption group added', {
+    logger.info('Data pack unlock group added', {
       packId: activeDraftPack.value?.manifest.id,
-      groupName: trimmed,
+      groupId: groups[groups.length - 1]?.id,
       hasDescription: Boolean(description.trim()),
+    });
+  };
+
+  const updateEncryptionGroup = (groupId: string, updates: { name?: string; description?: string }) => {
+    if (!activeDraftPack.value) return;
+    const groups = ensureEncryptionGroups();
+    const group = groups.find(entry => entry.id === groupId);
+    const editorMeta = ensureEditorMeta();
+    if (!group || !editorMeta) return;
+
+    const nextName = updates.name?.trim();
+    if (nextName && !groups.some(entry => entry.id !== groupId && entry.name === nextName)) {
+      group.name = nextName;
+    }
+    if (updates.description !== undefined) {
+      group.description = updates.description.trim() || undefined;
+    }
+
+    editorMeta.unlockGroups ??= [];
+    let unlockGroup = editorMeta.unlockGroups.find(entry => entry.id === groupId);
+    if (!unlockGroup) {
+      unlockGroup = {
+        id: group.id,
+        passphrase: group.name,
+      };
+      editorMeta.unlockGroups.push(unlockGroup);
+    }
+    unlockGroup.passphrase = group.name;
+    unlockGroup.description = group.description;
+    unlockGroup.hint = group.description;
+    draftDirty.value = true;
+    logger.info('Data pack unlock group updated', {
+      packId: activeDraftPack.value.manifest.id,
+      groupId,
+      hasDescription: Boolean(group.description),
     });
   };
 
@@ -867,16 +912,49 @@ export const useDataPackStore = defineStore('dataPack', () => {
     editorMeta.encryptionGroups = groups.filter(group => group.id !== groupId);
     editorMeta.unlockGroups = editorMeta.unlockGroups?.filter(group => group.id !== groupId);
     activeDraftPack.value.items?.forEach(item => {
-      if (item.encryptionGroupId === groupId) item.encryptionGroupId = undefined;
+      if (item.encryptionGroupId === groupId || item.visibility?.unlockGroupId === groupId) {
+        syncEntryUnlockVisibility(item, undefined);
+      }
     });
     activeDraftPack.value.spells?.forEach(spell => {
-      if (spell.encryptionGroupId === groupId) spell.encryptionGroupId = undefined;
+      if (spell.encryptionGroupId === groupId || spell.visibility?.unlockGroupId === groupId) {
+        syncEntryUnlockVisibility(spell, undefined);
+      }
+    });
+    activeDraftPack.value.traits?.forEach(trait => {
+      if (trait.encryptionGroupId === groupId || trait.visibility?.unlockGroupId === groupId) {
+        syncEntryUnlockVisibility(trait, undefined);
+      }
     });
     draftDirty.value = true;
-    logger.info('Data pack encryption group removed', {
+    logger.info('Data pack unlock group removed', {
       packId: activeDraftPack.value.manifest.id,
       groupId,
-      groupName: target?.name,
+      existed: Boolean(target),
+    });
+  };
+
+  const assignDraftSpellUnlockGroup = (spellId: string, groupId?: string) => {
+    const spell = activeDraftPack.value?.spells?.find(entry => entry.id === spellId);
+    if (!spell) return;
+    syncEntryUnlockVisibility(spell, groupId);
+    draftDirty.value = true;
+    logger.info('Data pack spell unlock group assigned', {
+      packId: activeDraftPack.value?.manifest.id,
+      spellId,
+      groupId: groupId || 'public',
+    });
+  };
+
+  const assignDraftTraitUnlockGroup = (traitId: string, groupId?: string) => {
+    const trait = activeDraftPack.value?.traits?.find(entry => entry.id === traitId);
+    if (!trait) return;
+    syncEntryUnlockVisibility(trait, groupId);
+    draftDirty.value = true;
+    logger.info('Data pack trait unlock group assigned', {
+      packId: activeDraftPack.value?.manifest.id,
+      traitId,
+      groupId: groupId || 'public',
     });
   };
 
@@ -1124,7 +1202,10 @@ export const useDataPackStore = defineStore('dataPack', () => {
     ensureMenuGroupForAssignment,
     ensureItemAssignmentGroups,
     addEncryptionGroup,
+    updateEncryptionGroup,
     removeEncryptionGroup,
+    assignDraftSpellUnlockGroup,
+    assignDraftTraitUnlockGroup,
     importItemToDraft,
     importSpellToDraft,
     importPackContentsToDraft,

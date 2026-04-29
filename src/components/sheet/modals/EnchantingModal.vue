@@ -18,6 +18,7 @@ type EnchantTab = 'basic' | 'traits' | 'create' | 'manage';
 type DataPackAssignmentData = {
   displayCategory?: string;
   displaySubcategory?: string;
+  visibility?: { public: boolean; unlockGroupId?: string };
   encryptionGroupId?: string;
 };
 
@@ -61,10 +62,14 @@ const selectedDisplaySubcategory = computed({
   },
 });
 const selectedEncryptionGroupId = computed({
-  get: () => targetData.value?.encryptionGroupId,
+  get: () => targetData.value?.visibility?.unlockGroupId ?? targetData.value?.encryptionGroupId ?? '',
   set: (value: string | undefined) => {
     if (!targetData.value) return;
-    targetData.value.encryptionGroupId = value || undefined;
+    const groupId = value || undefined;
+    targetData.value.encryptionGroupId = groupId;
+    targetData.value.visibility = groupId
+      ? { public: false, unlockGroupId: groupId }
+      : { public: true };
   },
 });
 const traitKeyword = ref('');
@@ -299,7 +304,7 @@ const saveNewCustomTrait = () => {
               <section v-if="targetItem && isDataPackMakerEditor" class="form-section maker-assignment">
                 <div class="section-title">
                   <h4>数据包归档</h4>
-                  <p>从数据包编辑器进入时，可直接指定普通分组和加密分组。</p>
+                  <p>从数据包编辑器进入时，可直接指定普通分组和口令分组。</p>
                 </div>
                 <div class="field-grid">
                   <label>
@@ -325,9 +330,9 @@ const saveNewCustomTrait = () => {
                     </datalist>
                   </label>
                   <label>
-                    <span>加密分组</span>
+                    <span>口令分组</span>
                     <select v-model="selectedEncryptionGroupId">
-                      <option :value="undefined">公开 / 不加入加密分组</option>
+                      <option value="">公开</option>
                       <option v-for="group in dataPackEncryptionGroups" :key="group.id" :value="group.id">
                         {{ group.name }}
                       </option>

@@ -105,6 +105,19 @@ const itemGroupCategoryOptions = computed(() => dataPackMenuGroups.value.map(gro
 const itemGroupSubcategoryOptions = computed(() =>
   dataPackMenuGroups.value.flatMap(group => group.children?.map(child => child.name) ?? [])
 );
+const selectedUnlockGroupId = computed({
+  get: () =>
+    (draftData.value.visibility as { unlockGroupId?: string } | undefined)?.unlockGroupId
+    ?? (draftData.value.encryptionGroupId as string | undefined)
+    ?? '',
+  set: (value: string) => {
+    const groupId = value || undefined;
+    draftData.value.encryptionGroupId = groupId;
+    draftData.value.visibility = groupId
+      ? { public: false, unlockGroupId: groupId }
+      : { public: true };
+  },
+});
 
 const tagsText = computed({
   get: () => (Array.isArray(draftData.value.tags) ? draftData.value.tags.join(', ') : ''),
@@ -292,9 +305,9 @@ const onBackdropMouseup = async () => {
                   </datalist>
                 </div>
                 <div class="field">
-                  <label>加密分组</label>
-                  <select v-model="draftData.encryptionGroupId" class="input-std">
-                    <option :value="undefined">公开 / 不加入加密分组</option>
+                  <label>口令分组</label>
+                  <select v-model="selectedUnlockGroupId" class="input-std">
+                    <option value="">公开</option>
                     <option v-for="group in dataPackEncryptionGroups" :key="group.id" :value="group.id">
                       {{ group.name }}
                     </option>

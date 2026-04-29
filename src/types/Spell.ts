@@ -2,7 +2,7 @@
 
 import type { DamageTypeKey } from '../data/rules/damageTypes';
 import type { AbilityKey } from './Library';
-import type { DataPackVisibilityMeta } from './DataPackVisibility'; // 复用 str, dex, int...
+import type { DataPackVisibilityMeta } from './DataPackVisibility';
 
 // ==========================================
 // 1. 枚举与辅助类型

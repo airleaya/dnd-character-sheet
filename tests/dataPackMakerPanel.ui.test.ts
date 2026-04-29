@@ -111,4 +111,58 @@ describe('DataPackMakerPanel', () => {
     ]);
     expect(store.draftDirty).toBe(true);
   });
+
+  it('manages passphrase unlock groups and assigns spell visibility metadata', () => {
+    const store = useDataPackStore();
+    store.activeDraftPack = {
+      ...createDraftPack(),
+      spells: [
+        {
+          id: 'secret-spell',
+          name: '秘密法术',
+          level: 1,
+          school: 'evocation',
+          ritual: false,
+          castingTime: '1 Action',
+          range: 'Self',
+          components: { v: true, s: false, m: null },
+          concentration: false,
+          duration: 'Instantaneous',
+          attackType: 'none',
+          description: '',
+          classes: [],
+        },
+      ],
+    };
+
+    store.addEncryptionGroup('dragon', 'red door');
+    const groupId = store.activeDraftPack.editorMeta?.encryptionGroups?.[0]?.id;
+
+    expect(groupId).toBeTruthy();
+    expect(store.activeDraftPack.editorMeta?.unlockGroups?.[0]).toMatchObject({
+      id: groupId,
+      passphrase: 'dragon',
+      description: 'red door',
+    });
+
+    store.updateEncryptionGroup(groupId!, { name: 'wyrm', description: 'new hint' });
+    store.assignDraftSpellUnlockGroup('secret-spell', groupId);
+
+    expect(store.activeDraftPack.editorMeta?.unlockGroups?.[0]).toMatchObject({
+      id: groupId,
+      passphrase: 'wyrm',
+      description: 'new hint',
+    });
+    expect(store.activeDraftPack.spells?.[0]).toMatchObject({
+      encryptionGroupId: groupId,
+      visibility: { public: false, unlockGroupId: groupId },
+    });
+
+    store.removeEncryptionGroup(groupId!);
+
+    expect(store.activeDraftPack.spells?.[0]).toMatchObject({
+      encryptionGroupId: undefined,
+      visibility: { public: true },
+    });
+  });
 });
