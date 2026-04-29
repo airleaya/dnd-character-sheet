@@ -1,11 +1,21 @@
 import { computed, watchEffect } from 'vue';
 import type { Ref } from 'vue';
-import type { Character, HitDiceMap } from '../../types/Character';
+import type {
+  Character,
+  CharacterUnarmedStrike,
+  HitDiceMap,
+  UnarmedStrikeTagKey,
+} from '../../types/Character';
 import type { ArmorData, InventoryItem, WeaponData } from '../../types/Item';
 import type { AbilityKey } from '../../types/Library';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { ATTR_MAP } from '../../data/rules/dndRules';
 import { getJackOfAllTradesBonus } from '../../utils/classFeatures';
+import {
+  createDefaultUnarmedStrike,
+  createUnarmedStrikeSignature,
+  normalizeUnarmedStrikes,
+} from '../../utils/characterMigration';
 
 export type AttackSourceType = 'unarmed' | 'weapon';
 export type AttackMode = 'base' | 'ranged' | 'thrown' | 'offhand' | 'versatile';
@@ -18,6 +28,7 @@ export interface AttackBonusBreakdown {
   proficiencyApplied: boolean;
   hitBonus: number;
   damageBonus: number;
+  damageAbilityModifier?: number;
   offhandDamagePenalty: boolean;
 }
 
@@ -30,6 +41,7 @@ export interface RawAttackEntry {
   sourceFingerprint: string;
   name: string;
   abilityPath: AbilityKey;
+  damageAbilityPath?: AbilityKey;
   attackMode: AttackMode;
   handMode: HandMode;
   hit: string;
@@ -41,6 +53,9 @@ export interface RawAttackEntry {
   ammoType?: string;
   ammoCount: number | null;
   specialText?: string;
+  unarmedTags?: UnarmedStrikeTagKey[];
+  customTag?: string;
+  isMagicAttack?: boolean;
 }
 
 export interface AttackCatalogEntry {
@@ -48,6 +63,7 @@ export interface AttackCatalogEntry {
   name: string;
   sourceType: AttackSourceType;
   abilityPath: AbilityKey;
+  damageAbilityPath?: AbilityKey;
   attackMode: AttackMode;
   handMode: HandMode;
   hit: string;
@@ -60,10 +76,31 @@ export interface AttackCatalogEntry {
   ammoCount: number | null;
   ammoDisplay: AmmoDisplay;
   specialText?: string;
+  unarmedTags?: UnarmedStrikeTagKey[];
+  customTag?: string;
+  isMagicAttack?: boolean;
   rawKeys: string[];
 }
 
 const DEFAULT_MELEE_RANGE = '5 尺';
+
+export const UNARMED_STRIKE_TAG_LABELS: Record<UnarmedStrikeTagKey, string> = {
+  none: '无',
+  natural_weapon: '天生武器',
+  unarmed_fighting: '徒手战斗',
+  martial_arts: '武艺',
+  tavern_brawler: '酒馆斗殴者',
+  astral_arms: '星界之臂',
+  custom: '自定义',
+};
+
+export const UNARMED_DAMAGE_DICE_OPTIONS = ['1', '1d4', '1d6', '1d8', '1d10'] as const;
+export const UNARMED_DAMAGE_TYPE_LABELS: Record<CharacterUnarmedStrike['damageType'], string> = {
+  bludgeoning: '钝击',
+  piercing: '穿刺',
+  slashing: '挥砍',
+  force: '力场',
+};
 
 const isArmorItem = (item: InventoryItem): item is InventoryItem & { data: ArmorData } => item.type === 'armor';
 const isWeaponItem = (item: InventoryItem): item is InventoryItem & { data: WeaponData } => item.type === 'weapon';
@@ -94,6 +131,12 @@ const resolveDamageTypeLabel = (rawType: string) => {
     typeKey in DAMAGE_TYPES ? DAMAGE_TYPES[typeKey as keyof typeof DAMAGE_TYPES] : undefined;
   return damageDef ? damageDef.label : rawType;
 };
+
+const formatUnarmedDamageDice = (damageDice: CharacterUnarmedStrike['damageDice']) =>
+  damageDice === '1' ? '1' : damageDice;
+
+const resolveUnarmedDamageTypeLabel = (damageType: CharacterUnarmedStrike['damageType']) =>
+  UNARMED_DAMAGE_TYPE_LABELS[damageType];
 
 const createWeaponFingerprint = (item: InventoryItem & { data: WeaponData }) => {
   const props = [...(item.data.properties || [])].sort().join(',');
@@ -130,6 +173,11 @@ export function useCombatLogic(
     if (!character.value) return '+0';
     const jackOfAllTradesBonus = getJackOfAllTradesBonus(character.value, proficiencyBonus.value);
     return formatSigned(abilityModifier(character.value.stats.dex) + jackOfAllTradesBonus);
+  });
+
+  const initiativeJackOfAllTrades = computed(() => {
+    if (!character.value) return false;
+    return getJackOfAllTradesBonus(character.value, proficiencyBonus.value) > 0;
   });
 
   const armorClass = computed(() => {
@@ -218,6 +266,7 @@ export function useCombatLogic(
     const strMod = abilityModifier(char.stats.str);
     const dexMod = abilityModifier(char.stats.dex);
     const activeModes = char.activeAttackModes.filter(k => k !== 'str' && k !== 'dex') as AbilityKey[];
+    const unarmedStrikes = normalizeUnarmedStrikes(char.unarmedStrikes);
 
     const attackList: RawAttackEntry[] = [];
 
@@ -225,41 +274,46 @@ export function useCombatLogic(
       attackList.push(entry);
     };
 
-    const buildUnarmedEntry = (abilityPath: AbilityKey) => {
-      const modifier = abilityModifier(char.stats[abilityPath]);
-      const rawKey = abilityPath === 'str' ? 'unarmed' : `unarmed_${abilityPath}`;
-      const attrLabel = ATTR_MAP[abilityPath] || abilityPath;
-      const name = abilityPath === 'str' ? '👊 徒手攻击' : `👊 徒手攻击 (${attrLabel})`;
+    const buildUnarmedEntry = (strike: CharacterUnarmedStrike) => {
+      const hitModifier = abilityModifier(char.stats[strike.hitAbility]);
+      const damageModifier = abilityModifier(char.stats[strike.damageAbility]);
+      const signature = createUnarmedStrikeSignature(strike);
+      const rawKey = strike.id || `unarmed_${encodeURIComponent(signature)}`;
+      const damageTypeLabel = resolveUnarmedDamageTypeLabel(strike.damageType);
 
       pushAttack({
         rawKey,
-        legacyId: rawKey,
+        legacyId: strike.id === 'unarmed_default' ? 'unarmed' : rawKey,
         sourceType: 'unarmed',
-        sourceId: 'unarmed',
-        sourceFingerprint: 'unarmed',
-        name,
-        abilityPath,
+        sourceId: strike.id,
+        sourceFingerprint: `unarmed:${encodeURIComponent(signature)}`,
+        name: `👊 ${strike.name || '徒手打击'}`,
+        abilityPath: strike.hitAbility,
+        damageAbilityPath: strike.damageAbility,
         attackMode: 'base',
         handMode: 'none',
-        hit: formatSigned(modifier + pb),
-        damage: `${1 + modifier} (钝击)`,
+        hit: formatSigned(hitModifier + pb),
+        damage: formatDamage(formatUnarmedDamageDice(strike.damageDice), damageModifier, damageTypeLabel),
         bonusBreakdown: {
-          abilityModifier: modifier,
+          abilityModifier: hitModifier,
           proficiencyBonus: pb,
           proficiencyApplied: true,
-          hitBonus: modifier + pb,
-          damageBonus: modifier,
+          hitBonus: hitModifier + pb,
+          damageBonus: damageModifier,
+          damageAbilityModifier: damageModifier,
           offhandDamagePenalty: false,
         },
         range: DEFAULT_MELEE_RANGE,
         properties: [],
         needsAmmo: false,
         ammoCount: null,
+        unarmedTags: strike.tags,
+        customTag: strike.customTag,
+        isMagicAttack: strike.isMagic,
       });
     };
 
-    buildUnarmedEntry('str');
-    activeModes.forEach(buildUnarmedEntry);
+    unarmedStrikes.forEach(buildUnarmedEntry);
 
     char.inventory.forEach(item => {
       if (!isWeaponItem(item)) return;
@@ -331,6 +385,7 @@ export function useCombatLogic(
           sourceFingerprint,
           name: `${item.name}${nameLabel}`,
           abilityPath,
+          damageAbilityPath: abilityPath,
           attackMode,
           handMode,
           hit: formatSigned(hitValue),
@@ -341,6 +396,7 @@ export function useCombatLogic(
             proficiencyApplied: isProficient,
             hitBonus: hitValue,
             damageBonus: damageModifier,
+            damageAbilityModifier: damageModifier,
             offhandDamagePenalty: offhand && modifier > 0,
           },
           range: rangeOverride || data.range || DEFAULT_MELEE_RANGE,
@@ -476,6 +532,7 @@ export function useCombatLogic(
         name: entry.name,
         sourceType: entry.sourceType,
         abilityPath: entry.abilityPath,
+        damageAbilityPath: entry.damageAbilityPath,
         attackMode: entry.attackMode,
         handMode: entry.handMode,
         hit: entry.hit,
@@ -488,6 +545,9 @@ export function useCombatLogic(
         ammoCount: entry.ammoCount,
         ammoDisplay: resolveAmmoDisplay(entry),
         specialText: entry.specialText,
+        unarmedTags: entry.unarmedTags,
+        customTag: entry.customTag,
+        isMagicAttack: entry.isMagicAttack,
         rawKeys: [entry.rawKey],
       });
     });
@@ -556,6 +616,22 @@ export function useCombatLogic(
       return;
     }
     selectAttack(catalogKey);
+  };
+
+  const reorderSelectedAttacks = (catalogKeys: string[]) => {
+    if (!character.value) return;
+
+    const availableKeys = new Set(attackCatalog.value.map(entry => entry.catalogKey));
+    const previousKeys = new Set(character.value.selectedAttackKeys);
+    const nextKeys = uniqueKeys(catalogKeys).filter(
+      key => availableKeys.has(key) && previousKeys.has(key)
+    );
+
+    if (nextKeys.length !== previousKeys.size) return;
+    if (nextKeys.every((key, index) => key === character.value!.selectedAttackKeys[index])) return;
+
+    character.value.selectedAttackKeys = nextKeys;
+    save();
   };
 
   const applyDamage = (amount: number) => {
@@ -668,8 +744,81 @@ export function useCombatLogic(
     save();
   };
 
+  const commitUnarmedStrikes = (nextStrikes: CharacterUnarmedStrike[]) => {
+    if (!character.value) return false;
+    const normalized = normalizeUnarmedStrikes(nextStrikes);
+    character.value.unarmedStrikes = normalized;
+    const validCatalogKeys = new Set(attackCatalog.value.map(entry => entry.catalogKey));
+    character.value.selectedAttackKeys = character.value.selectedAttackKeys.filter(key =>
+      validCatalogKeys.has(key)
+    );
+    save();
+    return true;
+  };
+
+  const hasDuplicateUnarmedStrike = (
+    candidate: CharacterUnarmedStrike,
+    existingStrikes: CharacterUnarmedStrike[],
+    ignoreId?: string
+  ) => {
+    const candidateSignature = createUnarmedStrikeSignature(candidate);
+    return existingStrikes.some(
+      strike =>
+        strike.id !== ignoreId && createUnarmedStrikeSignature(strike) === candidateSignature
+    );
+  };
+
+  const addUnarmedStrike = (strike: CharacterUnarmedStrike) => {
+    if (!character.value) return false;
+    const current = normalizeUnarmedStrikes(character.value.unarmedStrikes);
+    const normalizedStrike = normalizeUnarmedStrikes([strike])[0] ?? createDefaultUnarmedStrike();
+    if (hasDuplicateUnarmedStrike(normalizedStrike, current)) return false;
+    return commitUnarmedStrikes([...current, normalizedStrike]);
+  };
+
+  const updateUnarmedStrike = (strikeId: string, patch: Partial<CharacterUnarmedStrike>) => {
+    if (!character.value) return false;
+    const current = normalizeUnarmedStrikes(character.value.unarmedStrikes);
+    const target = current.find(strike => strike.id === strikeId);
+    if (!target) return false;
+    const selectedCatalogKey = attackCatalog.value.find(
+      entry =>
+        entry.sourceType === 'unarmed' &&
+        entry.rawKeys.includes(strikeId) &&
+        character.value?.selectedAttackKeys.includes(entry.catalogKey)
+    )?.catalogKey;
+
+    const normalizedCandidate = normalizeUnarmedStrikes([{ ...target, ...patch, id: strikeId }])[0];
+    if (!normalizedCandidate) return false;
+    if (hasDuplicateUnarmedStrike(normalizedCandidate, current, strikeId)) return false;
+
+    const committed = commitUnarmedStrikes(
+      current.map(strike => (strike.id === strikeId ? normalizedCandidate : strike))
+    );
+    if (committed && selectedCatalogKey && character.value) {
+      const nextCatalogKey = attackCatalog.value.find(
+        entry => entry.sourceType === 'unarmed' && entry.rawKeys.includes(strikeId)
+      )?.catalogKey;
+
+      if (nextCatalogKey && !character.value.selectedAttackKeys.includes(nextCatalogKey)) {
+        character.value.selectedAttackKeys = [...character.value.selectedAttackKeys, nextCatalogKey];
+        save();
+      }
+    }
+
+    return committed;
+  };
+
+  const deleteUnarmedStrike = (strikeId: string) => {
+    if (!character.value) return false;
+    const current = normalizeUnarmedStrikes(character.value.unarmedStrikes);
+    const next = current.filter(strike => strike.id !== strikeId);
+    return commitUnarmedStrikes(next.length > 0 ? next : [createDefaultUnarmedStrike()]);
+  };
+
   return {
     initiative,
+    initiativeJackOfAllTrades,
     armorClass,
     isWearingNonProficientArmor,
     rawAttacks,
@@ -690,6 +839,10 @@ export function useCombatLogic(
     selectAttack,
     removeSelectedAttack,
     toggleAttackSelection,
+    reorderSelectedAttacks,
     toggleAttackMode,
+    addUnarmedStrike,
+    updateUnarmedStrike,
+    deleteUnarmedStrike,
   };
 }

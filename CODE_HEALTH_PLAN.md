@@ -10,6 +10,9 @@
 评估分支：`codex-fix`  
 默认负责人：**雪荔枝**
 
+> 2026-04-29 日志治理补充：
+> 生产代码禁止直接使用 `console.log / warn / error / info / debug`；渲染进程统一使用 `createRendererLogger(namespace)`，主进程统一使用 `createMainLogger(namespace)`。日志写入 Electron `userData/logs/YYYY-MM-DD.jsonl`，默认保留 7 天。
+
 ---
 
 ## 1. 本次检查范围

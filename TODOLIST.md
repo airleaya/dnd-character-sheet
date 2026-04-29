@@ -1,5 +1,27 @@
 # TODOLIST
 
+> 2026-04-29 版本迭代更新：
+> 当前基线已从 `0.12.5` 自增长到 `0.13.1`；本轮本地日志系统进入 `0.13.1`。
+> 2026-04-29 本地日志系统更新：
+> 已建立主进程 JSONL 文件日志、渲染进程 IPC 日志转发、7 天日志轮转、生产代码 logger 替换与日志序列化测试。日志落点为 Electron `userData/logs/YYYY-MM-DD.jsonl`，用于排查用户本机问题。
+
+> 2026-04-28 构建修复：
+> 已恢复 `package.json` 的 build 脚本和打包配置，并修正 Electron 生产环境加载 `dist/index.html` 的路径；`npm run build` 已通过，打包产物中已包含前端页面和主进程文件。
+
+> 2026-04-28 物品库拖入位置修正：
+> 从物品库拖拽物品到行囊时，新建物品或合并后的堆叠现在会保持用户放置前一刻预览物品项所在的位置。
+
+> 2026-04-28 攻击栏拖拽排序更新：
+> 攻击栏已选攻击项现在支持通过左侧把手拖拽排序；排序写回 `selectedAttackKeys`，仅接受当前仍有效且已选中的攻击项。
+
+> 2026-04-28 徒手打击与先攻 UI 更新：
+> 徒手打击编辑入口已降噪为普通灰白按钮；先攻实际获得万事通加成时，现在会在先攻数值旁显示“万”字徽章。
+
+> 2026-04-28 版本迭代更新：
+> 当前基线已从 `0.12.4` 自增长到 `0.12.5`；本轮独立徒手打击子系统进入 `0.12.5`。
+> 2026-04-28 徒手打击子系统更新：
+> 已建立角色级 `unarmedStrikes` 配置、旧存档默认回补、攻击面板编辑入口、候选攻击项弹窗入口、说明词条悬浮展示、魔法攻击展示状态、去重与删空回补规则。`activeAttackModes` 不再额外生成徒手攻击变体，后续徒手变体统一通过该子系统维护。
+
 > 2026-04-28 版本迭代更新：
 > 当前基线已从 `0.12.3` 自增长到 `0.12.4`；本轮万事通 Bugfix 进入 `0.12.4`。
 > 2026-04-28 万事通 Bugfix 更新：
@@ -61,7 +83,7 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.12.4`
+当前基线版本：`0.13.1`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
@@ -75,7 +97,37 @@
 
 ## P0 / 当前迭代
 
-### 0. 物品库正式替换与迁移
+### 0. 本地日志系统
+- [x] 状态：已完成，作为 `0.13.1` 收口
+- 目标版本：`0.13.1`
+- 类型：工程能力 / Electron / 诊断 / 测试
+- 描述：建立本地 JSONL 日志系统，主进程写入 Electron `userData/logs/`，渲染进程通过 IPC 转发，生产代码统一使用 logger。
+- 关联文件：
+  - `electron/logger.ts`
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/types/logging.ts`
+  - `src/utils/logging.ts`
+  - `src/utils/rendererLogger.ts`
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/composables/useForge.ts`
+  - `src/stores/characterStore.ts`
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/utils/inventoryDropUtils.ts`
+  - `src/utils/itemFactory.ts`
+  - `tests/logging.test.ts`
+- 已完成：
+  - 新增 `debug/info/warn/error` 结构化日志字段与安全序列化，错误统一记录 `name/message/stack`。
+  - 正式环境默认记录 `info/warn/error`，开发环境额外允许 `debug`。
+  - 日志按日期写入 `YYYY-MM-DD.jsonl`，应用启动时清理 7 天前日志。
+  - `src/` 与 `electron/` 中生产代码 console 调用已替换为命名 logger。
+- 验收标准：
+  - 日志写入 JSONL，每行可独立解析为 JSON。
+  - 渲染进程日志通过 `window.electronAPI.writeLog` 转发。
+  - Electron API 缺失或写入失败时，不阻断业务流程。
+  - `npm run test`、`npm run typecheck`、`npm run build` 通过。
+
+### 1. 物品库正式替换与迁移
 - [x] 状态：已完成，作为 `0.12.1` 收口
 - 目标版本：`0.12.1`
 - 类型：数据 / 重构 / 迁移 / UI

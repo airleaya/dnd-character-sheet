@@ -13,6 +13,7 @@ const electronAPI: ElectronApi = {
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   exportCharacter: (dirPath: string, filename: string, content: string) =>
     ipcRenderer.invoke('export-character', dirPath, filename, content),
+  writeLog: (entry) => ipcRenderer.invoke('write-log', entry),
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

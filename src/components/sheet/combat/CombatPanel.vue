@@ -169,7 +169,16 @@ const hpPercent = computed(() => {
       
       <div class="stat-box">
         <div class="label">先攻</div>
-        <div class="value">{{ store.initiative }}</div>
+        <div class="value initiative-value">
+          <span>{{ store.initiative }}</span>
+          <span
+            v-if="store.initiativeJackOfAllTrades"
+            class="jack-chip"
+            title="万事通加成已计入先攻"
+          >
+            万
+          </span>
+        </div>
       </div>
       
       <div class="stat-box">
@@ -408,6 +417,29 @@ const hpPercent = computed(() => {
     }
 
     .value { font-size: 1.5rem; font-weight: bold; color: #333;cursor: pointer; }
+
+    .initiative-value {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .jack-chip {
+      min-width: 16px;
+      height: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #8a5a00;
+      background: #fff3cd;
+      border: 1px solid #d6a84f;
+      border-radius: 2px;
+      padding: 0 3px;
+      font-size: 0.68rem;
+      font-weight: 900;
+      line-height: 1;
+    }
     
     .shield-shape {
       /* 简单的盾牌形状 CSS */

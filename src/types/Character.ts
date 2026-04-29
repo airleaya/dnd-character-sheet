@@ -42,6 +42,30 @@ export interface CharacterExpertise {
   custom: string[];
 }
 
+export type UnarmedStrikeTagKey =
+  | 'none'
+  | 'natural_weapon'
+  | 'unarmed_fighting'
+  | 'martial_arts'
+  | 'tavern_brawler'
+  | 'astral_arms'
+  | 'custom';
+
+export type UnarmedStrikeDamageDice = '1' | '1d4' | '1d6' | '1d8' | '1d10';
+export type UnarmedStrikeDamageType = 'bludgeoning' | 'piercing' | 'slashing' | 'force';
+
+export interface CharacterUnarmedStrike {
+  id: string;
+  name: string;
+  tags: UnarmedStrikeTagKey[];
+  customTag?: string;
+  hitAbility: AbilityKey;
+  damageDice: UnarmedStrikeDamageDice;
+  damageAbility: AbilityKey;
+  damageType: UnarmedStrikeDamageType;
+  isMagic: boolean;
+}
+
 
 // 扩充 CharacterProfile (增加玩家名、阵营、背景)
 export interface CharacterProfile {
@@ -207,4 +231,6 @@ export interface Character {
   //[新增] 激活的额外攻击属性模式
   // 存储例如 ['int', 'cha']，表示用户希望看到基于智力和魅力的攻击选项
   activeAttackModes: AbilityKey[];
+
+  unarmedStrikes: CharacterUnarmedStrike[];
 }

@@ -46,6 +46,7 @@ describe('preload electronAPI contract', () => {
       setZoomFactor: (factor: number) => void;
       selectDirectory: () => Promise<unknown>;
       exportCharacter: (dirPath: string, filename: string, content: string) => Promise<unknown>;
+      writeLog: (entry: unknown) => Promise<unknown>;
     };
 
     const callback = vi.fn();
@@ -57,6 +58,7 @@ describe('preload electronAPI contract', () => {
     api.setZoomFactor(1.25);
     await api.selectDirectory();
     await api.exportCharacter('E:/exports', 'hero.json', '{}');
+    await api.writeLog({ level: 'info', scope: 'renderer', namespace: 'test', message: 'hello' });
 
     expect(invoke).toHaveBeenNthCalledWith(1, 'save-character', 'hero.json', '{}');
     expect(invoke).toHaveBeenNthCalledWith(2, 'load-all-characters');
@@ -66,5 +68,11 @@ describe('preload electronAPI contract', () => {
     expect(setZoomFactor).toHaveBeenCalledWith(1.25);
     expect(invoke).toHaveBeenNthCalledWith(5, 'select-directory');
     expect(invoke).toHaveBeenNthCalledWith(6, 'export-character', 'E:/exports', 'hero.json', '{}');
+    expect(invoke).toHaveBeenNthCalledWith(7, 'write-log', {
+      level: 'info',
+      scope: 'renderer',
+      namespace: 'test',
+      message: 'hello',
+    });
   });
 });

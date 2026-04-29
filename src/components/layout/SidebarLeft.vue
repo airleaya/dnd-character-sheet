@@ -5,10 +5,12 @@ import { useActiveSheetStore } from '../../stores/activeSheet';
 import { useUiFeedbackStore } from '../../stores/uiFeedback';
 import { CLASS_DICTIONARY } from '../../data/rules/classes';
 import type { CharacterClassRecord } from '../../types/Character';
+import { createRendererLogger } from '../../utils/rendererLogger';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
 const feedback = useUiFeedbackStore();
+const logger = createRendererLogger('components/layout/SidebarLeft');
 const fileInput = ref<HTMLInputElement | null>(null); // 文件输入框引用
 
 // 原生拖拽相关状态
@@ -154,7 +156,11 @@ const handleBulkExport = async () => {
         await window.electronAPI.exportCharacter(targetDir, filename, json);
         successCount++;
       } catch (e) {
-        console.error(`[sidebar-left] Failed to export ${char.profile.name}`, e);
+        logger.error('Failed to export character', e, {
+          characterId: char.id,
+          characterName: char.profile.name,
+          filename,
+        });
       }
     }
   }
@@ -252,7 +258,10 @@ const handleExport = () => {
       
       result = { json, filename };
     } catch (e) {
-      console.error('[sidebar-left] Failed to prepare in-memory export payload', e);
+      logger.error('Failed to prepare in-memory export payload', e, {
+        characterId: charInMemory.id,
+        characterName: charInMemory.profile.name,
+      });
       feedback.showToast('导出发生严重错误，请查看控制台', 'danger');
       return;
     }
@@ -318,7 +327,7 @@ const onFileSelected = async (e: Event) => {
         }
       }
     } catch (err) {
-      console.error(`[sidebar-left] Failed to import file ${file.name}`, err);
+      logger.error('Failed to import file', err, { fileName: file.name });
       // 这里不中断循环，继续处理下一个文件
     }
   }
@@ -347,7 +356,10 @@ const handleSave = async () => {
     await charStore.saveCharacterData(activeStore.character);
     feedback.showToast('保存成功', 'success');
   } catch (e) {
-    console.error('[sidebar-left] Failed to save active character', e);
+    logger.error('Failed to save active character', e, {
+      characterId: activeStore.character.id,
+      characterName: activeStore.character.profile.name,
+    });
     feedback.showToast('保存失败，请检查控制台', 'danger');
   }
 };

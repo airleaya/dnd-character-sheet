@@ -72,6 +72,7 @@ describe('spell ritual badges', () => {
       setZoomFactor: () => undefined,
       selectDirectory: async () => null,
       exportCharacter: async () => ({ success: true, data: null }),
+      writeLog: async () => ({ success: true, data: null }),
     };
 
     Object.defineProperty(window, 'electronAPI', {

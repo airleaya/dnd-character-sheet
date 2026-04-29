@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../stores/activeSheet';
 import { createItemFromLibrary } from '../utils/itemFactory';
 import { parseDragPayload } from '../utils/inventoryDropUtils';
+import { createRendererLogger } from '../utils/rendererLogger';
 import type { InventoryItem } from '../types/Item';
 import type { ArmorType, CurrencyUnit } from '../types/Library';
 
@@ -23,6 +24,7 @@ export interface ForgeDraftData {
 
 const draftItem = ref<InventoryItem | null>(null);
 const forgeMode = ref<'create' | 'edit'>('create');
+const logger = createRendererLogger('composables/useForge');
 
 export function useForge() {
   const store = useActiveSheetStore();
@@ -62,7 +64,7 @@ export function useForge() {
   const handleDropData = (jsonStr: string) => {
     const parsedPayload = parseDragPayload(jsonStr);
     if (!parsedPayload) {
-      console.error('[forge] Invalid drag payload');
+      logger.error('Invalid drag payload');
       return;
     }
 
@@ -75,7 +77,7 @@ export function useForge() {
           forgeMode.value = 'create';
           ensureCostStructure();
         } else {
-          console.error(`[forge] Failed to create library item: ${parsedPayload.id}`);
+          logger.error('Failed to create library item', undefined, { libraryId: parsedPayload.id });
           if (parsedPayload.id === 'TEST-ID') {
             draftItem.value = {
               instanceId: 'test-inst',
@@ -97,13 +99,13 @@ export function useForge() {
           forgeMode.value = 'edit';
           ensureCostStructure();
         } else {
-          console.error(`[forge] Inventory item not found: ${parsedPayload.instanceId}`);
+          logger.error('Inventory item not found', undefined, { instanceId: parsedPayload.instanceId });
         }
       } else {
-        console.error('[forge] Unknown drag payload shape');
+        logger.error('Unknown drag payload shape', undefined, { payload: parsedPayload });
       }
     } catch (e) {
-      console.error('[forge] Failed to handle dropped item', e);
+      logger.error('Failed to handle dropped item', e);
     }
   };
 

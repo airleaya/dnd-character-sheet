@@ -3,6 +3,7 @@ import { generateUUID } from '../utils/idGenerator';
 import type { Character, CharacterClassRecord } from '../types/Character';
 import { createDefaultCharacter, normalizeCharacterData } from '../utils/characterMigration';
 import { storageService } from '../services/storageService';
+import { createRendererLogger } from '../utils/rendererLogger';
 
 
 // 分组元数据接口
@@ -23,7 +24,7 @@ interface CharacterMeta {
   avatarUrl?: string;
 }
 
-const STORE_LOG_PREFIX = '[characterStore]';
+const logger = createRendererLogger('stores/characterStore');
 
 // 🔧 辅助函数：生成标准化的文件名
 const getFilename = (char: Character): string => {
@@ -93,7 +94,7 @@ export const useCharacterStore = defineStore('characterStore', {
         });
         this.loadGroups();
       } catch (error) {
-        console.warn(`${STORE_LOG_PREFIX} Failed to load characters`, error);
+        logger.warn('Failed to load characters', undefined, error);
       }
     },
 
@@ -171,7 +172,7 @@ export const useCharacterStore = defineStore('characterStore', {
         try {
           await storageService.deleteCharacter(oldFilename);
         } catch (error) {
-          console.warn(`${STORE_LOG_PREFIX} Failed to delete legacy filename ${oldFilename}`, error);
+          logger.warn('Failed to delete legacy filename', { oldFilename }, error);
         }
       }
 
@@ -230,7 +231,7 @@ export const useCharacterStore = defineStore('characterStore', {
         await this.saveCharacterData(data);
         return data.id;
       } catch (e) {
-        console.error(`${STORE_LOG_PREFIX} Failed to import character`, e);
+        logger.error('Failed to import character', e);
         return null;
       }
     },
@@ -258,7 +259,7 @@ export const useCharacterStore = defineStore('characterStore', {
           this.ungroupedExpanded = ungroupedState === 'true';
         }
       } catch (e) {
-        console.error(`${STORE_LOG_PREFIX} Failed to load groups`, e);
+        logger.error('Failed to load groups', e);
       }
     },
 

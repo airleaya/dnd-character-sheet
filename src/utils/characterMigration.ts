@@ -5,10 +5,15 @@ import type {
   CharacterClassRecord,
   CharacterExpertise,
   CharacterProficiencies,
+  CharacterUnarmedStrike,
   CharacterSpells,
   CombatStats,
+  UnarmedStrikeDamageDice,
+  UnarmedStrikeDamageType,
+  UnarmedStrikeTagKey,
   Wallet,
 } from '../types/Character';
+import type { AbilityKey } from '../types/Library';
 import type { InventoryItem } from '../types/Item';
 import { isKnownLibraryItemId, migrateItemTemplateId } from '../data/libraries/itemIdMigration';
 
@@ -92,6 +97,30 @@ const DEFAULT_EXPERTISE: CharacterExpertise = {
   tools: [],
   custom: [],
 };
+
+export const DEFAULT_UNARMED_STRIKE: CharacterUnarmedStrike = {
+  id: 'unarmed_default',
+  name: '徒手打击',
+  tags: ['none'],
+  hitAbility: 'str',
+  damageDice: '1',
+  damageAbility: 'str',
+  damageType: 'bludgeoning',
+  isMagic: false,
+};
+
+const ABILITY_KEYS: AbilityKey[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const UNARMED_DAMAGE_DICE: UnarmedStrikeDamageDice[] = ['1', '1d4', '1d6', '1d8', '1d10'];
+const UNARMED_DAMAGE_TYPES: UnarmedStrikeDamageType[] = ['bludgeoning', 'piercing', 'slashing', 'force'];
+const UNARMED_TAGS: UnarmedStrikeTagKey[] = [
+  'none',
+  'natural_weapon',
+  'unarmed_fighting',
+  'martial_arts',
+  'tavern_brawler',
+  'astral_arms',
+  'custom',
+];
 
 const DEFAULT_SAVING_THROWS: Character['savingThrows'] = {
   str: false,
@@ -210,6 +239,101 @@ const normalizeExpertise = (expertise?: LegacyCharacterData['expertise']): Chara
   custom: cloneArray(expertise?.custom, DEFAULT_EXPERTISE.custom),
 });
 
+const isAbilityKey = (value: unknown): value is AbilityKey =>
+  typeof value === 'string' && ABILITY_KEYS.includes(value as AbilityKey);
+
+const isUnarmedDamageDice = (value: unknown): value is UnarmedStrikeDamageDice =>
+  typeof value === 'string' && UNARMED_DAMAGE_DICE.includes(value as UnarmedStrikeDamageDice);
+
+const isUnarmedDamageType = (value: unknown): value is UnarmedStrikeDamageType =>
+  typeof value === 'string' && UNARMED_DAMAGE_TYPES.includes(value as UnarmedStrikeDamageType);
+
+const normalizeUnarmedTags = (tags: unknown, customTag?: unknown): UnarmedStrikeTagKey[] => {
+  const sourceTags = Array.isArray(tags) ? tags : DEFAULT_UNARMED_STRIKE.tags;
+  const validTags = sourceTags.filter(
+    (tag): tag is UnarmedStrikeTagKey =>
+      typeof tag === 'string' && UNARMED_TAGS.includes(tag as UnarmedStrikeTagKey)
+  );
+  const withoutNone = validTags.filter(tag => tag !== 'none');
+  const uniqueTags = Array.from(new Set(withoutNone));
+  const hasCustomText = typeof customTag === 'string' && customTag.trim().length > 0;
+
+  if (hasCustomText && !uniqueTags.includes('custom')) {
+    uniqueTags.push('custom');
+  }
+
+  return uniqueTags.length > 0 ? uniqueTags : ['none'];
+};
+
+export const createDefaultUnarmedStrike = (): CharacterUnarmedStrike => ({
+  ...DEFAULT_UNARMED_STRIKE,
+});
+
+export const createUnarmedStrikeSignature = (strike: CharacterUnarmedStrike): string => {
+  const tags = [...strike.tags].filter(tag => tag !== 'none').sort().join(',');
+  const customTag = strike.tags.includes('custom') ? (strike.customTag ?? '').trim() : '';
+  return [
+    strike.hitAbility,
+    strike.damageDice,
+    strike.damageAbility,
+    strike.damageType,
+    strike.isMagic ? 'magic' : 'mundane',
+    tags || 'none',
+    customTag,
+  ].join('|');
+};
+
+export const normalizeUnarmedStrikes = (strikes?: unknown): CharacterUnarmedStrike[] => {
+  if (!Array.isArray(strikes) || strikes.length === 0) {
+    return [createDefaultUnarmedStrike()];
+  }
+
+  const normalized = strikes
+    .filter((strike): strike is Partial<CharacterUnarmedStrike> =>
+      Boolean(strike) && typeof strike === 'object'
+    )
+    .map((strike, index): CharacterUnarmedStrike => {
+      const tags = normalizeUnarmedTags(strike.tags, strike.customTag);
+      const usesCustomTag = tags.includes('custom');
+      const customTag =
+        usesCustomTag && typeof strike.customTag === 'string' ? strike.customTag.trim() : undefined;
+
+      return {
+        id:
+          typeof strike.id === 'string' && strike.id.trim()
+            ? strike.id
+            : `unarmed_${Date.now()}_${index}`,
+        name:
+          typeof strike.name === 'string' && strike.name.trim()
+            ? strike.name.trim()
+            : DEFAULT_UNARMED_STRIKE.name,
+        tags,
+        customTag,
+        hitAbility: isAbilityKey(strike.hitAbility) ? strike.hitAbility : DEFAULT_UNARMED_STRIKE.hitAbility,
+        damageDice: isUnarmedDamageDice(strike.damageDice)
+          ? strike.damageDice
+          : DEFAULT_UNARMED_STRIKE.damageDice,
+        damageAbility: isAbilityKey(strike.damageAbility)
+          ? strike.damageAbility
+          : DEFAULT_UNARMED_STRIKE.damageAbility,
+        damageType: isUnarmedDamageType(strike.damageType)
+          ? strike.damageType
+          : DEFAULT_UNARMED_STRIKE.damageType,
+        isMagic: strike.isMagic === true,
+      };
+    });
+
+  const deduped = new Map<string, CharacterUnarmedStrike>();
+  normalized.forEach(strike => {
+    const signature = createUnarmedStrikeSignature(strike);
+    if (!deduped.has(signature)) {
+      deduped.set(signature, strike);
+    }
+  });
+
+  return deduped.size > 0 ? Array.from(deduped.values()) : [createDefaultUnarmedStrike()];
+};
+
 export const createDefaultCharacter = (id: string): Character => ({
   id,
   lastModified: Date.now(),
@@ -248,6 +372,7 @@ export const createDefaultCharacter = (id: string): Character => ({
   expertise: normalizeExpertise(),
   spells: normalizeSpells(),
   activeAttackModes: [],
+  unarmedStrikes: [createDefaultUnarmedStrike()],
 });
 
 export const normalizeCharacterData = (raw: LegacyCharacterData): Character => ({
@@ -320,4 +445,5 @@ export const normalizeCharacterData = (raw: LegacyCharacterData): Character => (
   expertise: normalizeExpertise(raw.expertise),
   spells: normalizeSpells(raw.spells),
   activeAttackModes: cloneArray(raw.activeAttackModes, []),
+  unarmedStrikes: normalizeUnarmedStrikes(raw.unarmedStrikes),
 });

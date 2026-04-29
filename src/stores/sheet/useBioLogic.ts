@@ -10,6 +10,7 @@ import type {
 import { SKILL_DEFINITIONS, XP_TABLE } from '../../data/rules/dndRules';
 import { ALIGNMENT_MIGRATION_MAP } from '../../data/rules/alignment';
 import { characterHasJackOfAllTrades, getJackOfAllTradesBonus } from '../../utils/classFeatures';
+import { createRendererLogger } from '../../utils/rendererLogger';
 
 type SkillDefinitionKey = keyof typeof SKILL_DEFINITIONS;
 type SkillSummary = {
@@ -33,6 +34,8 @@ const formatModifier = (value: number): string => {
 const getAllocatedClassLevels = (classes: CharacterClassRecord[]): number => {
   return classes.reduce((sum, classRecord) => sum + (classRecord.level ?? 1), 0);
 };
+
+const logger = createRendererLogger('stores/sheet/useBioLogic');
 
 export function useBioLogic(character: Ref<Character | null>, save: () => void) {
   const proficiencyBonus = computed<number>(() => {
@@ -175,7 +178,10 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
     const totalAllocated = getAllocatedClassLevels(profile.classes);
 
     if (profile.classes.length >= profile.level) {
-      console.warn('职业数量不能超过角色总等级');
+      logger.warn('职业数量不能超过角色总等级', {
+        classCount: profile.classes.length,
+        characterLevel: profile.level,
+      });
       return;
     }
 
@@ -184,7 +190,10 @@ export function useBioLogic(character: Ref<Character | null>, save: () => void) 
       const mainClassLevel = mainClass.level ?? 1;
 
       if (mainClassLevel <= 1) {
-        console.warn('角色总等级不足，无法分配新兼职');
+        logger.warn('角色总等级不足，无法分配新兼职', {
+          mainClassLevel,
+          characterLevel: profile.level,
+        });
         return;
       }
 

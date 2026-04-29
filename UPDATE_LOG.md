@@ -1,5 +1,136 @@
 # UPDATE_LOG
 
+## [0.13.1] - 2026-04-29
+- 类型：工程能力 / Electron / 日志 / 测试
+- 条目：建立本地 JSONL 日志系统
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `electron/logger.ts`
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/types/electron.ts`
+  - `src/types/logging.ts`
+  - `src/utils/logging.ts`
+  - `src/utils/rendererLogger.ts`
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/composables/useForge.ts`
+  - `src/stores/characterStore.ts`
+  - `src/stores/sheet/useBioLogic.ts`
+  - `src/utils/inventoryDropUtils.ts`
+  - `src/utils/itemFactory.ts`
+  - `tests/logging.test.ts`
+  - `tests/preload.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.12.5` 自增长到 `0.13.1`。
+  - 新增主进程本地日志写入，日志落点为 Electron `userData/logs/YYYY-MM-DD.jsonl`。
+  - 新增渲染进程 `writeLog` IPC 转发接口，渲染侧 logger 优先写入本地文件，Electron API 缺失或写入失败时安全降级。
+  - 日志采用 JSONL 结构化格式，包含 `timestamp/level/scope/namespace/message/details/error`，错误统一序列化为 `name/message/stack`。
+  - 正式环境默认记录 `info/warn/error`，开发环境额外允许 `debug`；应用启动时自动清理 7 天前日志文件。
+  - `src/` 与 `electron/` 中生产代码 console 调用已替换为命名 logger，保留用户可见 toast/dialog 反馈。
+  - 兼容策略：日志允许记录角色名、物品名、文件名等详细诊断上下文，但不主动写入完整角色 JSON、完整存档内容或大对象。
+- 验证结果：
+  - `npm run test` 通过：28 个测试文件，113 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.1` 安装包与便携版。
+
+## [0.12.5] - 2026-04-28
+- 类型：Bugfix / 构建 / Electron / 打包
+- 条目：修复 `npm run build` 缺失脚本与 exe 页面路径问题
+- 负责人：雪莨梓 / Codex
+- 关联文件：
+  - `package.json`
+  - `electron/main.ts`
+- 已完成变化：
+  - 恢复 `package.json` 中缺失的 `scripts`、`devDependencies` 与 `build` 配置，修复 `Missing script: "build"`。
+  - `electron-builder` 的 `files` 显式包含 `dist/**/*`、`dist-electron/**/*` 与 `package.json`，确保前端产物进入 `app.asar`。
+  - Electron 生产环境页面加载路径从相对工作目录的 `dist/index.html` 改为基于 `__dirname` 的 `../dist/index.html`，避免双击 exe 时因工作目录不同导致窗口闪退。
+- 验证结果：
+  - `npm run build` 通过。
+  - 打包后的 `app.asar` 已确认包含 `dist/index.html`、`dist/assets/*`、`dist-electron/main.js`、`dist-electron/preload.js`。
+  - `node --check dist-electron/main.js` 通过。
+
+## [0.12.5] - 2026-04-28
+- 类型：Bugfix / 库存 / 拖拽 / 测试
+- 条目：物品库拖入行囊后保持预览位置
+- 负责人：雪莨梓 / Codex
+- 关联文件：
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `tests/useInventoryLogic.test.ts`
+- 已完成变化：
+  - 修正从物品库拖拽物品到行囊时，普通新建物品忽略预览插入位置的问题。
+  - 修正拖入可堆叠物品并合并到已有堆叠时，已有堆叠不会移动到用户放置预览位置的问题。
+  - `addOrMerge` 现在接收目标 index，并在创建或合并后保持用户放置前一刻的预览位置。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests/useInventoryLogic.test.ts` 通过。
+
+## [0.12.5] - 2026-04-28
+- 类型：UI / 战斗 / 交互 / 测试
+- 条目：攻击栏攻击项拖拽排序
+- 负责人：雪莨梓 / Codex
+- 关联文件：
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/actionsPanel.ui.test.ts`
+- 已完成变化：
+  - 攻击栏已选攻击项列表接入 `vuedraggable`，支持通过拖拽把手调整展示顺序。
+  - 攻击项卡片左侧新增低调排序把手，拖拽排序不影响添加攻击项入口。
+  - `useCombatLogic` 新增 `reorderSelectedAttacks`，只接受当前仍有效且已选中的攻击项 key，避免无效 key 污染角色数据。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests/useCombatLogic.test.ts tests/actionsPanel.ui.test.ts` 通过。
+
+## [0.12.5] - 2026-04-28
+- 类型：UI / 战斗 / 规则展示 / 测试
+- 条目：徒手打击入口降噪与先攻万事通徽章
+- 负责人：雪莨梓 / Codex
+- 关联文件：
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/components/sheet/combat/CombatPanel.vue`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/combatPanelJack.ui.test.ts`
+- 已完成变化：
+  - 徒手打击编辑入口改为更普通的灰白按钮样式，避免在攻击面板标题区过度突出。
+  - 先攻实际获得万事通加成时，先攻数值旁显示低圆角“万”字徽章。
+  - `useCombatLogic` 新增 `initiativeJackOfAllTrades` 展示状态，便于 UI 判断先攻是否已经收到万事通加成。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests/useCombatLogic.test.ts tests/actionsPanel.ui.test.ts tests/combatPanelJack.ui.test.ts` 通过。
+  - `npm run test` 通过：27 个测试文件，102 个用例。
+
+## [0.12.5] - 2026-04-28
+- 类型：功能 / 战斗 / 角色数据 / UI / 迁移 / 测试
+- 条目：建立独立徒手打击子系统
+- 负责人：雪莨梓 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `src/types/Character.ts`
+  - `src/utils/characterMigration.ts`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/actionsPanel.ui.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.12.4` 自增长到 `0.12.5`。
+  - 角色数据新增 `unarmedStrikes`，旧存档和新角色都会自动获得默认徒手打击。
+  - 默认徒手打击为“无”词条、非魔法、力量命中、`1 + 力量调整值` 钝击伤害。
+  - 攻击面板不再通过 `activeAttackModes` 自动生成徒手变体；徒手变体统一由独立配置管理。
+  - 徒手打击支持说明词条、命中属性、伤害骰、伤害加值属性、伤害类型和魔法攻击展示状态。
+  - 说明词条包含“无、天生武器、徒手战斗、武艺、酒馆斗殴者、星界之臂、自定义”，并明确不改变任何属性。
+  - 攻击面板和候选攻击项弹窗均新增“编辑徒手打击”入口；攻击悬浮框展示词条和魔法/非魔法状态。
+  - 建立去重规则：命中属性、伤害骰、伤害加值属性、伤害类型、魔法状态、说明词条与自定义词条完全相同时视为重复。
+  - 删除最后一个徒手打击时会自动回补默认徒手打击，避免角色失去基础攻击项。
+- 验证结果：
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests/useCombatLogic.test.ts tests/actionsPanel.ui.test.ts` 通过：2 个测试文件，19 个用例。
+
 ## [0.12.4] - 2026-04-28
 - 类型：Bugfix / 规则 / 角色卡 / UI / 测试
 - 条目：修复万事通先攻与等级判定

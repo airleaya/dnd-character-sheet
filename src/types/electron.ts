@@ -1,4 +1,5 @@
 import type { Character } from './Character';
+import type { LogWriteInput } from './logging';
 
 export type IpcSuccessResult<T> = {
   success: true;
@@ -23,4 +24,5 @@ export interface ElectronApi {
   setZoomFactor: (factor: number) => void;
   selectDirectory: () => Promise<string | null>;
   exportCharacter: (dirPath: string, filename: string, content: string) => Promise<IpcVoidResult>;
+  writeLog: (entry: LogWriteInput) => Promise<IpcVoidResult>;
 }

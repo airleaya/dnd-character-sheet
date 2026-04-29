@@ -64,6 +64,33 @@ describe('useInventoryLogic', () => {
     expect(swords[0].quantity).toBe(2);
   });
 
+  it('creates dragged library items at the requested preview index', () => {
+    const character = ref(createDefaultCharacter('inventory-drop-index'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('dagger');
+    logic.addItem('club');
+    logic.addItem('longsword', 1);
+
+    expect(character.value.inventory.map((item) => item.templateId)).toEqual([
+      'dagger',
+      'longsword',
+      'club',
+    ]);
+  });
+
+  it('moves a merged stack to the requested preview index', () => {
+    const character = ref(createDefaultCharacter('inventory-drop-merge-index'));
+    const logic = useInventoryLogic(character, ref([]), vi.fn());
+
+    logic.addItem('dagger');
+    logic.addItem('club');
+    logic.addItem('dagger', 2);
+
+    expect(character.value.inventory.map((item) => item.templateId)).toEqual(['club', 'dagger']);
+    expect(character.value.inventory.find((item) => item.templateId === 'dagger')?.quantity).toBe(2);
+  });
+
   it('stacks empty containers but keeps containers with contents separate', () => {
     const character = ref(createDefaultCharacter('inventory-2c'));
     const logic = useInventoryLogic(character, ref([]), vi.fn());

@@ -3,6 +3,8 @@ import path from 'path'
 import fs from 'fs'
 import type { Character } from '../src/types/Character'
 import type { IpcFailureResult, IpcResult, IpcVoidResult } from '../src/types/electron'
+import { normalizeLogEntry } from '../src/utils/logging'
+import { createMainLogger, initializeLogging, writeLogEntry } from './logger'
 
 const toErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
@@ -14,7 +16,7 @@ const createErrorResult = (error: unknown): IpcFailureResult => ({
   error: toErrorMessage(error),
 });
 
-const MAIN_LOG_PREFIX = '[electron/main]';
+const logger = createMainLogger('electron/main');
 
 const getLegacySavesDir = (): string => path.join(process.cwd(), 'saves');
 const getLegacyWindowConfigPath = (): string => path.join(process.cwd(), 'window-config.json');
@@ -86,7 +88,7 @@ const loadWindowState = () => {
       }
     }
   } catch (e) {
-    console.error(`${MAIN_LOG_PREFIX} Failed to load window state`, e);
+    logger.error('Failed to load window state', e);
   }
   return null; 
 };
@@ -100,7 +102,7 @@ const saveWindowState = () => {
     ensureDirectoryExists(path.dirname(configPath));
     fs.writeFileSync(configPath, JSON.stringify(bounds));
   } catch (e) {
-    console.error(`${MAIN_LOG_PREFIX} Failed to save window state`, e);
+    logger.error('Failed to save window state', e);
   }
 };
 
@@ -128,7 +130,7 @@ const createWindow = () => {
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile('dist/index.html')
+    win.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
   win.on('close', (e) => {
@@ -151,6 +153,17 @@ const createWindow = () => {
 }
 
 app.whenReady().then(() => {
+  initializeLogging(getUserDataRoot());
+  ipcMain.handle('write-log', async (_event, entry): Promise<IpcVoidResult> => {
+    try {
+      writeLogEntry(normalizeLogEntry(entry));
+      return { success: true, data: null };
+    } catch (e) {
+      logger.error('Renderer log write failed', e);
+      return createErrorResult(e);
+    }
+  });
+
   migrateLegacyStorageIfNeeded();
   createWindow()
 
@@ -163,7 +176,7 @@ app.whenReady().then(() => {
       fs.writeFileSync(filePath, content, 'utf-8');
       return { success: true, data: null };
     } catch (e) {
-      console.error(`${MAIN_LOG_PREFIX} Save failed`, e);
+      logger.error('Save failed', e, { filename });
       return createErrorResult(e);
     }
   });
@@ -231,7 +244,7 @@ app.whenReady().then(() => {
       fs.writeFileSync(fullPath, content, 'utf-8');
       return { success: true, data: null };
     } catch (e) {
-      console.error(`${MAIN_LOG_PREFIX} Export failed`, e);
+      logger.error('Export failed', e, { dirPath, filename });
       return createErrorResult(e);
     }
   });

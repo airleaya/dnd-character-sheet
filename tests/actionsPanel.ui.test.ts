@@ -3,13 +3,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
-import { nextTick } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import ActionsPanel from '../src/components/sheet/combat/ActionsPanel.vue';
 import { useActiveSheetStore } from '../src/stores/activeSheet';
 import { createDefaultCharacter } from '../src/utils/characterMigration';
 import type { Character } from '../src/types/Character';
 
 type ElectronApiMock = NonNullable<typeof window>['electronAPI'];
+
+const DraggableStub = defineComponent({
+  name: 'DraggableStub',
+  props: {
+    modelValue: {
+      type: Array,
+      default: () => [],
+    },
+  },
+  setup(props, { slots }) {
+    return () =>
+      h(
+        'div',
+        { class: 'draggable-stub' },
+        props.modelValue.map((element, index) => slots.item?.({ element, index }))
+      );
+  },
+});
 
 const createLocalStorageMock = () => {
   const storage = new Map<string, string>();
@@ -40,6 +58,7 @@ describe('ActionsPanel attack picker modal', () => {
         stubs: {
           teleport: true,
           transition: true,
+          draggable: DraggableStub,
         },
       },
     });
@@ -103,6 +122,7 @@ describe('ActionsPanel attack picker modal', () => {
       setZoomFactor: () => undefined,
       selectDirectory: async () => null,
       exportCharacter: async () => ({ success: true, data: null }),
+      writeLog: async () => ({ success: true, data: null }),
     };
 
     Object.defineProperty(window, 'electronAPI', {
@@ -182,5 +202,53 @@ describe('ActionsPanel attack picker modal', () => {
     await nextTick();
 
     expect(wrapper?.find('[data-test="attack-picker-overlay"]').exists()).toBe(false);
+  });
+
+  it('opens the unarmed strike editor from the attack panel and picker modal', async () => {
+    const activeSheet = useActiveSheetStore();
+    activeSheet.character = buildCharacter();
+
+    mountPanel();
+    await nextTick();
+
+    await wrapper!.get('[data-test="open-unarmed-editor"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper?.find('[data-test="unarmed-editor-overlay"]').exists()).toBe(true);
+    expect(wrapper?.text()).toContain('词条只是说明来源');
+    expect(wrapper?.findAll('[data-test="unarmed-editor-row"]')).toHaveLength(1);
+
+    await wrapper!.get('[data-test="add-unarmed-strike"]').trigger('click');
+    await nextTick();
+
+    expect(activeSheet.character?.unarmedStrikes.length).toBe(2);
+
+    await wrapper!.get('[data-test="unarmed-editor-close"]').trigger('click');
+    await nextTick();
+
+    await wrapper!.get('[data-test="open-attack-picker"]').trigger('click');
+    await nextTick();
+    await wrapper!.get('[data-test="picker-open-unarmed-editor"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper?.find('[data-test="unarmed-editor-overlay"]').exists()).toBe(true);
+  });
+
+  it('renders selected attacks with drag handles for manual ordering', async () => {
+    const activeSheet = useActiveSheetStore();
+    activeSheet.character = buildCharacter();
+
+    mountPanel();
+    await nextTick();
+
+    const firstKey = activeSheet.attackCatalog[0]!.catalogKey;
+    const secondKey = activeSheet.attackCatalog[1]!.catalogKey;
+    activeSheet.selectAttack(firstKey);
+    activeSheet.selectAttack(secondKey);
+    await nextTick();
+
+    expect(wrapper!.findAll('.attack-drag-handle')).toHaveLength(2);
+    expect(wrapper!.find(`[data-test="selected-attack-${firstKey}"]`).exists()).toBe(true);
+    expect(wrapper!.find(`[data-test="selected-attack-${secondKey}"]`).exists()).toBe(true);
   });
 });

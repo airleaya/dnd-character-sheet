@@ -172,7 +172,26 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
     return newItem;
   };
 
-  const addOrMerge = (libraryId: string, quantity: number, targetParentId?: string, targetContainerSlot?: InventoryItem['containerSlot']): InventoryItem | undefined => {
+  const reinsertItem = (item: InventoryItem, index?: number): void => {
+    if (!character.value) return;
+
+    const oldIndex = character.value.inventory.indexOf(item);
+    if (oldIndex > -1) {
+      character.value.inventory.splice(oldIndex, 1);
+    }
+
+    const targetIndex = typeof index === 'number' ? index : character.value.inventory.length;
+    const finalIndex = oldIndex > -1 && oldIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    character.value.inventory.splice(finalIndex, 0, item);
+  };
+
+  const addOrMerge = (
+    libraryId: string,
+    quantity: number,
+    targetParentId?: string,
+    targetContainerSlot?: InventoryItem['containerSlot'],
+    index?: number
+  ): InventoryItem | undefined => {
     if (!character.value) return undefined;
 
     const definition = getLibraryItemById(libraryId);
@@ -187,10 +206,13 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
     );
 
     if (!existingItem) {
-      return createNewItem(libraryId, quantity, targetParentId, undefined, targetContainerSlot);
+      return createNewItem(libraryId, quantity, targetParentId, index, targetContainerSlot);
     }
 
     existingItem.quantity += quantity;
+    if (typeof index === 'number') {
+      reinsertItem(existingItem, index);
+    }
     save();
     return existingItem;
   };
@@ -297,11 +319,11 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
     }
 
     if (libraryId === 'dart' && typeof index === 'undefined') {
-      addOrMerge(libraryId, 1, parentId, containerSlot);
+      addOrMerge(libraryId, 1, parentId, containerSlot, index);
       return;
     }
 
-    addOrMerge(libraryId, 1, parentId, containerSlot);
+    addOrMerge(libraryId, 1, parentId, containerSlot, index);
   };
 
   const removeItem = (instanceId: string): void => {
@@ -354,19 +376,6 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
 
     item.quantity = newQuantity;
     save();
-  };
-
-  const reinsertItem = (item: InventoryItem, index?: number): void => {
-    if (!character.value) return;
-
-    const oldIndex = character.value.inventory.indexOf(item);
-    if (oldIndex > -1) {
-      character.value.inventory.splice(oldIndex, 1);
-    }
-
-    const targetIndex = typeof index === 'number' ? index : character.value.inventory.length;
-    const finalIndex = oldIndex > -1 && oldIndex < targetIndex ? targetIndex - 1 : targetIndex;
-    character.value.inventory.splice(finalIndex, 0, item);
   };
 
   const moveItemToContainer = (itemId: string, containerId: string, targetIndex?: number): void => {

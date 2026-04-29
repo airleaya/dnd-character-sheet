@@ -1,5 +1,7 @@
 //src/utils/InventoryDropUtils.ts
 
+import { createRendererLogger } from './rendererLogger';
+
 export type DragPayload =
   | { type: 'inventory-item'; instanceId: string }
   | { type: 'library-item'; id: string };
@@ -40,6 +42,8 @@ export type InventoryDragChangeEvent = {
 type DragEventWithFlag = DragEvent & {
   __dragHandled?: boolean;
 };
+
+const logger = createRendererLogger('utils/inventoryDropUtils');
 
 export const isLibraryCloneDragElement = (
   element: InventoryDragElement | undefined
@@ -164,7 +168,7 @@ export const setupDragData = (
 ) => {
   void _allowExtraArg;
   if (!e.dataTransfer) {
-    console.error('[drag] Missing dataTransfer during drag start');
+    logger.error('Missing dataTransfer during drag start');
     return;
   }
 

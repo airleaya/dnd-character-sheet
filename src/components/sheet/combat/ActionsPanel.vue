@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import draggable from 'vuedraggable';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import { WEAPON_PROPERTIES } from '../../../data/rules/weaponProperties';
@@ -7,8 +8,20 @@ import { calculateCantripDamage } from '../../../utils/spellUtils';
 import { useTooltipStore } from '../../../stores/tooltip';
 import { ATTR_MAP, getSchoolLabel } from '../../../data/rules/dndRules';
 import type { AbilityKey } from '../../../types/Library';
+import type {
+  CharacterUnarmedStrike,
+  UnarmedStrikeDamageDice,
+  UnarmedStrikeDamageType,
+  UnarmedStrikeTagKey,
+} from '../../../types/Character';
 import type { SpellComponents, SpellDefinition } from '../../../types/Spell';
+import {
+  UNARMED_DAMAGE_DICE_OPTIONS,
+  UNARMED_DAMAGE_TYPE_LABELS,
+  UNARMED_STRIKE_TAG_LABELS,
+} from '../../../stores/sheet/useCombatLogic';
 import type { AttackCatalogEntry } from '../../../stores/sheet/useCombatLogic';
+import { createUnarmedStrikeSignature } from '../../../utils/characterMigration';
 import type { TooltipData, TooltipSection } from '../../../stores/tooltip';
 
 const store = useActiveSheetStore();
@@ -50,14 +63,50 @@ const schoolColors: Record<string, string> = {
 };
 
 const selectedAttacks = computed<AttackCatalogEntry[]>(() => store.selectedAttacks);
+const draggableSelectedAttacks = computed({
+  get: () => selectedAttacks.value,
+  set: (attacks: AttackCatalogEntry[]) => {
+    store.reorderSelectedAttacks(attacks.map(attack => attack.catalogKey));
+  },
+});
 const catalogAttacks = computed<AttackCatalogEntry[]>(() => store.attackCatalog);
 const selectedAttackKeys = computed<string[]>(() => store.selectedAttackKeys);
+const unarmedStrikes = computed<CharacterUnarmedStrike[]>(() => character.value?.unarmedStrikes ?? []);
 type AttackPickerFilter = 'all' | 'selected' | 'unselected';
 
 const attackPickerFilter = ref<AttackPickerFilter>('all');
 const showAttackPicker = ref(false);
+const showUnarmedEditor = ref(false);
+const unarmedEditorError = ref('');
 const expandedSpellId = ref<string | null>(null);
 const collapsedGroups = ref<Record<number, boolean>>({});
+
+const abilityOptions: Array<{ key: AbilityKey; label: string }> = [
+  { key: 'str', label: '力量' },
+  { key: 'dex', label: '敏捷' },
+  { key: 'con', label: '体质' },
+  { key: 'int', label: '智力' },
+  { key: 'wis', label: '感知' },
+  { key: 'cha', label: '魅力' },
+];
+
+const unarmedTagOptions: Array<{ key: UnarmedStrikeTagKey; label: string }> = [
+  { key: 'none', label: UNARMED_STRIKE_TAG_LABELS.none },
+  { key: 'natural_weapon', label: UNARMED_STRIKE_TAG_LABELS.natural_weapon },
+  { key: 'unarmed_fighting', label: UNARMED_STRIKE_TAG_LABELS.unarmed_fighting },
+  { key: 'martial_arts', label: UNARMED_STRIKE_TAG_LABELS.martial_arts },
+  { key: 'tavern_brawler', label: UNARMED_STRIKE_TAG_LABELS.tavern_brawler },
+  { key: 'astral_arms', label: UNARMED_STRIKE_TAG_LABELS.astral_arms },
+  { key: 'custom', label: UNARMED_STRIKE_TAG_LABELS.custom },
+];
+
+const damageTypeOptions = Object.entries(UNARMED_DAMAGE_TYPE_LABELS).map(([key, label]) => ({
+  key: key as UnarmedStrikeDamageType,
+  label,
+}));
+
+const eventValue = (event: Event) => (event.target as HTMLInputElement | HTMLSelectElement).value;
+const eventChecked = (event: Event) => (event.target as HTMLInputElement).checked;
 
 const isModeActive = (key: AbilityKey) => character.value?.activeAttackModes.includes(key) ?? false;
 const toggleMode = (key: AbilityKey) => store.toggleAttackMode(key);
@@ -86,17 +135,29 @@ const formatAttackAmmo = (attack: AttackCatalogEntry) => {
 const formatAttackBonusBreakdown = (attack: AttackCatalogEntry) => {
   const breakdown = attack.bonusBreakdown;
   const abilityLabel = ATTR_MAP[attack.abilityPath] || attack.abilityPath;
+  const damageAbilityLabel =
+    ATTR_MAP[attack.damageAbilityPath || attack.abilityPath] || attack.damageAbilityPath || attack.abilityPath;
   const proficiencyText = breakdown.proficiencyApplied
     ? `熟练 ${formatSigned(breakdown.proficiencyBonus)}`
     : '未熟练 +0';
   const damageText = breakdown.offhandDamagePenalty
     ? '副手攻击不加入正属性调整值'
-    : `${abilityLabel} ${formatSigned(breakdown.damageBonus)}`;
+    : `${damageAbilityLabel} ${formatSigned(breakdown.damageBonus)}`;
 
   return [
     `命中：${formatSigned(breakdown.hitBonus)} = ${abilityLabel} ${formatSigned(breakdown.abilityModifier)} + ${proficiencyText}`,
     `伤害：${formatSigned(breakdown.damageBonus)} = ${damageText}`,
   ];
+};
+
+const formatUnarmedTags = (attack: AttackCatalogEntry) => {
+  if (!attack.unarmedTags?.length) return null;
+  const labels = attack.unarmedTags.map(tag =>
+    tag === 'custom' && attack.customTag?.trim()
+      ? attack.customTag.trim()
+      : UNARMED_STRIKE_TAG_LABELS[tag]
+  );
+  return labels.join(' / ');
 };
 
 const buildAttackTooltip = (attack: AttackCatalogEntry): TooltipData => {
@@ -112,6 +173,13 @@ const buildAttackTooltip = (attack: AttackCatalogEntry): TooltipData => {
       attack.properties.length ? `属性：${attack.properties.map(getLabel).join(' / ')}` : null,
       formatAttackAmmo(attack),
     ]),
+    attack.sourceType === 'unarmed'
+      ? buildSection('徒手打击', [
+          `说明词条：${formatUnarmedTags(attack) || '无'}`,
+          `攻击性质：${attack.isMagicAttack ? '魔法攻击' : '非魔法攻击'}`,
+          '说明词条仅用于记录来源，不会自动改变命中、伤害或其他属性。',
+        ])
+      : null,
     buildSection('附加效果', [attack.specialText]),
   ].filter((section): section is TooltipSection => section !== null);
 
@@ -159,6 +227,91 @@ const closeAttackPicker = () => {
   showAttackPicker.value = false;
 };
 
+const openUnarmedEditor = () => {
+  unarmedEditorError.value = '';
+  showUnarmedEditor.value = true;
+};
+
+const closeUnarmedEditor = () => {
+  showUnarmedEditor.value = false;
+  unarmedEditorError.value = '';
+};
+
+const buildNewUnarmedStrike = (): CharacterUnarmedStrike => {
+  const existingSignatures = new Set(unarmedStrikes.value.map(createUnarmedStrikeSignature));
+  const tagCandidates: UnarmedStrikeTagKey[] = [
+    'natural_weapon',
+    'unarmed_fighting',
+    'martial_arts',
+    'tavern_brawler',
+    'astral_arms',
+  ];
+  const diceCandidates: UnarmedStrikeDamageDice[] = ['1d4', '1d6', '1d8', '1d10', '1'];
+
+  for (const tag of tagCandidates) {
+    for (const dice of diceCandidates) {
+      const candidate: CharacterUnarmedStrike = {
+        id: `unarmed_${Date.now()}_${tag}_${dice}`,
+        name: `徒手打击 ${unarmedStrikes.value.length + 1}`,
+        tags: [tag],
+        hitAbility: 'str',
+        damageDice: dice,
+        damageAbility: 'str',
+        damageType: 'bludgeoning',
+        isMagic: false,
+      };
+
+      if (!existingSignatures.has(createUnarmedStrikeSignature(candidate))) {
+        return candidate;
+      }
+    }
+  }
+
+  return {
+    id: `unarmed_${Date.now()}_custom`,
+    name: `徒手打击 ${unarmedStrikes.value.length + 1}`,
+    tags: ['custom'],
+    customTag: `自定义 ${unarmedStrikes.value.length + 1}`,
+    hitAbility: 'str',
+    damageDice: '1',
+    damageAbility: 'str',
+    damageType: 'bludgeoning',
+    isMagic: false,
+  };
+};
+
+const addUnarmedStrike = () => {
+  const created = store.addUnarmedStrike(buildNewUnarmedStrike());
+  unarmedEditorError.value = created ? '' : '已经存在相同结果的徒手打击。';
+};
+
+const updateUnarmedStrike = (strike: CharacterUnarmedStrike, patch: Partial<CharacterUnarmedStrike>) => {
+  const updated = store.updateUnarmedStrike(strike.id, patch);
+  unarmedEditorError.value = updated ? '' : '已经存在相同结果的徒手打击，未保存本次修改。';
+};
+
+const deleteUnarmedStrike = (strikeId: string) => {
+  store.deleteUnarmedStrike(strikeId);
+  unarmedEditorError.value = '';
+};
+
+const setUnarmedTag = (strike: CharacterUnarmedStrike, tag: UnarmedStrikeTagKey) => {
+  if (tag === 'none') {
+    updateUnarmedStrike(strike, { tags: ['none'], customTag: undefined });
+    return;
+  }
+
+  const activeTags = strike.tags.filter(item => item !== 'none');
+  const nextTags = activeTags.includes(tag)
+    ? activeTags.filter(item => item !== tag)
+    : [...activeTags, tag];
+
+  updateUnarmedStrike(strike, {
+    tags: nextTags.length ? nextTags : ['none'],
+    customTag: nextTags.includes('custom') ? strike.customTag : undefined,
+  });
+};
+
 const isAttackSelected = (catalogKey: string) => selectedAttackKeys.value.includes(catalogKey);
 const toggleAttackSelection = (catalogKey: string) => store.toggleAttackSelection(catalogKey);
 const setAttackPickerFilter = (filter: AttackPickerFilter) => {
@@ -180,13 +333,14 @@ const filteredCatalogAttacks = computed<AttackCatalogEntry[]>(() => {
 const onAttackPickerKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     closeAttackPicker();
+    closeUnarmedEditor();
   }
 };
 
-watch(showAttackPicker, isOpen => {
+watch([showAttackPicker, showUnarmedEditor], ([isPickerOpen, isEditorOpen]) => {
   if (typeof window === 'undefined') return;
 
-  if (isOpen) {
+  if (isPickerOpen || isEditorOpen) {
     window.addEventListener('keydown', onAttackPickerKeydown);
     return;
   }
@@ -258,6 +412,15 @@ const handleLongRest = async () => {
 
         <div class="attr-toggles">
           <button
+            class="btn-toggle unarmed-config-btn"
+            data-test="open-unarmed-editor"
+            type="button"
+            title="编辑徒手打击"
+            @click="openUnarmedEditor"
+          >
+            徒手
+          </button>
+          <button
             v-for="attr in extraAttributes"
             :key="attr.key"
             class="btn-toggle"
@@ -271,49 +434,62 @@ const handleLongRest = async () => {
       </div>
 
       <div class="attack-list">
-        <div
-          v-for="attack in selectedAttacks"
-          :key="attack.catalogKey"
-          class="attack-card"
-          @mouseenter="onAttackEnter(attack, $event)"
-          @mousemove="onAttackMove"
-          @mouseleave="onAttackLeave"
+        <draggable
+          v-model="draggableSelectedAttacks"
+          item-key="catalogKey"
+          class="selected-attack-drag-list"
+          handle=".attack-drag-handle"
+          ghost-class="attack-ghost"
+          drag-class="attack-dragging"
         >
-          <div class="row-main">
-            <span class="atk-name">{{ attack.name }}</span>
-            <div class="header-right">
-              <button
-                class="btn-icon"
-                type="button"
-                title="移除"
-                @click.stop="toggleAttackSelection(attack.catalogKey)"
-              >
-                ✕
-              </button>
-              <span class="atk-hit">{{ attack.hit }}</span>
+          <template #item="{ element: attack }">
+            <div
+              class="attack-card"
+              :data-test="`selected-attack-${attack.catalogKey}`"
+              @mouseenter="onAttackEnter(attack, $event)"
+              @mousemove="onAttackMove"
+              @mouseleave="onAttackLeave"
+            >
+              <div class="row-main">
+                <div class="attack-title">
+                  <span class="attack-drag-handle" title="拖拽排序">≡</span>
+                  <span class="atk-name">{{ attack.name }}</span>
+                </div>
+                <div class="header-right">
+                  <button
+                    class="btn-icon"
+                    type="button"
+                    title="移除"
+                    @click.stop="toggleAttackSelection(attack.catalogKey)"
+                  >
+                    ✕
+                  </button>
+                  <span class="atk-hit">{{ attack.hit }}</span>
+                </div>
+              </div>
+              <div class="row-sub">
+                <div class="info-group">
+                  <span class="atk-dmg">{{ attack.damage }}</span>
+                  <span class="divider">|</span>
+                  <span class="atk-range">{{ attack.range }}</span>
+                </div>
+                <div v-if="attack.properties.length" class="tags">
+                  <span
+                    v-for="property in attack.properties"
+                    :key="property"
+                    class="tag"
+                    :title="property"
+                    @mouseenter="onTraitEnter(property, $event)"
+                    @mousemove="onTraitMove"
+                    @mouseleave="onTraitLeave"
+                  >
+                    {{ getLabel(property) }}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="row-sub">
-            <div class="info-group">
-              <span class="atk-dmg">{{ attack.damage }}</span>
-              <span class="divider">|</span>
-              <span class="atk-range">{{ attack.range }}</span>
-            </div>
-            <div v-if="attack.properties.length" class="tags">
-              <span
-                v-for="property in attack.properties"
-                :key="property"
-                class="tag"
-                :title="property"
-                @mouseenter="onTraitEnter(property, $event)"
-                @mousemove="onTraitMove"
-                @mouseleave="onTraitLeave"
-              >
-                {{ getLabel(property) }}
-              </span>
-            </div>
-          </div>
-        </div>
+          </template>
+        </draggable>
 
         <button
           class="attack-card is-virtual add-card"
@@ -487,6 +663,17 @@ const handleLongRest = async () => {
             悬停查看次要信息，点击按钮添加或移除攻击项。
           </div>
 
+          <div class="attack-picker-tools">
+            <button
+              class="unarmed-editor-link"
+              data-test="picker-open-unarmed-editor"
+              type="button"
+              @click="openUnarmedEditor"
+            >
+              编辑徒手打击
+            </button>
+          </div>
+
           <div class="attack-picker-filters">
             <button
               class="filter-chip"
@@ -575,6 +762,156 @@ const handleLongRest = async () => {
       </div>
     </Transition>
   </Teleport>
+
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div
+        v-if="showUnarmedEditor"
+        class="attack-picker-overlay"
+        data-test="unarmed-editor-overlay"
+        @click.self="closeUnarmedEditor"
+      >
+        <div class="unarmed-editor-modal" role="dialog" aria-modal="true" aria-label="徒手打击设置">
+          <div class="attack-picker-header">
+            <div class="attack-picker-title-group">
+              <h3>徒手打击设置</h3>
+              <p>词条只是说明来源，不会自动改变命中、伤害或其他属性。</p>
+            </div>
+            <button
+              class="picker-close"
+              data-test="unarmed-editor-close"
+              type="button"
+              @click="closeUnarmedEditor"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="unarmed-editor-body">
+            <div v-if="unarmedEditorError" class="unarmed-error">
+              {{ unarmedEditorError }}
+            </div>
+
+            <div
+              v-for="strike in unarmedStrikes"
+              :key="strike.id"
+              class="unarmed-row"
+              data-test="unarmed-editor-row"
+            >
+              <div class="unarmed-row-header">
+                <label class="field name-field">
+                  <span>名称</span>
+                  <input
+                    :value="strike.name"
+                    type="text"
+                    @input="updateUnarmedStrike(strike, { name: eventValue($event) })"
+                  />
+                </label>
+                <button
+                  class="danger-link"
+                  type="button"
+                  @click="deleteUnarmedStrike(strike.id)"
+                >
+                  删除
+                </button>
+              </div>
+
+              <div class="unarmed-tags">
+                <button
+                  v-for="tag in unarmedTagOptions"
+                  :key="tag.key"
+                  class="tag-choice"
+                  :class="{ active: strike.tags.includes(tag.key) }"
+                  type="button"
+                  @click="setUnarmedTag(strike, tag.key)"
+                >
+                  {{ tag.label }}
+                </button>
+              </div>
+
+              <label v-if="strike.tags.includes('custom')" class="field">
+                <span>自定义词条</span>
+                <input
+                  :value="strike.customTag || ''"
+                  type="text"
+                  placeholder="输入自定义说明词条"
+                  @input="updateUnarmedStrike(strike, { customTag: eventValue($event) })"
+                />
+              </label>
+
+              <div class="unarmed-grid">
+                <label class="field">
+                  <span>命中属性</span>
+                  <select
+                    :value="strike.hitAbility"
+                    @change="updateUnarmedStrike(strike, { hitAbility: eventValue($event) as AbilityKey })"
+                  >
+                    <option v-for="ability in abilityOptions" :key="ability.key" :value="ability.key">
+                      {{ ability.label }}
+                    </option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>伤害骰</span>
+                  <select
+                    :value="strike.damageDice"
+                    @change="updateUnarmedStrike(strike, { damageDice: eventValue($event) as UnarmedStrikeDamageDice })"
+                  >
+                    <option v-for="dice in UNARMED_DAMAGE_DICE_OPTIONS" :key="dice" :value="dice">
+                      {{ dice === '1' ? '1点' : dice }}
+                    </option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>伤害加值</span>
+                  <select
+                    :value="strike.damageAbility"
+                    @change="updateUnarmedStrike(strike, { damageAbility: eventValue($event) as AbilityKey })"
+                  >
+                    <option v-for="ability in abilityOptions" :key="ability.key" :value="ability.key">
+                      {{ ability.label }}
+                    </option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>伤害类型</span>
+                  <select
+                    :value="strike.damageType"
+                    @change="updateUnarmedStrike(strike, { damageType: eventValue($event) as UnarmedStrikeDamageType })"
+                  >
+                    <option v-for="damageType in damageTypeOptions" :key="damageType.key" :value="damageType.key">
+                      {{ damageType.label }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="magic-toggle">
+                <input
+                  :checked="strike.isMagic"
+                  type="checkbox"
+                  @change="updateUnarmedStrike(strike, { isMagic: eventChecked($event) })"
+                />
+                <span>视为魔法攻击</span>
+              </label>
+            </div>
+
+            <button
+              class="add-unarmed-btn"
+              data-test="add-unarmed-strike"
+              type="button"
+              @click="addUnarmedStrike"
+            >
+              + 新增徒手打击
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped lang="scss">
@@ -643,6 +980,12 @@ const handleLongRest = async () => {
   gap: 4px;
 }
 
+.selected-attack-drag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .attack-card {
   background: #fff;
   border: 1px solid #dcdcdc;
@@ -671,9 +1014,30 @@ const handleLongRest = async () => {
     font-weight: bold;
     font-size: 0.9rem;
     color: #2c3e50;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .attack-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .attack-drag-handle {
+    color: #95a5a6;
+    cursor: grab;
+    font-size: 0.9rem;
+    font-weight: 900;
+    line-height: 1;
+    user-select: none;
+
+    &:active {
+      cursor: grabbing;
+    }
   }
 
   .header-right {
@@ -828,6 +1192,35 @@ const handleLongRest = async () => {
   color: #66788a;
 }
 
+.attack-ghost {
+  opacity: 0.45;
+  background: #eef3f6;
+}
+
+.attack-dragging {
+  cursor: grabbing;
+}
+
+.attack-picker-tools {
+  padding: 10px 20px 0;
+}
+
+.unarmed-editor-link,
+.add-unarmed-btn {
+  border: 1px solid #c9b458;
+  background: #fff8dc;
+  color: #6f4e00;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 5px 10px;
+  cursor: pointer;
+
+  &:hover {
+    background: #fff1b8;
+  }
+}
+
 .attack-picker-filters {
   display: flex;
   gap: 8px;
@@ -897,6 +1290,145 @@ const handleLongRest = async () => {
     border-color: #34495e;
     color: #fff;
   }
+}
+
+.unarmed-config-btn {
+  color: #7f8c8d !important;
+  border-color: #dcdcdc !important;
+  background: #fdfdfd !important;
+
+  &:hover {
+    background: #ecf0f1 !important;
+    color: #7f8c8d !important;
+  }
+}
+
+.unarmed-editor-modal {
+  width: min(760px, 100%);
+  max-height: min(84vh, 920px);
+  background: #f8fbfd;
+  border: 1px solid rgba(52, 73, 94, 0.16);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.unarmed-editor-body {
+  padding: 14px 20px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.unarmed-error {
+  border: 1px solid rgba(192, 57, 43, 0.25);
+  background: rgba(192, 57, 43, 0.08);
+  color: #922b21;
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.unarmed-row {
+  border: 1px solid #dfe6ee;
+  border-left: 3px solid #c9b458;
+  background: #fff;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.unarmed-row-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  span {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #607080;
+  }
+
+  input,
+  select {
+    border: 1px solid #d0d7de;
+    background: #fff;
+    color: #2c3e50;
+    border-radius: 4px;
+    min-height: 30px;
+    padding: 4px 7px;
+    font-size: 0.82rem;
+  }
+}
+
+.name-field {
+  flex: 1;
+}
+
+.danger-link {
+  border: none;
+  background: transparent;
+  color: #c0392b;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.unarmed-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-choice {
+  border: 1px solid #d0d7de;
+  background: #f8fafc;
+  color: #34495e;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  cursor: pointer;
+
+  &.active {
+    background: #4b2d73;
+    border-color: #c9b458;
+    color: #f4d06f;
+  }
+}
+
+.unarmed-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.magic-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #34495e;
+}
+
+.add-unarmed-btn {
+  align-self: flex-start;
 }
 
 .spell-dashboard-mini {
@@ -1221,6 +1753,14 @@ const handleLongRest = async () => {
 
   .attack-picker-modal {
     max-height: 86vh;
+  }
+
+  .unarmed-editor-modal {
+    max-height: 88vh;
+  }
+
+  .unarmed-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .attack-picker-header {

@@ -2,6 +2,9 @@ import { getLibraryItemById } from '../data/libraries/itemLibrary';
 import type { ConsumableData, ContainerData, InventoryItem } from '../types/Item';
 import type { ConsumableDefinition, ItemMagicDefinition } from '../types/Library';
 import { generateUUID } from './idGenerator';
+import { createRendererLogger } from './rendererLogger';
+
+const logger = createRendererLogger('utils/itemFactory');
 
 const cloneMagicDefinition = (magic?: ItemMagicDefinition): ItemMagicDefinition => ({
   isMagic: magic?.isMagic ?? false,
@@ -31,7 +34,7 @@ export function createItemFromLibrary(templateId: string): InventoryItem | null 
   const def = getLibraryItemById(templateId);
 
   if (!def) {
-    console.warn(`Item factory: cannot find library item '${templateId}'.`);
+    logger.warn('Cannot find library item', { templateId });
     return null;
   }
 
