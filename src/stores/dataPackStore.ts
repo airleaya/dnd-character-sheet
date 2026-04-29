@@ -24,6 +24,15 @@ const applyPackRuntime = (packs: RuntimeDataPack[]) => {
   setRuntimeDataPacks(packs);
 };
 
+type MakerDragDiagnostic = {
+  id: number;
+  timestamp: string;
+  step: string;
+  status: 'info' | 'ok' | 'warn' | 'error';
+  message: string;
+  details?: Record<string, unknown>;
+};
+
 export const useDataPackStore = defineStore('dataPack', () => {
   const packs = ref<RuntimeDataPack[]>([DEFAULT_DND5E_DATA_PACK]);
   const settings = ref<DataPackSettings>(createDefaultDataPackSettings());
@@ -38,10 +47,36 @@ export const useDataPackStore = defineStore('dataPack', () => {
     target: 'forge' | 'enchant';
     token: number;
   } | null>(null);
+  const makerDragDiagnostics = ref<MakerDragDiagnostic[]>([]);
+  let makerDragDiagnosticSeq = 0;
 
   const feedback = useUiFeedbackStore();
 
   const clonePlain = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+  const recordMakerDragDiagnostic = (
+    step: string,
+    status: MakerDragDiagnostic['status'],
+    message: string,
+    details?: Record<string, unknown>
+  ) => {
+    makerDragDiagnosticSeq += 1;
+    makerDragDiagnostics.value = [
+      {
+        id: makerDragDiagnosticSeq,
+        timestamp: new Date().toISOString(),
+        step,
+        status,
+        message,
+        details,
+      },
+      ...makerDragDiagnostics.value,
+    ].slice(0, 40);
+  };
+
+  const clearMakerDragDiagnostics = () => {
+    makerDragDiagnostics.value = [];
+  };
 
   const hashText = async (value: string, salt: string): Promise<string> => {
     const payload = `${salt}:${value}`;
@@ -343,6 +378,10 @@ export const useDataPackStore = defineStore('dataPack', () => {
       target,
       token: Date.now(),
     };
+    recordMakerDragDiagnostic('store.request-maker-workbench', 'ok', 'Right sidebar drop routed to maker', {
+      runtimeItemId,
+      target,
+    });
   };
 
   const ensureEditorMeta = () => {
@@ -455,6 +494,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     const source = getRuntimeLibraryItemById(runtimeItemId);
     if (!source) {
       feedback.showToast('未找到要导入的物品', 'danger');
+      recordMakerDragDiagnostic('store.import-item', 'error', 'Runtime item not found', { runtimeItemId, target });
       return;
     }
     const items = activeDraftPack.value.items ?? (activeDraftPack.value.items = []);
@@ -464,6 +504,13 @@ export const useDataPackStore = defineStore('dataPack', () => {
     items.push(item);
     draftDirty.value = true;
     feedback.showToast(target === 'enchant' ? `已复制到附魔入口：${item.name}` : `已复制到铁匠铺：${item.name}`, 'success');
+    recordMakerDragDiagnostic('store.import-item', 'ok', 'Item copied into active draft pack', {
+      runtimeItemId,
+      localItemId: item.id,
+      itemName: item.name,
+      target,
+      draftItemCount: items.length,
+    });
     return item;
   };
 
@@ -576,6 +623,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     draftDirty,
     makerLibraryTab,
     makerItemWorkbenchRequest,
+    makerDragDiagnostics,
     orderedDataPacks,
     enabledDataPacks,
     itemLibraryItems,
@@ -596,6 +644,8 @@ export const useDataPackStore = defineStore('dataPack', () => {
     markDraftDirty,
     setMakerLibraryTab,
     requestMakerItemWorkbench,
+    recordMakerDragDiagnostic,
+    clearMakerDragDiagnostics,
     addMenuGroup,
     addMenuSubgroup,
     removeMenuGroup,

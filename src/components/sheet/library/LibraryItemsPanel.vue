@@ -86,10 +86,19 @@ const cloneItem = (item: LibraryItem): LibraryCloneDragElement => ({ libraryId: 
 const onNativeDragStart = (e: DragEvent, item: LibraryItem) => {
   emit('leave-item');
   setupDragData(e, 'library-item', item.id, false);
+  dataPackStore.recordMakerDragDiagnostic('library.dragstart', 'ok', 'Library item dragstart fired', {
+    itemId: item.id,
+    itemName: item.name,
+    dataTransferTypes: e.dataTransfer ? Array.from(e.dataTransfer.types) : [],
+    makerOpen: dataPackStore.isMakerOpen,
+  });
 };
 
 const onDragEnd = () => {
   clearGlobalDragPayload();
+  dataPackStore.recordMakerDragDiagnostic('library.dragend', 'info', 'Library item dragend fired; global payload cleanup scheduled', {
+    makerOpen: dataPackStore.isMakerOpen,
+  });
 };
 
 const weaponPropertyLabels: Record<WeaponPropertyKey, string> = {

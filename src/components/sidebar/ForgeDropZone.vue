@@ -14,7 +14,12 @@ const isHovering = ref(false);
 // 1. 强行接管进入事件
 const onDragEnter = () => {
   isHovering.value = true;
+  dataPackStore.recordMakerDragDiagnostic('right-forge.dragenter', 'info', 'Pointer entered right-sidebar forge zone', {
+    makerOpen: dataPackStore.isMakerOpen,
+  });
 };
+
+let lastDragOverDiagnosticAt = 0;
 
 // 2. 强行接管悬停事件 (最关键的一步)
 const onDragOver = (e: DragEvent) => {
@@ -25,6 +30,14 @@ const onDragOver = (e: DragEvent) => {
     e.dataTransfer.dropEffect = 'move';
   }
   isHovering.value = true;
+  const now = Date.now();
+  if (now - lastDragOverDiagnosticAt > 800) {
+    lastDragOverDiagnosticAt = now;
+    dataPackStore.recordMakerDragDiagnostic('right-forge.dragover', 'info', 'Right-sidebar forge dragover is firing', {
+      makerOpen: dataPackStore.isMakerOpen,
+      dataTransferTypes: e.dataTransfer ? Array.from(e.dataTransfer.types) : [],
+    });
+  }
 };
 
 const onDragLeave = () => {
@@ -35,9 +48,18 @@ const onDrop = (e: DragEvent) => {
   isHovering.value = false;
 
   const payload = getDragPayloadFromEvent(e);
+  dataPackStore.recordMakerDragDiagnostic('right-forge.drop', payload ? 'ok' : 'warn', payload ? 'Right-sidebar forge resolved drop payload' : 'Right-sidebar forge could not resolve drop payload', {
+    makerOpen: dataPackStore.isMakerOpen,
+    payloadType: payload?.type,
+    payloadId: payload?.type === 'library-item' ? payload.id : undefined,
+    dataTransferTypes: e.dataTransfer ? Array.from(e.dataTransfer.types) : [],
+  });
   if (!payload) return;
 
   if (dataPackStore.isMakerOpen && payload.type === 'library-item') {
+    dataPackStore.recordMakerDragDiagnostic('right-forge.route-maker', 'ok', 'Routing right-sidebar forge drop into maker', {
+      itemId: payload.id,
+    });
     dataPackStore.requestMakerItemWorkbench(payload.id, 'forge');
     return;
   }

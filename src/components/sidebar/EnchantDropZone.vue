@@ -10,13 +10,26 @@ const isHovering = ref(false);
 
 const onDragEnter = () => {
   isHovering.value = true;
+  dataPackStore.recordMakerDragDiagnostic('right-enchant.dragenter', 'info', 'Pointer entered right-sidebar enchant zone', {
+    makerOpen: dataPackStore.isMakerOpen,
+  });
 };
+
+let lastDragOverDiagnosticAt = 0;
 
 const onDragOver = (event: DragEvent) => {
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = 'move';
   }
   isHovering.value = true;
+  const now = Date.now();
+  if (now - lastDragOverDiagnosticAt > 800) {
+    lastDragOverDiagnosticAt = now;
+    dataPackStore.recordMakerDragDiagnostic('right-enchant.dragover', 'info', 'Right-sidebar enchant dragover is firing', {
+      makerOpen: dataPackStore.isMakerOpen,
+      dataTransferTypes: event.dataTransfer ? Array.from(event.dataTransfer.types) : [],
+    });
+  }
 };
 
 const onDragLeave = () => {
@@ -26,8 +39,17 @@ const onDragLeave = () => {
 const onDrop = (event: DragEvent) => {
   isHovering.value = false;
   const payload = getDragPayloadFromEvent(event);
+  dataPackStore.recordMakerDragDiagnostic('right-enchant.drop', payload ? 'ok' : 'warn', payload ? 'Right-sidebar enchant resolved drop payload' : 'Right-sidebar enchant could not resolve drop payload', {
+    makerOpen: dataPackStore.isMakerOpen,
+    payloadType: payload?.type,
+    payloadId: payload?.type === 'library-item' ? payload.id : undefined,
+    dataTransferTypes: event.dataTransfer ? Array.from(event.dataTransfer.types) : [],
+  });
   if (!payload) return;
   if (dataPackStore.isMakerOpen && payload.type === 'library-item') {
+    dataPackStore.recordMakerDragDiagnostic('right-enchant.route-maker', 'ok', 'Routing right-sidebar enchant drop into maker', {
+      itemId: payload.id,
+    });
     dataPackStore.requestMakerItemWorkbench(payload.id, 'enchant');
     return;
   }
