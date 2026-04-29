@@ -433,7 +433,8 @@ export const useDataPackStore = defineStore('dataPack', () => {
     activeDraftPack.value.manifest.updatedAt = new Date().toISOString();
 
     try {
-      const result = await window.electronAPI.saveEditableDataPack(activeDraftPack.value, mode);
+      const payload = clonePlain(activeDraftPack.value);
+      const result = await window.electronAPI.saveEditableDataPack(payload, mode);
       if (!result.success) {
         logger.warn('Data pack draft save failed', {
           ...summarizeDraftPack(activeDraftPack.value),

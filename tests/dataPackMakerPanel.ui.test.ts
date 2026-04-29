@@ -61,4 +61,28 @@ describe('DataPackMakerPanel', () => {
 
     expect(saveSpy).toHaveBeenCalledWith('update');
   });
+
+  it('sends a plain cloneable draft payload through the save API', async () => {
+    const store = useDataPackStore();
+    store.activeDraftPack = createDraftPack();
+    const saveEditableDataPack = vi.fn(async (packFile: DataPackFile) => {
+      expect(() => structuredClone(packFile)).not.toThrow();
+      expect(packFile).not.toBe(store.activeDraftPack);
+      return { success: true as const, data: packFile };
+    });
+
+    Object.defineProperty(window, 'electronAPI', {
+      value: {
+        writeLog: vi.fn(async () => ({ success: true, data: null })),
+        saveEditableDataPack,
+      },
+      configurable: true,
+    });
+
+    await expect(store.saveDraftPack('create')).resolves.toBe(true);
+
+    expect(saveEditableDataPack).toHaveBeenCalledWith(expect.objectContaining({
+      manifest: expect.objectContaining({ id: 'homebrew' }),
+    }), 'create');
+  });
 });
