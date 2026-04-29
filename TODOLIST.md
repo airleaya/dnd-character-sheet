@@ -1,5 +1,10 @@
 # TODOLIST
 
+> 2026-04-29 version iteration update:
+> Current baseline grows from `0.14.5` to `0.14.6`; this round fixes maker item drop editor activation in `0.14.6`.
+> 2026-04-29 maker editor activation fix:
+> The maker now accepts right-library `vuedraggable` clone payloads and selects the copied item by id after drop, so dropping into the forge/enchant workbench immediately opens the matching edit step.
+
 > 2026-04-29 版本迭代更新：
 > 当前基线已从 `0.14.4` 自增长到 `0.14.5`；本轮制作器铁匠铺/附魔台拖拽接收修复进入 `0.14.5`。
 > 2026-04-29 制作器拖拽修复：

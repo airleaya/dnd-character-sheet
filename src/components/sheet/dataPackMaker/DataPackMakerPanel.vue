@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { useDataPackStore } from '../../../stores/dataPackStore';
 import { getGlobalDragPayload, parseDragPayload } from '../../../utils/inventoryDropUtils';
 import type { DataPackTraitDefinition } from '../../../types/DataPack';
@@ -83,7 +83,7 @@ const onWorkbenchDragLeave = (target: 'forge' | 'enchant') => {
   }
 };
 
-const onItemDrop = (event: DragEvent, target: 'forge' | 'enchant') => {
+const onItemDrop = async (event: DragEvent, target: 'forge' | 'enchant') => {
   event.preventDefault();
   event.stopPropagation();
   hoveringWorkbench.value = null;
@@ -91,8 +91,12 @@ const onItemDrop = (event: DragEvent, target: 'forge' | 'enchant') => {
   if (payload?.type === 'library-item') {
     activeSection.value = 'items';
     activeItemWorkbench.value = target;
-    store.importItemToDraft(payload.id, target);
-    selectedItemIndex.value = Math.max(0, items.value.length - 1);
+    const importedItem = store.importItemToDraft(payload.id, target);
+    await nextTick();
+    const importedIndex = importedItem
+      ? items.value.findIndex(item => item.id === importedItem.id)
+      : -1;
+    selectedItemIndex.value = importedIndex >= 0 ? importedIndex : Math.max(0, items.value.length - 1);
   }
 };
 

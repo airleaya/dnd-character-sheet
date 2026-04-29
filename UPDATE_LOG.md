@@ -1,5 +1,29 @@
 # UPDATE_LOG
 
+## [0.14.6] - 2026-04-29
+- Type: Bugfix / Data Pack Maker / Drag-and-drop / Tests
+- Item: Fix maker item drop so the edit step activates after dropping.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/utils/inventoryDropUtils.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/stores/dataPackStore.ts`
+  - `src/data/dataPacks/defaultDnd5ePack.ts`
+  - `tests/inventoryDropUtils.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.5` to `0.14.6`.
+  - Root cause: maker workbench drops only accepted the standard `{ type: 'library-item', id }` payload, while the right library `vuedraggable` clone path can provide `{ libraryId }`; that payload was rejected, so the drop could not enter the editor activation path.
+  - `parseDragPayload` now normalizes `vuedraggable` `libraryId` clone payloads and keeps inventory instance payload normalization safe.
+  - `importItemToDraft` now returns the copied item; the maker selects the newly imported item by returned id after drop and switches into the forge/enchant workbench context instead of guessing from list length.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/inventoryDropUtils.test.ts tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts` passed: 4 test files, 16 tests.
+  - `npm run build` passed and generated `0.14.6` installer/portable artifacts.
+
 ## [0.14.5] - 2026-04-29
 - 类型：Bugfix / 数据包制作器 / 拖拽 / 测试
 - 条目：制作器铁匠铺与附魔台拖拽接收修复

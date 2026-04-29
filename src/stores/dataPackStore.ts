@@ -450,6 +450,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     items.push(item);
     draftDirty.value = true;
     feedback.showToast(target === 'enchant' ? `已复制到附魔入口：${item.name}` : `已复制到铁匠铺：${item.name}`, 'success');
+    return item;
   };
 
   const importSpellToDraft = (runtimeSpellId: string) => {

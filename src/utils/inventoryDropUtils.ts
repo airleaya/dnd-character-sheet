@@ -81,6 +81,21 @@ const isDragPayload = (payload: unknown): payload is DragPayload => {
   return false;
 };
 
+const normalizeDragPayload = (payload: unknown): DragPayload | null => {
+  if (isDragPayload(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return null;
+
+  const candidate = payload as Record<string, unknown>;
+  if (typeof candidate.libraryId === 'string') {
+    return { type: 'library-item', id: candidate.libraryId };
+  }
+  if (typeof candidate.instanceId === 'string') {
+    return { type: 'inventory-item', instanceId: candidate.instanceId };
+  }
+
+  return null;
+};
+
 export const parseDragPayload = (raw: string): DragPayload | null => {
   try {
     let payload: unknown = JSON.parse(raw);
@@ -89,7 +104,7 @@ export const parseDragPayload = (raw: string): DragPayload | null => {
       payload = JSON.parse(payload);
     }
 
-    return isDragPayload(payload) ? payload : null;
+    return normalizeDragPayload(payload);
   } catch {
     return null;
   }
