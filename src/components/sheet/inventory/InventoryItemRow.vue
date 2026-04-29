@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, inject } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import draggable from 'vuedraggable';
 import {
   calcRealIndex,
@@ -9,6 +10,13 @@ import {
   setupDragData,
 } from '../../../utils/inventoryDropUtils';
 import { formatContainerCapacity } from '../../../utils/containerCapacity';
+import { getLibraryItemById } from '../../../data/libraries/itemLibrary';
+import {
+  formatMagicItemName,
+  getMagicInventoryStyle,
+  requiresAttunement,
+  isAttuned,
+} from '../../../utils/magicItems';
 import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils';
 
 import type { InventoryItem } from '../../../types/Item';
@@ -25,6 +33,7 @@ const props = defineProps<{
 }>();
 
 const store = useActiveSheetStore();
+const feedback = useUiFeedbackStore();
 const isExpanded = ref(false);
 
 const ignoresContentWeight = (item: InventoryItem) => 'ignoreContentWeight' in item.data && item.data.ignoreContentWeight === true;
@@ -78,6 +87,19 @@ const containerPreviewLabel = computed(() => {
 });
 
 const containerCapacityLabel = computed(() => formatContainerCapacity(props.item));
+const templateName = computed(() => getLibraryItemById(props.item.templateId)?.name ?? '');
+const shouldShowTemplateName = computed(
+  () => Boolean(templateName.value) && templateName.value !== props.item.name
+);
+const displayName = computed(() => formatMagicItemName(props.item));
+const itemRowStyle = computed(() => getMagicInventoryStyle(props.item));
+const itemNameStyle = computed(() =>
+  props.item.magic?.isMagic
+    ? { color: props.item.magic.visuals?.nameColor || itemRowStyle.value?.color }
+    : undefined
+);
+const needsAttunement = computed(() => requiresAttunement(props.item));
+const attuned = computed(() => isAttuned(props.item));
 
 // 核心逻辑：通用容器代理
 // 如果任意容器内只有 1 种内容物，则“穿透”控制该内容物数量
@@ -112,6 +134,13 @@ const handleQuantityChange = (delta: number) => {
   } else {
     // 否则修改自己
     store.updateItemQuantity(props.item.instanceId, delta);
+  }
+};
+
+const handleToggleAttunement = () => {
+  const success = store.toggleItemAttunement(props.item.instanceId);
+  if (!success && !attuned.value) {
+    feedback.showToast('同调上限为 3 件物品', 'warning');
   }
 };
 
@@ -185,6 +214,7 @@ const handleDelete = () => {
         'is-container': item.type === 'container',
         'is-proxy': !!proxyTargetItem /* 代理模式下给点特殊样式 */
       }"
+      :style="itemRowStyle"
       @mouseenter="tooltipApi.onEnter(item, $event)"
       @mouseleave="tooltipApi.onLeave()"
     >
@@ -200,7 +230,10 @@ const handleDelete = () => {
       </div>
 
       <div class="col-name">
-        <span class="name-text">{{ item.name }}</span>
+        <span class="name-stack">
+          <span class="name-text" :style="itemNameStyle">{{ displayName }}</span>
+          <span v-if="shouldShowTemplateName" class="template-name">（{{ templateName }}）</span>
+        </span>
         
         <span v-if="item.type === 'container'" class="container-badge">
           <span class="container-capacity">容量：{{ containerCapacityLabel }}</span>
@@ -220,7 +253,23 @@ const handleDelete = () => {
 
       <div class="col-qty">
         <div 
-          v-if="isStackable || proxyTargetItem" 
+          v-if="needsAttunement"
+          class="attune-control"
+          @click.stop
+        >
+          <button
+            type="button"
+            class="btn-attune"
+            :class="{ active: attuned }"
+            :title="attuned ? '取消同调' : '同调该物品'"
+            @click="handleToggleAttunement"
+          >
+            {{ attuned ? '已同调' : '同调' }}
+          </button>
+        </div>
+
+        <div
+          v-else-if="isStackable || proxyTargetItem"
           class="qty-controls"
           @click.stop
         >
@@ -363,10 +412,28 @@ const handleDelete = () => {
   min-width: 0;
   padding-right: 8px;
 
+  .name-stack {
+    min-width: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    overflow: hidden;
+  }
+
   .name-text {
-    flex-shrink: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-weight: 500;
     font-size: 0.9rem;
+  }
+
+  .template-name {
+    flex-shrink: 0;
+    color: #adb5bd;
+    font-size: 0.72rem;
+    font-weight: 500;
   }
 
   .container-badge {
@@ -450,6 +517,29 @@ const handleDelete = () => {
   color: #868e96;
   font-size: 0.85rem;
   padding-right: 6px;
+}
+
+.attune-control {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.btn-attune {
+  border: 1px solid #c9b6ff;
+  border-radius: 999px;
+  background: #f0e7ff;
+  color: #8b1e3f;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 4px 9px;
+  cursor: pointer;
+
+  &.active {
+    background: #8b1e3f;
+    border-color: #8b1e3f;
+    color: #fff7fb;
+  }
 }
 
 /* --- 操作列 --- */

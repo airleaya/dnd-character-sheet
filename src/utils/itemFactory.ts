@@ -1,20 +1,11 @@
 import { getLibraryItemById } from '../data/libraries/itemLibrary';
 import type { ConsumableData, ContainerData, InventoryItem } from '../types/Item';
-import type { ConsumableDefinition, ItemMagicDefinition } from '../types/Library';
+import type { ConsumableDefinition } from '../types/Library';
 import { generateUUID } from './idGenerator';
 import { createRendererLogger } from './rendererLogger';
+import { cloneMagicDefinition } from './magicItems';
 
 const logger = createRendererLogger('utils/itemFactory');
-
-const cloneMagicDefinition = (magic?: ItemMagicDefinition): ItemMagicDefinition => ({
-  isMagic: magic?.isMagic ?? false,
-  magicBonus: magic?.magicBonus,
-  rarity: magic?.rarity,
-  attunement: magic?.attunement ? { ...magic.attunement } : undefined,
-  enchantmentEffects: magic?.enchantmentEffects ? [...magic.enchantmentEffects] : undefined,
-  charges: magic?.charges ? { ...magic.charges } : undefined,
-  isCursed: magic?.isCursed
-});
 
 const inventoryUnitWeight = (def: NonNullable<ReturnType<typeof getLibraryItemById>>): number => {
   const multiplicity = def.multiplicity;

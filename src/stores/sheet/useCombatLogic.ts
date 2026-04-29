@@ -12,6 +12,12 @@ import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { ATTR_MAP } from '../../data/rules/dndRules';
 import { getJackOfAllTradesBonus } from '../../utils/classFeatures';
 import {
+  formatMagicItemName,
+  getMagicAttackStyle,
+  getMagicBonus,
+  resolveMagicTraitsForItem,
+} from '../../utils/magicItems';
+import {
   createDefaultUnarmedStrike,
   createUnarmedStrikeSignature,
   normalizeUnarmedStrikes,
@@ -28,6 +34,7 @@ export interface AttackBonusBreakdown {
   proficiencyApplied: boolean;
   hitBonus: number;
   damageBonus: number;
+  magicBonus: number;
   damageAbilityModifier?: number;
   offhandDamagePenalty: boolean;
 }
@@ -56,12 +63,15 @@ export interface RawAttackEntry {
   unarmedTags?: UnarmedStrikeTagKey[];
   customTag?: string;
   isMagicAttack?: boolean;
+  attackStyle?: Record<string, string>;
 }
 
 export interface AttackCatalogEntry {
   catalogKey: string;
   name: string;
   sourceType: AttackSourceType;
+  sourceId: string;
+  sourceTemplateId?: string;
   abilityPath: AbilityKey;
   damageAbilityPath?: AbilityKey;
   attackMode: AttackMode;
@@ -79,6 +89,7 @@ export interface AttackCatalogEntry {
   unarmedTags?: UnarmedStrikeTagKey[];
   customTag?: string;
   isMagicAttack?: boolean;
+  attackStyle?: Record<string, string>;
   rawKeys: string[];
 }
 
@@ -132,6 +143,14 @@ const resolveDamageTypeLabel = (rawType: string) => {
   return damageDef ? damageDef.label : rawType;
 };
 
+const formatDamageComponent = (damageDice: string | undefined, bonus: number | undefined, damageType: string) => {
+  const dice = damageDice?.trim();
+  const value = typeof bonus === 'number' && Number.isFinite(bonus) ? bonus : 0;
+  if (!dice && value === 0) return '';
+  if (!dice) return `${formatSigned(value)} ${damageType}`.trim();
+  return formatDamage(dice, value, damageType);
+};
+
 const formatUnarmedDamageDice = (damageDice: CharacterUnarmedStrike['damageDice']) =>
   damageDice === '1' ? '1' : damageDice;
 
@@ -149,6 +168,11 @@ const createWeaponFingerprint = (item: InventoryItem & { data: WeaponData }) => 
     props,
     item.data.requiredAmmoType || 'none',
     item.data.specialEffect || '',
+    item.magic?.isMagic ? 'magic' : 'mundane',
+    typeof item.magic?.magicBonus === 'number' ? `bonus_${item.magic.magicBonus}` : 'bonus_none',
+    (item.magic?.selectedTraitIds ?? []).join(','),
+    item.magic?.visuals?.attackBackground || '',
+    item.magic?.visuals?.nameColor || '',
   ];
   return `tpl:${parts.map(slugify).join(':')}`;
 };
@@ -300,6 +324,7 @@ export function useCombatLogic(
           proficiencyApplied: true,
           hitBonus: hitModifier + pb,
           damageBonus: damageModifier,
+          magicBonus: 0,
           damageAbilityModifier: damageModifier,
           offhandDamagePenalty: false,
         },
@@ -344,6 +369,27 @@ export function useCombatLogic(
       }
 
       const damageTypeLabel = resolveDamageTypeLabel(data.damageType || 'none');
+      const magicBonus = getMagicBonus(item);
+      const magicTraits = resolveMagicTraitsForItem(item, char);
+      const automaticTraitDamage = magicTraits
+        .filter(
+          trait =>
+            trait.type === 'damage' &&
+            trait.participatesInDamage &&
+            trait.activationMode === 'always'
+        )
+        .map(trait => {
+          const damageLabel = resolveDamageTypeLabel(trait.damageType || 'damage_none');
+          const damageText = formatDamageComponent(trait.damageDice, trait.damageBonus, damageLabel);
+          return damageText ? `${trait.name} ${damageText}` : '';
+        })
+        .filter(Boolean);
+      const chargedTraitNotes = magicTraits
+        .filter(trait => trait.activationMode === 'charged' || trait.type === 'spell')
+        .map(trait => {
+          const chargeText = trait.charges ? `（${trait.charges.current}/${trait.charges.max} 充能）` : '';
+          return `${trait.name}${chargeText}`;
+        });
       const isFinesse = properties.includes('finesse');
       const isVersatile = properties.includes('versatile');
       const isThrown = properties.includes('thrown');
@@ -372,9 +418,15 @@ export function useCombatLogic(
         }
       ) => {
         const modifier = abilityModifier(char.stats[abilityPath]);
-        const hitValue = modifier + (isProficient ? pb : 0);
-        const damageModifier = offhand && modifier > 0 ? 0 : modifier;
+        const hitValue = modifier + (isProficient ? pb : 0) + magicBonus;
+        const abilityDamageModifier = offhand && modifier > 0 ? 0 : modifier;
+        const damageModifier = abilityDamageModifier + magicBonus;
         const rawKey = `${item.instanceId}${suffix}`;
+        const baseDamage = formatDamage(damageDice, damageModifier, damageTypeLabel);
+        const damage = [baseDamage, ...automaticTraitDamage].join('；');
+        const specialText = [data.specialEffect, chargedTraitNotes.length ? `充能/法术词条：${chargedTraitNotes.join('，')}` : '']
+          .filter(Boolean)
+          .join('\n');
 
         pushAttack({
           rawKey,
@@ -383,20 +435,21 @@ export function useCombatLogic(
           sourceId: item.instanceId,
           sourceTemplateId: item.templateId,
           sourceFingerprint,
-          name: `${item.name}${nameLabel}`,
+          name: `${formatMagicItemName(item)}${nameLabel}`,
           abilityPath,
           damageAbilityPath: abilityPath,
           attackMode,
           handMode,
           hit: formatSigned(hitValue),
-          damage: formatDamage(damageDice, damageModifier, damageTypeLabel),
+          damage,
           bonusBreakdown: {
             abilityModifier: modifier,
             proficiencyBonus: pb,
             proficiencyApplied: isProficient,
             hitBonus: hitValue,
             damageBonus: damageModifier,
-            damageAbilityModifier: damageModifier,
+            magicBonus,
+            damageAbilityModifier: abilityDamageModifier,
             offhandDamagePenalty: offhand && modifier > 0,
           },
           range: rangeOverride || data.range || DEFAULT_MELEE_RANGE,
@@ -404,7 +457,9 @@ export function useCombatLogic(
           needsAmmo,
           ammoType: requiredType,
           ammoCount: needsAmmo && requiredType ? ammoCount : null,
-          specialText: data.specialEffect,
+          specialText,
+          isMagicAttack: item.magic?.isMagic === true,
+          attackStyle: getMagicAttackStyle(item),
         });
       };
 
@@ -531,6 +586,8 @@ export function useCombatLogic(
         catalogKey,
         name: entry.name,
         sourceType: entry.sourceType,
+        sourceId: entry.sourceId,
+        sourceTemplateId: entry.sourceTemplateId,
         abilityPath: entry.abilityPath,
         damageAbilityPath: entry.damageAbilityPath,
         attackMode: entry.attackMode,
@@ -548,6 +605,7 @@ export function useCombatLogic(
         unarmedTags: entry.unarmedTags,
         customTag: entry.customTag,
         isMagicAttack: entry.isMagicAttack,
+        attackStyle: entry.attackStyle,
         rawKeys: [entry.rawKey],
       });
     });

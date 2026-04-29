@@ -24,6 +24,7 @@ const createWeaponItem = (
   weight: 1,
   quantity,
   type: 'weapon',
+  magic: { isMagic: false },
   data: {
     category: 'simple_melee',
     damage: '1d4',
@@ -266,6 +267,7 @@ describe('useCombatLogic', () => {
       proficiencyApplied: true,
       hitBonus: 5,
       damageBonus: 3,
+      magicBonus: 0,
       damageAbilityModifier: 3,
       offhandDamagePenalty: false,
     });
@@ -275,6 +277,7 @@ describe('useCombatLogic', () => {
       proficiencyApplied: true,
       hitBonus: 5,
       damageBonus: 0,
+      magicBonus: 0,
       damageAbilityModifier: 0,
       offhandDamagePenalty: true,
     });
@@ -428,5 +431,69 @@ describe('useCombatLogic', () => {
 
     expect(logic.selectedAttacks.value).toHaveLength(1);
     expect(logic.selectedAttacks.value[0]?.damage).toBe('1d4 钝击');
+  });
+
+  it('adds explicit magic weapon bonus to name, hit and damage', () => {
+    const character = ref(createDefaultCharacter('combat-magic-weapon-bonus'));
+    character.value.stats.dex = 16;
+    character.value.proficiencies.weapons = ['simple'];
+    const dagger = createWeaponItem('magic-dagger', { name: '匕首' });
+    dagger.magic = {
+      isMagic: true,
+      magicBonus: 1,
+      visuals: {
+        attackBackground: '#ffeeaa',
+        nameColor: '#771122',
+      },
+    };
+    character.value.inventory.push(dagger);
+
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+    const dexDagger = logic.attackCatalog.value.find(
+      entry => entry.sourceType === 'weapon' && entry.sourceId === 'magic-dagger' && entry.abilityPath === 'dex'
+    );
+
+    expect(dexDagger?.name).toBe('匕首+1 (敏捷)');
+    expect(dexDagger?.hit).toBe('+6');
+    expect(dexDagger?.damage).toBe('1d4 +4 穿刺 (Piercing)');
+    expect(dexDagger?.bonusBreakdown.magicBonus).toBe(1);
+    expect(dexDagger?.attackStyle).toMatchObject({ backgroundColor: '#ffeeaa', color: '#771122' });
+  });
+
+  it('shows explicit +0 magic weapons and applies automatic damage traits', () => {
+    const character = ref(createDefaultCharacter('combat-magic-traits'));
+    character.value.stats.dex = 14;
+    character.value.proficiencies.weapons = ['simple'];
+    character.value.customMagicTraits = [
+      {
+        id: 'flame-trait',
+        source: 'custom',
+        type: 'damage',
+        name: '烈焰',
+        description: '',
+        activationMode: 'always',
+        participatesInDamage: true,
+        damageDice: '1d6',
+        damageBonus: 2,
+        damageType: 'fire',
+      },
+    ];
+    const dagger = createWeaponItem('zero-dagger', { name: '长剑' });
+    dagger.magic = {
+      isMagic: true,
+      magicBonus: 0,
+      selectedTraitIds: ['flame-trait'],
+    };
+    character.value.inventory.push(dagger);
+
+    const logic = useCombatLogic(character, vi.fn(), ref(2));
+    const dexAttack = logic.attackCatalog.value.find(
+      entry => entry.sourceType === 'weapon' && entry.sourceId === 'zero-dagger' && entry.abilityPath === 'dex'
+    );
+
+    expect(dexAttack?.name).toBe('长剑+0 (敏捷)');
+    expect(dexAttack?.hit).toBe('+4');
+    expect(dexAttack?.damage).toContain('1d4 +2 穿刺 (Piercing)');
+    expect(dexAttack?.damage).toContain('烈焰 1d6 +2 火焰 (Fire)');
   });
 });

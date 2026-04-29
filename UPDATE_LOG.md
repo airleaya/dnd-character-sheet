@@ -1,5 +1,84 @@
 # UPDATE_LOG
 
+## [0.13.3] - 2026-04-29
+- 类型：功能增强 / 附魔系统 / 攻击计算 / 同调 / 测试
+- 条目：制作第一版附魔系统
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/types/Library.ts`
+  - `src/types/Character.ts`
+  - `src/data/rules/magicTraits.ts`
+  - `src/utils/magicItems.ts`
+  - `src/utils/characterMigration.ts`
+  - `src/utils/itemFactory.ts`
+  - `src/composables/useEnchanting.ts`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/stores/sheet/useCombatLogic.ts`
+  - `src/stores/sheet/useInventoryLogic.ts`
+  - `tests/useCombatLogic.test.ts`
+  - `tests/inventoryItemRow.ui.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.2` 自增长到 `0.13.3`。
+  - 新增附魔词条模型，支持预设词条和玩家自定义词条；预设词条先提供“占位魔法词条”。
+  - 自定义词条支持词条名、默认作用/消耗充能、描述、是否参与伤害计算、伤害骰、伤害加值、伤害类型。
+  - 新增“附带法术”词条类型，支持指定法术、设置词条级充能、记录恢复条件/公式和法术额外描述；物品级旧 `magic.charges` 已改为弃用预留，运行时充能落在词条上。
+  - 玩家自定义词条保存到角色数据 `customMagicTraits`，可在附魔系统中持续复用、编辑和删除；删除时会同步移除物品上的对应选择。
+  - 魔法武器显式设置附魔加值后会在名字中显示 `+N`；显式设置 `0` 时显示 `+0`，未设置则不显示。
+  - 魔法武器加值已同时加入命中和伤害计算；默认作用且参与伤害的词条会追加到攻击项伤害文本，消耗充能/附带法术词条保留为说明，不自动套入每次攻击。
+  - 魔法视觉支持设置行囊物品项背景、攻击栏攻击项背景和名字字体颜色；魔法物品未设置时默认浅紫色背景和深红色字体。
+  - 行囊标题新增 `同调 x/3` 计数；需要同调的魔法物品在数量 UI 位置显示同调按钮，达到 3 件上限后会阻止继续同调。
+  - 需要同调的魔法物品永不堆叠：从库加入时不合并，保存和数量调整时保持单件口径。
+- 验证结果：
+  - `npm run test -- tests/useCombatLogic.test.ts tests/inventoryItemRow.ui.test.ts tests/useForge.test.ts` 通过：3 个测试文件，32 个用例。
+  - `npm run test` 通过：29 个测试文件，121 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.3` 安装包与便携版。
+
+## [0.13.2] - 2026-04-29
+- 类型：功能增强 / Forge / 自定义物品 / 测试
+- 条目：增强铁匠铺物品自由编辑能力
+- 负责人：雪荔枝 / Codex
+- 关联文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/components/layout/AppLayout.vue`
+  - `src/components/layout/SidebarRight.vue`
+  - `src/components/sidebar/EnchantDropZone.vue`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/composables/useEnchanting.ts`
+  - `src/composables/useForge.ts`
+  - `tests/inventoryItemRow.ui.test.ts`
+  - `tests/useForge.test.ts`
+- 已完成变化：
+  - 项目版本号从 `0.13.1` 自增长到 `0.13.2`。
+  - 铁匠铺新增物品类型选择，允许玩家将物品改为武器、护甲、装备、工具、消耗品、财宝、容器、套组或其他类型。
+  - 切换物品类型时自动补齐该类型的基础运行时字段，避免新类型缺少关键属性。
+  - 通用编辑区扩展模板 ID、显示分类、来源、英文名、标签、魔法属性、稀有度和同调信息。
+  - 武器属性扩展为可编辑武器分类、伤害骰、伤害类型、射程、两用伤害、弹药类型、特殊规则，并提供词条属性勾选器写入 `data.properties`。
+  - 护甲、工具、消耗品/弹药、容器分别补充对应专属属性编辑区。
+  - 不暴露原始 `data` JSON，所有可修改项通过表单控件完成，避免普通用户误改内部结构。
+  - 物品描述调整到战斗/类型专属属性之前，减少编辑时的来回滚动。
+  - 新增附魔制作悬浮窗；自定义物品界面提供按钮入口，右侧栏提供“附魔台”拖拽目标区入口。
+  - 魔法物品、魔法加值、稀有度、同调与同调条件已从自定义物品主表单迁入附魔制作悬浮窗。
+  - 库存行对改名物品优先显示玩家自定义名，并以浅色小号括号展示模板中文名。
+  - DIY 模板字段从文本 ID 改为中文搜索 + 下拉选择，选择模板不会覆盖玩家自定义名。
+- 验证结果：
+  - `npm run test -- tests/useForge.test.ts tests/inventoryItemRow.ui.test.ts` 通过：2 个测试文件，10 个用例。
+  - `npm run typecheck` 通过。
+  - `npm run build` 通过，并生成 `0.13.2` 安装包与便携版。
+  - `npm run test` 通过：29 个测试文件，116 个用例。
+
 ## [0.13.1] - 2026-04-29
 - 类型：工程能力 / Electron / 日志 / 测试
 - 条目：建立本地 JSONL 日志系统

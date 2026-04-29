@@ -13,9 +13,10 @@ import type {
   UnarmedStrikeTagKey,
   Wallet,
 } from '../types/Character';
-import type { AbilityKey } from '../types/Library';
+import type { AbilityKey, ItemMagicTrait } from '../types/Library';
 import type { InventoryItem } from '../types/Item';
 import { isKnownLibraryItemId, migrateItemTemplateId } from '../data/libraries/itemIdMigration';
+import { cloneMagicDefinition, cloneMagicTrait } from './magicItems';
 
 export type LegacyCharacterData = Partial<Character> & {
   id?: string;
@@ -169,10 +170,55 @@ const normalizeInventory = (inventory?: InventoryItem[]): InventoryItem[] => {
     return {
       ...item,
       templateId,
-      magic: item.magic ?? { isMagic: false },
+      magic: cloneMagicDefinition(item.magic ?? { isMagic: false }),
       data
     };
   });
+};
+
+const normalizeCustomMagicTraits = (traits?: unknown): ItemMagicTrait[] => {
+  if (!Array.isArray(traits)) return [];
+
+  return traits
+    .filter((trait): trait is Partial<ItemMagicTrait> => Boolean(trait) && typeof trait === 'object')
+    .map((trait, index) =>
+      cloneMagicTrait({
+        id: typeof trait.id === 'string' && trait.id.trim() ? trait.id : `custom_magic_trait_${index}`,
+        source: 'custom',
+        type: trait.type === 'spell' ? 'spell' : 'damage',
+        name:
+          typeof trait.name === 'string' && trait.name.trim()
+            ? trait.name.trim()
+            : '自定义魔法词条',
+        description: typeof trait.description === 'string' ? trait.description : '',
+        activationMode: trait.activationMode === 'charged' ? 'charged' : 'always',
+        participatesInDamage: trait.participatesInDamage === true,
+        damageDice: typeof trait.damageDice === 'string' ? trait.damageDice : undefined,
+        damageBonus: typeof trait.damageBonus === 'number' ? trait.damageBonus : undefined,
+        damageType: typeof trait.damageType === 'string' ? trait.damageType : undefined,
+        spellId: typeof trait.spellId === 'string' ? trait.spellId : undefined,
+        spellExtraDescription:
+          typeof trait.spellExtraDescription === 'string' ? trait.spellExtraDescription : undefined,
+        charges:
+          trait.charges && typeof trait.charges === 'object'
+            ? {
+                current:
+                  typeof trait.charges.current === 'number'
+                    ? trait.charges.current
+                    : typeof trait.charges.max === 'number'
+                      ? trait.charges.max
+                      : 0,
+                max: typeof trait.charges.max === 'number' ? trait.charges.max : 0,
+                resetCondition:
+                  typeof trait.charges.resetCondition === 'string'
+                    ? trait.charges.resetCondition
+                    : undefined,
+                resetFormula:
+                  typeof trait.charges.resetFormula === 'string' ? trait.charges.resetFormula : undefined,
+              }
+            : undefined,
+      })
+    );
 };
 
 const normalizeClasses = (classes?: Partial<CharacterClassRecord>[]): CharacterClassRecord[] => {
@@ -373,6 +419,7 @@ export const createDefaultCharacter = (id: string): Character => ({
   spells: normalizeSpells(),
   activeAttackModes: [],
   unarmedStrikes: [createDefaultUnarmedStrike()],
+  customMagicTraits: [],
 });
 
 export const normalizeCharacterData = (raw: LegacyCharacterData): Character => ({
@@ -446,4 +493,5 @@ export const normalizeCharacterData = (raw: LegacyCharacterData): Character => (
   spells: normalizeSpells(raw.spells),
   activeAttackModes: cloneArray(raw.activeAttackModes, []),
   unarmedStrikes: normalizeUnarmedStrikes(raw.unarmedStrikes),
+  customMagicTraits: normalizeCustomMagicTraits(raw.customMagicTraits),
 });

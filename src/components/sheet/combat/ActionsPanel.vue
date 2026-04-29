@@ -445,6 +445,7 @@ const handleLongRest = async () => {
           <template #item="{ element: attack }">
             <div
               class="attack-card"
+              :style="attack.attackStyle"
               :data-test="`selected-attack-${attack.catalogKey}`"
               @mouseenter="onAttackEnter(attack, $event)"
               @mousemove="onAttackMove"
@@ -453,7 +454,7 @@ const handleLongRest = async () => {
               <div class="row-main">
                 <div class="attack-title">
                   <span class="attack-drag-handle" title="拖拽排序">≡</span>
-                  <span class="atk-name">{{ attack.name }}</span>
+                  <span class="atk-name" :style="{ color: attack.attackStyle?.color }">{{ attack.name }}</span>
                 </div>
                 <div class="header-right">
                   <button

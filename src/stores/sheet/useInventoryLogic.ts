@@ -6,6 +6,7 @@ import type { CurrencyUnit, LibraryItem, PackDefinition } from '../../types/Libr
 import { createItemFromLibrary } from '../../utils/itemFactory';
 import { CURRENCY_RATES } from '../../data/rules/currency';
 import { getLibraryItemById } from '../../data/libraries/itemLibrary';
+import { isAttuned, requiresAttunement } from '../../utils/magicItems';
 
 type ContainerInventoryItem = InventoryItem & { data: ContainerData };
 
@@ -74,6 +75,11 @@ export function useInventoryLogic(
   const rootInventory = computed<InventoryItem[]>(() => {
     if (!character.value) return [];
     return character.value.inventory.filter((item) => !item.parentId);
+  });
+
+  const attunedMagicItemCount = computed<number>(() => {
+    if (!character.value) return 0;
+    return character.value.inventory.filter(isAttuned).length;
   });
 
 const getContainerContents = computed<(containerId: string) => InventoryItem[]>(() => {
@@ -196,9 +202,11 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
 
     const definition = getLibraryItemById(libraryId);
     const isContainer = isContainerDefinition(definition);
+    const neverStack = definition?.magic?.attunement?.requires === true;
 
     const existingItem = character.value.inventory.find(
       (item) =>
+        !neverStack &&
         item.templateId === libraryId &&
         item.parentId === targetParentId &&
         item.containerSlot === targetContainerSlot &&
@@ -354,6 +362,9 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
     const index = character.value.inventory.findIndex((item) => item.instanceId === newItem.instanceId);
     if (index < 0) return;
 
+    if (requiresAttunement(newItem)) {
+      newItem.quantity = 1;
+    }
     character.value.inventory[index] = newItem;
     save();
   };
@@ -370,12 +381,29 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
 
     const item = character.value.inventory.find((entry) => entry.instanceId === instanceId);
     if (!item) return;
+    if (requiresAttunement(item)) return;
 
     const newQuantity = item.quantity + delta;
     if (newQuantity < 1) return;
 
     item.quantity = newQuantity;
     save();
+  };
+
+  const toggleItemAttunement = (instanceId: string): boolean => {
+    if (!character.value) return false;
+
+    const item = character.value.inventory.find((entry) => entry.instanceId === instanceId);
+    if (!item || !requiresAttunement(item)) return false;
+
+    if (!item.magic!.attunement!.attuned && attunedMagicItemCount.value >= 3) {
+      return false;
+    }
+
+    item.magic!.attunement!.attuned = !item.magic!.attunement!.attuned;
+    item.quantity = 1;
+    save();
+    return true;
   };
 
   const moveItemToContainer = (itemId: string, containerId: string, targetIndex?: number): void => {
@@ -430,6 +458,7 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
     totalInventoryWeight,
     getItemWeight,
     carryingCapacity,
+    attunedMagicItemCount,
     rootInventory,
     getContainerContents,
     getContainerHangingItem,
@@ -443,6 +472,7 @@ const getContainerHangingItem = computed<(containerId: string) => InventoryItem 
     updateInventoryItem,
     updateEquippedList,
     updateItemQuantity,
+    toggleItemAttunement,
     moveItemToContainer,
     moveItemToContainerSlot,
     moveItemToRoot,

@@ -62,6 +62,7 @@ describe('InventoryItemRow container content preview', () => {
         saveCharacter: vi.fn().mockResolvedValue({ success: true, data: null }),
         loadAllCharacters: vi.fn().mockResolvedValue({ success: true, data: [] }),
         deleteCharacter: vi.fn().mockResolvedValue({ success: true, data: null }),
+        writeLog: vi.fn().mockResolvedValue({ success: true, data: null }),
       },
       configurable: true,
     });
@@ -179,5 +180,82 @@ describe('InventoryItemRow container content preview', () => {
     expect(badgeText).toContain('悬挂 Bow');
     expect(wrapper.find('.qty-static').text()).toBe('--');
     expect(wrapper.find('.btn-mini.plus').exists()).toBe(false);
+  });
+
+  it('shows custom item name with the Chinese template name as a light subtitle', () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('custom-template-subtitle');
+    const dagger = createGear('custom-dagger-1', '影牙', '', 1);
+    dagger.templateId = 'dagger';
+    dagger.parentId = undefined;
+    dagger.type = 'weapon';
+    dagger.data = {
+      category: 'simple_melee',
+      damage: '1d4',
+      damageType: 'piercing',
+      properties: ['finesse', 'light', 'thrown'],
+      range: '20/60',
+    };
+    character.inventory = [dagger];
+    store.character = character;
+
+    const wrapper = mountRow(dagger);
+
+    expect(wrapper.find('.name-text').text()).toBe('影牙');
+    expect(wrapper.find('.template-name').text()).toBe('（匕首）');
+  });
+
+  it('renders magic item default colors and explicit +0 in the display name', () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('magic-visual-row');
+    const dagger = createGear('magic-dagger-row', '匕首', '', 1);
+    dagger.parentId = undefined;
+    dagger.type = 'weapon';
+    dagger.templateId = 'dagger';
+    dagger.magic = { isMagic: true, magicBonus: 0 };
+    dagger.data = {
+      category: 'simple_melee',
+      damage: '1d4',
+      damageType: 'piercing',
+      properties: ['finesse', 'light', 'thrown'],
+      range: '20/60',
+    };
+    character.inventory = [dagger];
+    store.character = character;
+
+    const wrapper = mountRow(dagger);
+    const rowStyle = wrapper.find('.item-row').attributes('style') ?? '';
+    const nameStyle = wrapper.find('.name-text').attributes('style') ?? '';
+
+    expect(wrapper.find('.name-text').text()).toBe('匕首+0');
+    expect(rowStyle).toContain('background-color: rgb(240, 231, 255)');
+    expect(nameStyle).toContain('color: rgb(139, 30, 63)');
+  });
+
+  it('uses the quantity control slot for attunement and enforces the three-item cap', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('attunement-row');
+    const target = createGear('attune-target', '同调戒指', '', 1);
+    target.parentId = undefined;
+    target.magic = { isMagic: true, attunement: { requires: true } };
+    const attunedItems = [1, 2, 3].map(index => {
+      const item = createGear(`attuned-${index}`, `同调${index}`, '', 1);
+      item.parentId = undefined;
+      item.magic = { isMagic: true, attunement: { requires: true, attuned: true } };
+      return item;
+    });
+    character.inventory = [target, ...attunedItems];
+    store.character = character;
+
+    const wrapper = mountRow(target);
+
+    expect(wrapper.find('.qty-controls').exists()).toBe(false);
+    expect(wrapper.find('.btn-attune').text()).toBe('同调');
+    expect(store.attunedMagicItemCount).toBe(3);
+
+    await wrapper.find('.btn-attune').trigger('click');
+
+    expect(target.magic?.attunement?.attuned).not.toBe(true);
+    expect(store.attunedMagicItemCount).toBe(3);
   });
 });

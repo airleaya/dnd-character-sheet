@@ -47,6 +47,39 @@ export type EnchantmentEffect =
   | { kind: 'spell_grant'; spellId?: string; name?: string; note?: string }
   | { kind: 'custom_text'; text: string };
 
+export type MagicTraitSource = 'preset' | 'custom';
+export type MagicTraitType = 'damage' | 'spell';
+export type MagicTraitActivationMode = 'always' | 'charged';
+
+export interface MagicTraitCharges {
+  current: number;
+  max: number;
+  resetCondition?: string;
+  resetFormula?: string;
+}
+
+export interface ItemMagicTrait {
+  id: string;
+  source: MagicTraitSource;
+  type: MagicTraitType;
+  name: string;
+  description: string;
+  activationMode: MagicTraitActivationMode;
+  participatesInDamage: boolean;
+  damageDice?: string;
+  damageBonus?: number;
+  damageType?: DamageTypeKey | string;
+  spellId?: string;
+  spellExtraDescription?: string;
+  charges?: MagicTraitCharges;
+}
+
+export interface ItemMagicVisuals {
+  inventoryBackground?: string;
+  attackBackground?: string;
+  nameColor?: string;
+}
+
 export interface ItemMagicDefinition {
   isMagic: boolean;
   magicBonus?: number;
@@ -54,8 +87,13 @@ export interface ItemMagicDefinition {
   attunement?: {
     requires: boolean;
     condition?: string;
+    attuned?: boolean;
   };
   enchantmentEffects?: EnchantmentEffect[];
+  selectedTraitIds?: string[];
+  customTraits?: ItemMagicTrait[];
+  visuals?: ItemMagicVisuals;
+  /** @deprecated Charges now live on individual magic traits. */
   charges?: {
     max: number;
     resetCondition?: string;

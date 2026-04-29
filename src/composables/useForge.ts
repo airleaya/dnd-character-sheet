@@ -4,7 +4,16 @@ import { createItemFromLibrary } from '../utils/itemFactory';
 import { parseDragPayload } from '../utils/inventoryDropUtils';
 import { createRendererLogger } from '../utils/rendererLogger';
 import type { InventoryItem } from '../types/Item';
-import type { ArmorType, CurrencyUnit } from '../types/Library';
+import type {
+  AbilityKey,
+  AmmoTypeKey,
+  ArmorType,
+  CurrencyUnit,
+  ItemRarity,
+  ItemType,
+  WeaponCategory,
+  WeaponPropertyKey,
+} from '../types/Library';
 
 
 export interface ForgeDraftData {
@@ -12,11 +21,50 @@ export interface ForgeDraftData {
     value: number;
     unit: CurrencyUnit;
   };
+  type?: ItemType;
+  category?: WeaponCategory | string;
+  subcategory?: string;
+  displayCategory?: string;
+  displaySubcategory?: string;
+  source?: string;
+  englishName?: string;
+  rarity?: string;
+  tags?: string[];
   damage?: string;
   damageType?: string;
-  properties?: string[];
+  properties?: WeaponPropertyKey[];
+  range?: string;
+  versatileDamage?: string;
+  specialEffect?: string;
+  requiredAmmoType?: AmmoTypeKey;
   ac?: number;
   armorType?: ArmorType;
+  dexBonusMax?: number;
+  strReq?: number;
+  stealthDis?: boolean;
+  donTime?: string;
+  doffTime?: string;
+  baseAbility?: AbilityKey;
+  activation?: string;
+  effectDescription?: string;
+  isAmmunition?: boolean;
+  ammoType?: AmmoTypeKey;
+  maxCharges?: number;
+  charges?: number;
+  capacityWeight?: number;
+  capacityVolume?: string;
+  ignoreContentWeight?: boolean;
+  maxItems?: number;
+  magic?: {
+    isMagic: boolean;
+    magicBonus?: number;
+    rarity?: ItemRarity;
+    attunement?: {
+      requires: boolean;
+      condition?: string;
+    };
+  };
+  [key: string]: unknown;
 }
 
 
@@ -38,6 +86,43 @@ export function useForge() {
     return draftItem.value.data as ForgeDraftData;
   });
 
+  const ensureTypeDefaults = (type: ItemType) => {
+    if (!draftItem.value) return;
+    const data = draftData.value;
+    data.type = type;
+
+    if (type === 'weapon') {
+      data.category = data.category ?? 'simple_melee';
+      data.damage = data.damage ?? '1d4';
+      data.damageType = data.damageType ?? 'bludgeoning';
+      data.properties = Array.isArray(data.properties) ? data.properties : [];
+      data.range = data.range ?? '5 尺';
+      data.requiredAmmoType = data.requiredAmmoType ?? 'none';
+    }
+
+    if (type === 'armor') {
+      data.armorType = data.armorType ?? 'light';
+      data.ac = typeof data.ac === 'number' ? data.ac : 11;
+      data.donTime = data.donTime ?? '1 分钟';
+      data.doffTime = data.doffTime ?? '1 分钟';
+    }
+
+    if (type === 'tool') {
+      data.baseAbility = data.baseAbility ?? 'dex';
+    }
+
+    if (type === 'consumable') {
+      data.isAmmunition = data.isAmmunition === true;
+      data.ammoType = data.ammoType ?? 'none';
+    }
+
+    if (type === 'container') {
+      data.capacityWeight = typeof data.capacityWeight === 'number' ? data.capacityWeight : 0;
+      data.capacityVolume = data.capacityVolume ?? '';
+      data.ignoreContentWeight = data.ignoreContentWeight === true;
+    }
+  };
+
 
 
 
@@ -46,6 +131,10 @@ export function useForge() {
   const ensureCostStructure = () => {
     if (!draftItem.value) return;
     const data = draftData.value;
+    data.type = draftItem.value.type;
+    data.name = draftItem.value.name;
+    data.weight = draftItem.value.weight;
+    data.description = draftItem.value.description ?? '';
 
     
     // 如果 cost 不存在，或者格式不对，初始化它
@@ -58,6 +147,21 @@ export function useForge() {
       if (!data.cost.unit) data.cost.unit = 'gp';
     }
 
+    if (!draftItem.value.magic) {
+      draftItem.value.magic = { isMagic: false };
+    }
+    if (!draftItem.value.magic.attunement) {
+      draftItem.value.magic.attunement = { requires: false };
+    }
+
+    data.magic = {
+      isMagic: draftItem.value.magic.isMagic ?? false,
+      magicBonus: draftItem.value.magic.magicBonus,
+      rarity: draftItem.value.magic.rarity,
+      attunement: draftItem.value.magic.attunement,
+    };
+
+    ensureTypeDefaults(draftItem.value.type);
   };
 
 
@@ -109,11 +213,39 @@ export function useForge() {
     }
   };
 
+  const updateItemType = (type: ItemType) => {
+    if (!draftItem.value) return;
+    draftItem.value.type = type;
+    ensureTypeDefaults(type);
+  };
+
+  const toggleWeaponProperty = (property: WeaponPropertyKey) => {
+    const data = draftData.value;
+    data.properties = Array.isArray(data.properties) ? data.properties : [];
+    const index = data.properties.indexOf(property);
+    if (index >= 0) {
+      data.properties.splice(index, 1);
+    } else {
+      data.properties.push(property);
+    }
+  };
+
+  const syncRootFieldsToData = () => {
+    if (!draftItem.value) return;
+    const data = draftData.value;
+    data.type = draftItem.value.type;
+    data.name = draftItem.value.name;
+    data.weight = draftItem.value.weight;
+    data.description = draftItem.value.description ?? '';
+    data.magic = draftItem.value.magic ?? { isMagic: false };
+  };
+
     // --- 动作：保存 ---
   const save = () => {
     if (!draftItem.value) return;
 
     ensureCostStructure(); // ✅ 确保新物品有价格结构
+    syncRootFieldsToData();
 
     if (forgeMode.value === 'create') {
       store.character?.inventory.push(draftItem.value);
@@ -132,6 +264,8 @@ export function useForge() {
     draftData,
     forgeMode,
     handleDropData,
+    updateItemType,
+    toggleWeaponProperty,
     save,
     close
   };

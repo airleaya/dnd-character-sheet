@@ -13,11 +13,12 @@
 - 编辑角色基础信息、属性、技能、职业与兼职
 - 跟踪生命值、死亡豁免、护甲等级与攻击面板
 - 管理物品、装备、容器、货币与负重
+- 制作自定义物品、附魔词条、魔法视觉与同调状态
 - 使用法术书面板管理已知法术、预备法术与法术位
 - 通过本地 JSON 文件保存角色数据，适合离线使用
 - 通过本地 JSONL 日志记录关键流程与错误，便于排查本机问题
 
-> 当前版本：`0.13.1`
+> 当前版本：`0.13.3`
 
 ---
 
@@ -88,6 +89,7 @@
 - 容器嵌套与拖拽整理
 - 货币管理
 - 负重与携带能力计算
+- 同调计数 `x/3` 与需要同调物品的同调按钮
 - 垃圾箱 / 回收区机制
 
 核心实现：
@@ -116,12 +118,19 @@
 - 通过 Forge 流程创建自定义物品
 - 拖放进入自定义编辑区
 - 保存为角色可用物品
+- 在不暴露原始 JSON 的前提下编辑物品类型、模板、描述与类型专属属性
+- 通过附魔制作界面编辑魔法加值、稀有度、同调、魔法视觉与魔法词条
+- 魔法武器显式 `+0/+N` 会显示在名字中，并参与命中与伤害计算
+- 玩家自定义词条会保存为角色级可复用选项，可编辑、删除并重新选择
 
 核心实现：
 
 - `src/composables/useForge.ts`
+- `src/composables/useEnchanting.ts`
 - `src/components/sheet/modals/ForgeModal.vue`
+- `src/components/sheet/modals/EnchantingModal.vue`
 - `src/components/sidebar/ForgeDropZone.vue`
+- `src/components/sidebar/EnchantDropZone.vue`
 
 ---
 

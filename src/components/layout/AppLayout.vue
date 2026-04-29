@@ -2,6 +2,7 @@
 import SidebarLeft from './SidebarLeft.vue';
 import SidebarRight from './SidebarRight.vue';
 import ForgeModal from '../sheet/modals/ForgeModal.vue';
+import EnchantingModal from '../sheet/modals/EnchantingModal.vue';
 </script>
 
 <template>
@@ -15,6 +16,7 @@ import ForgeModal from '../sheet/modals/ForgeModal.vue';
     <SidebarRight />
 
     <ForgeModal />
+    <EnchantingModal />
   </div>
 </template>
 

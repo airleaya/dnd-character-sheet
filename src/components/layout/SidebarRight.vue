@@ -7,6 +7,7 @@ import type { SpellDefinition } from '../../types/Spell';
 // 引入拆分后的组件
 import LibraryTooltip from '../sidebar/LibraryTooltip.vue';
 import ForgeDropZone from '../sidebar/ForgeDropZone.vue';
+import EnchantDropZone from '../sidebar/EnchantDropZone.vue';
 
 const LibraryItemsPanel = defineAsyncComponent(() => import('../sheet/library/LibraryItemsPanel.vue'));
 const LibrarySpellsPanel = defineAsyncComponent(() => import('../sheet/library/LibrarySpellsPanel.vue'));
@@ -172,6 +173,7 @@ const setActiveTab = (tab: RootTab) => {
       <div v-if="activeTab === 'features'" class="empty-state">🚧 开发中...</div>
     </div>
 
+    <EnchantDropZone />
     <ForgeDropZone/>
 
     <Transition name="fade">

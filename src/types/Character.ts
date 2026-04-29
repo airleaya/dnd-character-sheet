@@ -1,6 +1,6 @@
 // src/types/Character.ts
 import type { InventoryItem } from './Item';
-import type { AbilityKey } from './Library'; // 复用 str, dex, int...
+import type { AbilityKey, ItemMagicTrait } from './Library'; // 复用 str, dex, int...
 
 // 1. 六维属性
 export interface AbilityScores {
@@ -233,4 +233,7 @@ export interface Character {
   activeAttackModes: AbilityKey[];
 
   unarmedStrikes: CharacterUnarmedStrike[];
+
+  /** 玩家保存的自定义附魔词条，可在附魔系统中反复选择、编辑或删除。 */
+  customMagicTraits: ItemMagicTrait[];
 }

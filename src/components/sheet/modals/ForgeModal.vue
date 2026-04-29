@@ -2,14 +2,121 @@
 import { computed, ref, watch } from 'vue';
 import { useForge } from '../../../composables/useForge';
 import { useUiFeedbackStore } from '../../../stores/uiFeedback';
+import { DAMAGE_TYPE_OPTIONS } from '../../../data/rules/damageTypes';
+import { WEAPON_PROPERTIES } from '../../../data/rules/weaponProperties';
+import { ITEM_LIBRARY, getLibraryItemById } from '../../../data/libraries/itemLibrary';
+import { useEnchanting } from '../../../composables/useEnchanting';
+import type {
+  AbilityKey,
+  AmmoTypeKey,
+  ArmorType,
+  CurrencyUnit,
+  ItemType,
+  WeaponCategory,
+  WeaponPropertyKey,
+} from '../../../types/Library';
 
 import EditableText from '../../common/EditableText.vue';
 import EditableTextarea from '../../common/EditableTextarea.vue';
 
 // 获取状态和方法
-const { draftItem, draftData, forgeMode, save, close } = useForge();
+const {
+  draftItem,
+  draftData,
+  forgeMode,
+  save,
+  close,
+  updateItemType,
+  toggleWeaponProperty,
+} = useForge();
+const { openEnchantingForItem } = useEnchanting();
 const feedback = useUiFeedbackStore();
 const weaponProperties = computed(() => draftData.value.properties ?? []);
+
+const itemTypeOptions: Array<{ value: ItemType; label: string }> = [
+  { value: 'weapon', label: '武器' },
+  { value: 'armor', label: '护甲' },
+  { value: 'gear', label: '冒险装备' },
+  { value: 'tool', label: '工具' },
+  { value: 'consumable', label: '消耗品/弹药' },
+  { value: 'treasure', label: '财宝/贸易品' },
+  { value: 'container', label: '容器' },
+  { value: 'pack', label: '套组' },
+  { value: 'misc', label: '其他' },
+];
+
+const weaponCategoryOptions: Array<{ value: WeaponCategory; label: string }> = [
+  { value: 'simple_melee', label: '简易近战' },
+  { value: 'simple_ranged', label: '简易远程' },
+  { value: 'martial_melee', label: '军用近战' },
+  { value: 'martial_ranged', label: '军用远程' },
+];
+
+const armorTypeOptions: Array<{ value: ArmorType; label: string }> = [
+  { value: 'light', label: '轻甲' },
+  { value: 'medium', label: '中甲' },
+  { value: 'heavy', label: '重甲' },
+  { value: 'shield', label: '盾牌' },
+];
+
+const currencyOptions: CurrencyUnit[] = ['cp', 'sp', 'ep', 'gp', 'pp'];
+const ammoTypeOptions: AmmoTypeKey[] = ['none', 'arrow', 'bolt', 'bullet', 'needle'];
+const abilityOptions: Array<{ value: AbilityKey; label: string }> = [
+  { value: 'str', label: '力量' },
+  { value: 'dex', label: '敏捷' },
+  { value: 'con', label: '体质' },
+  { value: 'int', label: '智力' },
+  { value: 'wis', label: '感知' },
+  { value: 'cha', label: '魅力' },
+];
+const weaponPropertyOptions = Object.values(WEAPON_PROPERTIES);
+const templateSearch = ref('');
+
+const templateOptions = computed(() => {
+  const query = templateSearch.value.trim().toLowerCase();
+  const source = query
+    ? ITEM_LIBRARY.filter(item => {
+        const haystack = [
+          item.name,
+          item.englishName,
+          item.id,
+          item.displayCategory,
+          item.displaySubcategory,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(query);
+      })
+    : ITEM_LIBRARY;
+
+  return source.slice(0, 80);
+});
+
+const selectedTemplateName = computed(() => getLibraryItemById(draftItem.value?.templateId ?? '')?.name ?? '');
+
+const tagsText = computed({
+  get: () => (Array.isArray(draftData.value.tags) ? draftData.value.tags.join(', ') : ''),
+  set: (value: string) => {
+    draftData.value.tags = value
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean);
+  },
+});
+
+const onTypeChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value as ItemType;
+  updateItemType(value);
+};
+
+const onTemplateChange = (event: Event) => {
+  if (!draftItem.value) return;
+  const templateId = (event.target as HTMLSelectElement).value;
+  draftItem.value.templateId = templateId;
+  const template = getLibraryItemById(templateId);
+  templateSearch.value = template?.name ?? '';
+};
 
 
 // 记录鼠标按下时是否在遮罩层上
@@ -23,8 +130,10 @@ const initialStateStr = ref('');
 watch(() => draftItem.value, (newVal) => {
   if (newVal) {
     initialStateStr.value = JSON.stringify(newVal);
+    templateSearch.value = getLibraryItemById(newVal.templateId)?.name ?? '';
   } else {
     initialStateStr.value = '';
+    templateSearch.value = '';
   }
 });
 
@@ -72,54 +181,73 @@ const onBackdropMouseup = async () => {
           <div class="modal-header">
             <div class="title-group">
               <span class="emoji">🔨</span>
-              <h3>{{ forgeMode === 'create' ? '打造新物品' : '改造物品' }}</h3>
+              <h3>{{ forgeMode === 'create' ? '自定义物品' : '改造物品' }}</h3>
             </div>
+            <button v-if="draftItem" class="btn-enchant" @click="openEnchantingForItem(draftItem, 'button')">✨ 附魔制作</button>
             <button class="btn-close" @click="safeClose" title="关闭 (Esc)">×</button>
           </div>
 
           <div class="modal-body custom-scrollbar">
             
             <div class="form-section highlight">
-               <div class="form-row main-name">
-                 <label>物品名称</label>
-                 <EditableText v-model="draftItem!.name" class="input-lg" placeholder="输入物品名称..." />
-               </div>
-               
-               <div class="stats-grid">
-                 <div class="field">
-                   <label>重量 (lb)</label>
-                   <input type="number" v-model.number="draftItem!.weight" step="0.1" class="input-std">
-                 </div>
-                 <div class="field">
-                   <label>数量</label>
-                   <input type="number" v-model.number="draftItem!.quantity" min="1" class="input-std">
-                 </div>
-                 
-                 <div class="field cost-field">
-                    <label>价值</label>
-                    <div class="cost-input-group">
-                      <input 
-                        type="number" 
-                                                v-model.number="draftData.cost.value" 
- 
-                        placeholder="0" 
-                        class="input-std"
-                      >
-                                            <select v-model="draftData.cost.unit" class="unit-select">
+              <div class="form-row main-name">
+                <label>物品名称</label>
+                <EditableText v-model="draftItem!.name" class="input-lg" placeholder="输入物品名称..." />
+              </div>
 
-                        <option value="gp">gp</option>
-                        <option value="sp">sp</option>
-                        <option value="cp">cp</option>
-                      </select>
-                    </div>
-                 </div>
-               </div>
+              <div class="stats-grid">
+                <div class="field">
+                  <label>物品类型</label>
+                  <select :value="draftItem!.type" class="input-std" @change="onTypeChange">
+                    <option v-for="option in itemTypeOptions" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>物品模板</label>
+                  <div class="template-picker">
+                    <input
+                      type="text"
+                      v-model="templateSearch"
+                      class="input-std"
+                      placeholder="搜索中文模板名..."
+                    >
+                    <select :value="draftItem!.templateId" class="input-std" @change="onTemplateChange">
+                      <option value="">自定义模板</option>
+                      <option v-for="option in templateOptions" :key="option.id" :value="option.id">
+                        {{ option.name }}（{{ option.displaySubcategory ?? option.type }}）
+                      </option>
+                    </select>
+                    <small v-if="selectedTemplateName" class="template-current">
+                      当前：{{ selectedTemplateName }}
+                    </small>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>数量</label>
+                  <input type="number" v-model.number="draftItem!.quantity" min="1" class="input-std">
+                </div>
+                <div class="field">
+                  <label>重量 (lb)</label>
+                  <input type="number" v-model.number="draftItem!.weight" step="0.1" class="input-std">
+                </div>
+                <div class="field cost-field">
+                  <label>价值</label>
+                  <div class="cost-input-group">
+                    <input type="number" v-model.number="draftData.cost.value" placeholder="0" class="input-std">
+                    <select v-model="draftData.cost.unit" class="unit-select">
+                      <option v-for="unit in currencyOptions" :key="unit" :value="unit">{{ unit }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="form-section">
               <label>物品描述 / 备注</label>
-              <EditableTextarea 
-                :model-value="draftItem!.description ?? ''" 
+              <EditableTextarea
+                :model-value="draftItem!.description ?? ''"
                 @update:model-value="val => draftItem!.description = val"
                 :rows="6"
                 class="desc-area"
@@ -132,25 +260,65 @@ const onBackdropMouseup = async () => {
               <div class="section-header">
                 <h4>⚔️ 战斗属性</h4>
               </div>
-              <div class="row-2">
+              <div class="row-3">
+                <div class="field">
+                  <label>武器分类</label>
+                  <select v-model="draftData.category" class="input-std">
+                    <option v-for="option in weaponCategoryOptions" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
                 <div class="field">
                   <label>伤害骰 (Damage)</label>
-                                    <input type="text" v-model="draftData.damage" placeholder="1d8" class="input-std">
-
+                  <input type="text" v-model="draftData.damage" placeholder="1d8" class="input-std">
                 </div>
                 <div class="field">
                   <label>伤害类型</label>
-                                    <input type="text" v-model="draftData.damageType" placeholder="slashing" class="input-std">
-
+                  <select v-model="draftData.damageType" class="input-std">
+                    <option v-for="option in DAMAGE_TYPE_OPTIONS" :key="option.key" :value="option.key">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="row-3">
+                <div class="field">
+                  <label>射程 / 触及</label>
+                  <input type="text" v-model="draftData.range" placeholder="5 尺 / 20/60 尺" class="input-std">
+                </div>
+                <div class="field">
+                  <label>两用伤害</label>
+                  <input type="text" v-model="draftData.versatileDamage" placeholder="1d10" class="input-std">
+                </div>
+                <div class="field">
+                  <label>弹药类型</label>
+                  <select v-model="draftData.requiredAmmoType" class="input-std">
+                    <option v-for="type in ammoTypeOptions" :key="type" :value="type">{{ type }}</option>
+                  </select>
                 </div>
               </div>
               <div class="field mt-2">
-                <label>属性 (Properties)</label>
-                <div class="tags-container">
-                                      <span v-for="p in weaponProperties" :key="p" class="tag">{{ p }}</span>
-                   <span class="hint" v-if="weaponProperties.length === 0">暂无特殊属性</span>
-
+                <label>武器词条属性 (Properties)</label>
+                <div class="check-grid">
+                  <label
+                    v-for="property in weaponPropertyOptions"
+                    :key="property.key"
+                    class="check-option"
+                    :title="property.description"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="weaponProperties.includes(property.key)"
+                      @change="toggleWeaponProperty(property.key)"
+                    >
+                    <span>{{ property.label }} <em>{{ property.key }}</em></span>
+                  </label>
                 </div>
+              </div>
+              <div class="field">
+                <label>特殊规则文本</label>
+                <EditableTextarea :model-value="draftData.specialEffect as string ?? ''" @update:model-value="val => draftData.specialEffect = val" :rows="3" class="desc-area" />
               </div>
             </div>
 
@@ -161,19 +329,145 @@ const onBackdropMouseup = async () => {
               <div class="row-2">
                 <div class="field">
                   <label>AC (防御等级)</label>
-                                    <input type="number" v-model.number="draftData.ac" class="input-std">
-
+                  <input type="number" v-model.number="draftData.ac" class="input-std">
                 </div>
                 <div class="field">
                   <label>护甲类型</label>
-                                    <select v-model="draftData.armorType" class="input-std">
-
-                    <option value="light">轻甲</option>
-                    <option value="medium">中甲</option>
-                    <option value="heavy">重甲</option>
-                    <option value="shield">盾牌</option>
+                  <select v-model="draftData.armorType" class="input-std">
+                    <option v-for="option in armorTypeOptions" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
                   </select>
                 </div>
+              </div>
+              <div class="row-3">
+                <div class="field">
+                  <label>敏捷加值上限</label>
+                  <input type="number" v-model.number="draftData.dexBonusMax" class="input-std">
+                </div>
+                <div class="field">
+                  <label>力量需求</label>
+                  <input type="number" v-model.number="draftData.strReq" class="input-std">
+                </div>
+                <label class="check-option standalone">
+                  <input type="checkbox" v-model="draftData.stealthDis">
+                  <span>潜行劣势</span>
+                </label>
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label>穿戴时间</label>
+                  <input type="text" v-model="draftData.donTime" class="input-std">
+                </div>
+                <div class="field">
+                  <label>脱下时间</label>
+                  <input type="text" v-model="draftData.doffTime" class="input-std">
+                </div>
+              </div>
+            </div>
+
+            <div v-if="draftItem!.type === 'tool'" class="form-section type-specific">
+              <div class="section-header">
+                <h4>🧰 工具属性</h4>
+              </div>
+              <div class="field">
+                <label>关联属性</label>
+                <select v-model="draftData.baseAbility" class="input-std">
+                  <option v-for="option in abilityOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div v-if="draftItem!.type === 'consumable'" class="form-section type-specific">
+              <div class="section-header">
+                <h4>🧪 消耗品 / 弹药属性</h4>
+              </div>
+              <div class="row-3">
+                <div class="field">
+                  <label>使用动作</label>
+                  <input type="text" v-model="draftData.activation" class="input-std" placeholder="1 Action">
+                </div>
+                <div class="field">
+                  <label>最大充能</label>
+                  <input type="number" v-model.number="draftData.maxCharges" class="input-std">
+                </div>
+                <div class="field">
+                  <label>当前充能</label>
+                  <input type="number" v-model.number="draftData.charges" class="input-std">
+                </div>
+              </div>
+              <div class="row-2">
+                <label class="check-option standalone">
+                  <input type="checkbox" v-model="draftData.isAmmunition">
+                  <span>作为弹药</span>
+                </label>
+                <div class="field">
+                  <label>弹药类型</label>
+                  <select v-model="draftData.ammoType" class="input-std">
+                    <option v-for="type in ammoTypeOptions" :key="type" :value="type">{{ type }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>效果描述</label>
+                <EditableTextarea :model-value="draftData.effectDescription as string ?? ''" @update:model-value="val => draftData.effectDescription = val" :rows="3" class="desc-area" />
+              </div>
+            </div>
+
+            <div v-if="draftItem!.type === 'container'" class="form-section type-specific">
+              <div class="section-header">
+                <h4>🎒 容器属性</h4>
+              </div>
+              <div class="row-3">
+                <div class="field">
+                  <label>承重上限 (lb)</label>
+                  <input type="number" v-model.number="draftData.capacityWeight" class="input-std">
+                </div>
+                <div class="field">
+                  <label>容量体积</label>
+                  <input type="text" v-model="draftData.capacityVolume" class="input-std" placeholder="1 立方尺">
+                </div>
+                <div class="field">
+                  <label>最大物品数</label>
+                  <input type="number" v-model.number="draftData.maxItems" class="input-std">
+                </div>
+              </div>
+              <label class="check-option standalone">
+                <input type="checkbox" v-model="draftData.ignoreContentWeight">
+                <span>忽略内容重量</span>
+              </label>
+            </div>
+
+
+            <div class="form-section">
+              <div class="section-header">
+                <h4>🏷️ 分类与来源</h4>
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label>显示大类</label>
+                  <input type="text" v-model="draftData.displayCategory" class="input-std" placeholder="装备 / 财宝 / 自定义">
+                </div>
+                <div class="field">
+                  <label>显示子类</label>
+                  <input type="text" v-model="draftData.displaySubcategory" class="input-std" placeholder="武器 / 容器 / 自定义">
+                </div>
+              </div>
+              <div class="row-2">
+                <div class="field">
+                  <label>来源</label>
+                  <input type="text" v-model="draftData.source" class="input-std" placeholder="PHB / 自定义">
+                </div>
+                <div class="field">
+                  <label>英文名</label>
+                  <input type="text" v-model="draftData.englishName" class="input-std" placeholder="English name">
+                </div>
+              </div>
+              <div class="field">
+                <label>标签（用英文逗号分隔）</label>
+                <input type="text" v-model="tagsText" class="input-std" placeholder="magic, homebrew, quest">
               </div>
             </div>
 
@@ -216,7 +510,7 @@ const onBackdropMouseup = async () => {
 */
 .modal-content {
   background: #fff;
-  width: 780px; /* 增大宽度 */
+  width: 900px; /* 增大宽度 */
   max-width: 95vw;
   //max-height: 85vh;
   height: 85vh;
@@ -229,7 +523,7 @@ const onBackdropMouseup = async () => {
 }
 
 .modal-header {
-  padding: 18px 25px;
+  padding: 14px 22px;
   background: #2c3e50;
   color: #fff;
   display: flex;
@@ -242,6 +536,21 @@ const onBackdropMouseup = async () => {
     h3 { margin: 0; font-size: 1.2rem; letter-spacing: 0.5px; font-weight: 600; }
     .emoji { font-size: 1.5rem; }
   }
+  .btn-enchant {
+    margin-left: auto;
+    border: 1px solid rgba(245, 197, 96, 0.55);
+    border-radius: 999px;
+    background: rgba(245, 197, 96, 0.12);
+    color: #f5d184;
+    padding: 7px 12px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(245, 197, 96, 0.22);
+      color: #fff1c4;
+    }
+  }
   .btn-close { 
     background: none; border: none; color: #bdc3c7; font-size: 2rem; line-height: 1; cursor: pointer; padding: 0;
     &:hover { color: #fff; }
@@ -249,28 +558,28 @@ const onBackdropMouseup = async () => {
 }
 
 .modal-body {
-  padding: 30px;
+  padding: 18px 22px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
   background: #fdfdfd;
 }
 
 /* 表单区域通用样式 */
 .form-section {
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: 8px;
   
   &.highlight {
     background: #f1f2f6;
-    padding: 20px;
+    padding: 14px;
     border-radius: 8px;
     border: 1px solid #e1e2e6;
   }
   
   &.type-specific {
     position: relative;
-    padding: 20px;
+    padding: 14px;
     border-radius: 8px;
     background: #fff8f3;
     border: 1px solid #ffeaa7;
@@ -278,7 +587,7 @@ const onBackdropMouseup = async () => {
     &.weapon { border-left: 4px solid #d35400; }
     &.armor { border-left: 4px solid #2980b9; background: #f0f8ff; border-color: #d6eaf8; }
     
-    h4 { margin: 0 0 10px 0; color: #555; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
+    h4 { margin: 0 0 4px 0; color: #555; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.8px; }
   }
 
   label {
@@ -293,7 +602,7 @@ const onBackdropMouseup = async () => {
 
 /* 输入框统一样式 */
 .input-std, .unit-select {
-  padding: 10px 12px;
+  padding: 7px 9px;
   border: 1px solid #ced4da;
   border-radius: 6px;
   font-size: 1rem;
@@ -308,7 +617,7 @@ const onBackdropMouseup = async () => {
 }
 
 .main-name .input-lg {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
   color: #2c3e50;
   border: none;
@@ -327,8 +636,8 @@ const onBackdropMouseup = async () => {
 /* 网格布局优化 */
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.8fr; /* 价值栏稍微宽一点 */
-  gap: 20px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
   align-items: start;
 
   /* ⚡️ 修复换行问题：强制所有字段都是上下结构 */
@@ -354,16 +663,85 @@ const onBackdropMouseup = async () => {
   input { 
     /* 缩短价值输入框 */
     min-width: 60px; 
-    max-width: 90px; /* 特别限制价值输入框的宽度 */
+    max-width: 80px; /* 特别限制价值输入框的宽度 */
   }
   select { 
     width: 70px; flex-shrink: 0; cursor: pointer; background-color: #f8f9fa; 
   }
 }
 
+.template-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  select {
+    width: 100%;
+  }
+}
+
+.template-current {
+  color: #95a5a6;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
 .row-2 {
-  display: flex; gap: 20px;
+  display: flex; gap: 12px;
   .field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+}
+
+.row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.check-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #e1e2e6;
+  border-radius: 8px;
+  background: #fff;
+  color: #2c3e50;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &.standalone {
+    align-self: end;
+    min-height: 36px;
+  }
+
+  input {
+    margin: 0;
+  }
+
+  em {
+    color: #95a5a6;
+    font-size: 0.75rem;
+    font-style: normal;
+  }
 }
 
 .tags-container {
@@ -379,7 +757,7 @@ const onBackdropMouseup = async () => {
 .divider { border: 0; border-top: 1px dashed #dcdde1; margin: 10px 0; }
 
 .modal-footer {
-  padding: 20px 30px;
+  padding: 14px 22px;
   background: #f8f9fa;
   border-top: 1px solid #eee;
   display: flex;
@@ -388,7 +766,7 @@ const onBackdropMouseup = async () => {
   flex-shrink: 0;
   
   button {
-    padding: 10px 24px;
+    padding: 8px 18px;
     border-radius: 6px;
     font-weight: 600;
     cursor: pointer;

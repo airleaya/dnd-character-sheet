@@ -18,6 +18,7 @@ import type { InventoryDragChangeEvent } from '../../../utils/inventoryDropUtils
 import { formatCost } from '../../../utils/currencyUtils';
 import { formatContainerCapacity } from '../../../utils/containerCapacity';
 import { getCarryingLoadTone } from '../../../utils/carryingLoad';
+import { formatMagicItemName, getMagicInventoryStyle } from '../../../utils/magicItems';
 import type { ItemCost } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
 
@@ -237,7 +238,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     
     <div class="panel-header">
       <h3 class="carrying-load" :class="`load-${carryingLoadTone}`">
-        行囊 ({{ store.totalWeight.toFixed(1) }} / {{ store.carryingCapacity }} lb)
+        行囊 ({{ store.totalWeight.toFixed(1) }} / {{ store.carryingCapacity }} lb) · 同调 {{ store.attunedMagicItemCount }}/3
       </h3>
       <span class="tip">支持容器嵌套与拖拽</span>
     </div>
@@ -327,7 +328,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
           :style="tooltipStyle"
         >
           <div class="card-header">
-            <div class="card-title">{{ hoveredItem.name }}</div>
+            <div class="card-title" :style="getMagicInventoryStyle(hoveredItem)">{{ formatMagicItemName(hoveredItem) }}</div>
           </div>
           
           <div class="card-body">
