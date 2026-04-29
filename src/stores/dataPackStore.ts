@@ -33,6 +33,11 @@ export const useDataPackStore = defineStore('dataPack', () => {
   const activeDraftPack = ref<DataPackFile | null>(null);
   const draftDirty = ref(false);
   const makerLibraryTab = ref<'items' | 'spells'>('items');
+  const makerItemWorkbenchRequest = ref<{
+    runtimeItemId: string;
+    target: 'forge' | 'enchant';
+    token: number;
+  } | null>(null);
 
   const feedback = useUiFeedbackStore();
 
@@ -331,6 +336,15 @@ export const useDataPackStore = defineStore('dataPack', () => {
     makerLibraryTab.value = tab;
   };
 
+  const requestMakerItemWorkbench = (runtimeItemId: string, target: 'forge' | 'enchant') => {
+    makerLibraryTab.value = 'items';
+    makerItemWorkbenchRequest.value = {
+      runtimeItemId,
+      target,
+      token: Date.now(),
+    };
+  };
+
   const ensureEditorMeta = () => {
     if (!activeDraftPack.value) return undefined;
     activeDraftPack.value.editorMeta ??= {};
@@ -561,6 +575,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     activeDraftPack,
     draftDirty,
     makerLibraryTab,
+    makerItemWorkbenchRequest,
     orderedDataPacks,
     enabledDataPacks,
     itemLibraryItems,
@@ -580,6 +595,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     closeMaker,
     markDraftDirty,
     setMakerLibraryTab,
+    requestMakerItemWorkbench,
     addMenuGroup,
     addMenuSubgroup,
     removeMenuGroup,

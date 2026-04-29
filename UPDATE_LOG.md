@@ -1,5 +1,30 @@
 # UPDATE_LOG
 
+## [0.14.8] - 2026-04-29
+- Type: Bugfix / Data Pack Maker / Right Sidebar Workbench / Drag-and-drop / Tests
+- Item: Route right-sidebar forge/enchant drops into the GM data pack maker.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sidebar/ForgeDropZone.vue`
+  - `src/components/sidebar/EnchantDropZone.vue`
+  - `src/data/dataPacks/defaultDnd5ePack.ts`
+- Completed changes:
+  - Project version grows from `0.14.7` to `0.14.8`.
+  - Follow-up root cause: the right sidebar forge/enchant drop zones still routed library-item drops to the character Forge/Enchant systems, so when the GM maker was open the user's actual drop path did not activate the maker editor.
+  - Added a maker workbench request channel in `dataPackStore`; when the maker is open, right-sidebar forge/enchant drops now request maker import/edit instead of opening the character item workflow.
+  - `DataPackMakerPanel` now listens for maker workbench requests, imports the runtime library item into the active draft pack, switches to the matching forge/enchant context, and selects the newly copied item.
+  - Center maker drop cards still keep their direct drop behavior and share the same import/select helper.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/inventoryDropUtils.test.ts tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/appRoot.smoke.test.ts` passed: 4 test files, 18 tests.
+  - `npm run build` passed and generated `0.14.8` installer/portable artifacts.
+
 ## [0.14.7] - 2026-04-29
 - Type: Bugfix / Drag-and-drop / Data Pack Maker / Forge-Enchant Entry / Tests
 - Item: Harden item drag drop activation after the first 0.14.6 fix was still insufficient.

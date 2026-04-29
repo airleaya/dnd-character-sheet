@@ -2,8 +2,10 @@
 import { ref } from 'vue';
 import { useEnchanting } from '../../composables/useEnchanting';
 import { getDragPayloadFromEvent } from '../../utils/inventoryDropUtils';
+import { useDataPackStore } from '../../stores/dataPackStore';
 
 const { openEnchantingWithDropData } = useEnchanting();
+const dataPackStore = useDataPackStore();
 const isHovering = ref(false);
 
 const onDragEnter = () => {
@@ -25,6 +27,10 @@ const onDrop = (event: DragEvent) => {
   isHovering.value = false;
   const payload = getDragPayloadFromEvent(event);
   if (!payload) return;
+  if (dataPackStore.isMakerOpen && payload.type === 'library-item') {
+    dataPackStore.requestMakerItemWorkbench(payload.id, 'enchant');
+    return;
+  }
   openEnchantingWithDropData(JSON.stringify(payload));
 };
 </script>

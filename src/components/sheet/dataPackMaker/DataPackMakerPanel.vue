@@ -55,6 +55,25 @@ const switchLibraryTab = (tab: 'items' | 'spells') => {
   store.setMakerLibraryTab(tab);
 };
 
+const importItemIntoWorkbench = async (runtimeItemId: string, target: 'forge' | 'enchant') => {
+  activeSection.value = 'items';
+  activeItemWorkbench.value = target;
+  const importedItem = store.importItemToDraft(runtimeItemId, target);
+  await nextTick();
+  const importedIndex = importedItem
+    ? items.value.findIndex(item => item.id === importedItem.id)
+    : -1;
+  selectedItemIndex.value = importedIndex >= 0 ? importedIndex : Math.max(0, items.value.length - 1);
+};
+
+watch(
+  () => store.makerItemWorkbenchRequest,
+  request => {
+    if (!request) return;
+    void importItemIntoWorkbench(request.runtimeItemId, request.target);
+  }
+);
+
 const onWorkbenchDragEnter = (target: 'forge' | 'enchant') => {
   hoveringWorkbench.value = target;
 };
@@ -84,14 +103,7 @@ const activateItemWorkbenchFromDrop = async (event: DragEvent, target: 'forge' |
   hoveringWorkbench.value = null;
   const payload = getDragPayloadFromEvent(event);
   if (payload?.type === 'library-item') {
-    activeSection.value = 'items';
-    activeItemWorkbench.value = target;
-    const importedItem = store.importItemToDraft(payload.id, target);
-    await nextTick();
-    const importedIndex = importedItem
-      ? items.value.findIndex(item => item.id === importedItem.id)
-      : -1;
-    selectedItemIndex.value = importedIndex >= 0 ? importedIndex : Math.max(0, items.value.length - 1);
+    await importItemIntoWorkbench(payload.id, target);
   }
 };
 

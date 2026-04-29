@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-29 version iteration update:
+> Current baseline grows from `0.14.7` to `0.14.8`; this round routes right-sidebar forge/enchant drops into the GM data pack maker.
+> 2026-04-29 right-sidebar workbench routing fix:
+> When the GM maker is open, dragging a library item to the right-sidebar forge/enchant zones now imports it into the active data pack and activates the maker's matching edit step instead of using the character inventory forge/enchant workflow.
+
+> 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.6` to `0.14.7`; this round hardens item drop activation after the first maker drop fix was still insufficient.
 > 2026-04-29 drag activation hardening:
 > Drag payloads now survive Sortable/native drag ordering by using multiple native payload types, delayed global payload cleanup, shared drop payload resolution, and maker document-level capture fallback for forge/enchant workbench targets.

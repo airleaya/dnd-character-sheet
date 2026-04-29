@@ -2,9 +2,11 @@
 import { ref } from 'vue';
 import { useForge } from '../../composables/useForge';
 import { getDragPayloadFromEvent } from '../../utils/inventoryDropUtils';
+import { useDataPackStore } from '../../stores/dataPackStore';
 
 
 const { handleDropData } = useForge();
+const dataPackStore = useDataPackStore();
 
 // 视觉状态
 const isHovering = ref(false);
@@ -34,6 +36,11 @@ const onDrop = (e: DragEvent) => {
 
   const payload = getDragPayloadFromEvent(e);
   if (!payload) return;
+
+  if (dataPackStore.isMakerOpen && payload.type === 'library-item') {
+    dataPackStore.requestMakerItemWorkbench(payload.id, 'forge');
+    return;
+  }
 
   handleDropData(JSON.stringify(payload));
 };
