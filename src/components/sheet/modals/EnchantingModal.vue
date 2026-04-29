@@ -663,7 +663,10 @@ const saveNewCustomTrait = () => {
 
 .enchant-panel {
   width: min(980px, 96vw);
+  height: min(92vh, 820px);
   max-height: 92vh;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(245, 197, 96, 0.45);
   border-radius: 18px;
   background:
@@ -677,6 +680,7 @@ const saveNewCustomTrait = () => {
 
 .enchant-header,
 .enchant-footer {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -713,13 +717,16 @@ const saveNewCustomTrait = () => {
 }
 
 .enchant-body {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: 270px minmax(0, 1fr);
-  min-height: 560px;
-  max-height: calc(92vh - 132px);
+  overflow: hidden;
 }
 
 .enchant-sidebar {
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -851,8 +858,10 @@ const saveNewCustomTrait = () => {
 }
 
 .enchant-content {
+  min-height: 0;
   padding: 16px 18px 18px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .maker-assignment {
