@@ -150,6 +150,28 @@ const saveWindowState = () => {
 
 const safeDataPackFileName = (packId: string): string => `${packId}${DATA_PACK_EXTENSION}`;
 const getImportedDataPackPath = (packId: string): string => path.join(getImportedDataPacksDir(), safeDataPackFileName(packId));
+const getDataPackPathInRoot = (rootDir: string, packId: string): string =>
+  path.join(rootDir, 'imported', safeDataPackFileName(packId));
+const getLegacyDataPackRoots = (): string[] => [getLegacyStorageDataPacksRoot(), getLegacyUserDataDataPacksRoot()];
+
+const findExistingDataPackPath = (packId: string): string | undefined =>
+  [getDataPacksRoot(), ...getLegacyDataPackRoots()]
+    .map(root => getDataPackPathInRoot(root, packId))
+    .find(filePath => fs.existsSync(filePath));
+
+const ensureEditableDataPackInCurrentStorage = (packId: string): string | undefined => {
+  const currentPath = getImportedDataPackPath(packId);
+  if (fs.existsSync(currentPath)) return currentPath;
+
+  const legacyPath = getLegacyDataPackRoots()
+    .map(root => getDataPackPathInRoot(root, packId))
+    .find(filePath => fs.existsSync(filePath));
+  if (!legacyPath) return undefined;
+
+  ensureDirectoryExists(getImportedDataPacksDir());
+  fs.copyFileSync(legacyPath, currentPath);
+  return currentPath;
+};
 
 const readJsonFile = (filePath: string): unknown => JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
@@ -232,8 +254,8 @@ const getExportableDataPack = (packId: string): DataPackFile => {
 
 const readEditableDataPackFile = (packId: string): DataPackFile => {
   if (packId === DEFAULT_DATA_PACK_ID) throw new Error('默认数据包不能编辑');
-  const filePath = getImportedDataPackPath(packId);
-  if (!fs.existsSync(filePath)) throw new Error(`未找到数据包：${packId}`);
+  const filePath = ensureEditableDataPackInCurrentStorage(packId);
+  if (!filePath) throw new Error(`未找到数据包：${packId}`);
   return validateDataPackFile(readJsonFile(filePath));
 };
 
@@ -242,17 +264,20 @@ const saveEditableDataPackFile = (packFile: DataPackFile, mode: DataPackSaveMode
   if (dataPack.manifest.id === DEFAULT_DATA_PACK_ID) throw new Error('默认数据包不能编辑');
 
   ensureDirectoryExists(getImportedDataPacksDir());
-  const filePath = getImportedDataPackPath(dataPack.manifest.id);
+  const filePath = ensureEditableDataPackInCurrentStorage(dataPack.manifest.id) ?? getImportedDataPackPath(dataPack.manifest.id);
   const exists = fs.existsSync(filePath);
 
   if (mode === 'create' && exists) {
     throw new Error(`已存在同 id 数据包：${dataPack.manifest.id}`);
   }
   if (mode === 'update' && !exists) {
-    throw new Error(`未找到要更新的数据包：${dataPack.manifest.id}`);
+    logger.warn('Editable data pack missing in current storage; saving it as a recovered pack', {
+      packId: dataPack.manifest.id,
+      legacyPath: findExistingDataPackPath(dataPack.manifest.id),
+    });
   }
 
-  if (mode === 'update') {
+  if (mode === 'update' && exists) {
     const existing = validateDataPackFile(readJsonFile(filePath));
     if (existing.manifest.id !== dataPack.manifest.id) {
       throw new Error('数据包 id 创建后不可修改');
