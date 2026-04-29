@@ -664,6 +664,55 @@ export const useDataPackStore = defineStore('dataPack', () => {
     });
   };
 
+  const ensureMenuGroupForAssignment = (
+    domain: 'items' | 'spells',
+    category: string | undefined,
+    subcategory?: string
+  ) => {
+    const groupName = category?.trim();
+    const subgroupName = subcategory?.trim();
+    if (!groupName) return;
+
+    const groups = ensureMenuGroups(domain);
+    let group = groups.find(entry => entry.name === groupName);
+    let changed = false;
+
+    if (!group) {
+      group = {
+        id: makeUniqueLocalId(groupName, groups.map(entry => entry.id)),
+        name: groupName,
+        children: [],
+      };
+      groups.push(group);
+      changed = true;
+    }
+
+    if (subgroupName && subgroupName !== groupName) {
+      group.children ??= [];
+      if (!group.children.some(child => child.name === subgroupName)) {
+        group.children.push({
+          id: makeUniqueLocalId(subgroupName, group.children.map(child => child.id)),
+          name: subgroupName,
+        });
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      draftDirty.value = true;
+      logger.info('Data pack menu group synced from editor assignment', {
+        packId: activeDraftPack.value?.manifest.id,
+        domain,
+        groupName,
+        subgroupName,
+      });
+    }
+  };
+
+  const ensureItemAssignmentGroups = (item: LibraryItem) => {
+    ensureMenuGroupForAssignment('items', item.displayCategory, item.displaySubcategory);
+  };
+
   const addEncryptionGroup = (name: string, description = '') => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -926,6 +975,8 @@ export const useDataPackStore = defineStore('dataPack', () => {
     addMenuGroup,
     addMenuSubgroup,
     removeMenuGroup,
+    ensureMenuGroupForAssignment,
+    ensureItemAssignmentGroups,
     addEncryptionGroup,
     removeEncryptionGroup,
     importItemToDraft,

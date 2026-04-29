@@ -149,6 +149,7 @@ const updateDraftItemFromInventory = (itemId: string, inventoryItem: InventoryIt
   if (index < 0) return;
   const updated = inventoryItemToLibraryItem(items.value[index], inventoryItem);
   pack.value.items = items.value.map((item, itemIndex) => itemIndex === index ? updated : item);
+  store.ensureItemAssignmentGroups(updated);
   selectedItemIndex.value = index;
   store.markDraftDirty();
 };

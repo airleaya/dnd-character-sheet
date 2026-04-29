@@ -1,5 +1,33 @@
 # UPDATE_LOG
 
+## [0.14.12] - 2026-04-29
+- Type: Feature / Data Pack Maker / Library UI / Tests / Logging
+- Item: Link maker workbench group assignments to data-pack metadata and expose newly enabled packs in the right sidebar.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/stores/dataPackStore.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/sheet/library/LibrarySpellsPanel.vue`
+  - `src/composables/useForge.ts`
+  - `tests/dataPackMakerPanel.ui.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.11` to `0.14.12` because this is a maker/library feature iteration.
+  - Maker-launched forge and enchanting editors now allow normal data-pack group/category entry with existing group suggestions and free custom values.
+  - When a maker-edited item is saved, its normal group assignment is synchronized into `editorMeta.menuGroups.items`, so the maker group-management panel can immediately read and manage the new group.
+  - Newly enabled third-party item/spell packs are auto-expanded in the right sidebar so their content appears without requiring a manual hidden expand step.
+  - Logging remains connected through `stores/dataPackStore` and records group-sync summaries without serializing full data-pack content.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test -- tests/dataPackMakerPanel.ui.test.ts tests/dataPackRuntime.test.ts tests/dataPackUtils.test.ts tests/useForge.test.ts` passed.
+  - `npm run build` passed and generated `0.14.12` installer/portable artifacts.
+
 ## [0.14.11] - 2026-04-29
 - Type: Feature / Storage / Data Pack Maker / Migration / Tests
 - Item: Add shared `dnd_5e_characters` parent folder for local saved data.

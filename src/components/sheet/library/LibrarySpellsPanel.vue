@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, toRef } from 'vue';
+import { ref, computed, toRef, watch } from 'vue';
 import draggable from 'vuedraggable';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import { useDataPackStore } from '../../../stores/dataPackStore';
+import { DEFAULT_DATA_PACK_ID } from '../../../utils/dataPackUtils';
 import type { SpellDefinition } from '../../../types/Spell';
 
 const props = defineProps<{
@@ -38,6 +39,25 @@ const expandedState = ref<Record<string, boolean>>({
 });
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
+
+watch(
+  spellLibraryTree,
+  groups => {
+    groups.forEach(pack => {
+      if (pack.packId !== DEFAULT_DATA_PACK_ID && expandedState.value[pack.packId] === undefined) {
+        expandedState.value[pack.packId] = true;
+      }
+
+      pack.branches.forEach(branch => {
+        const branchKey = `${pack.packId}_${branch.mode}`;
+        if (pack.packId !== DEFAULT_DATA_PACK_ID && expandedState.value[branchKey] === undefined) {
+          expandedState.value[branchKey] = true;
+        }
+      });
+    });
+  },
+  { immediate: true }
+);
 
 // 4. 拖拽逻辑：必须生成唯一 ID
 const cloneSpell = (spell: SpellDefinition) => {

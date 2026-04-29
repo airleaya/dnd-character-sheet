@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, toRef } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import draggable from 'vuedraggable';
 import { useDataPackStore } from '../../../stores/dataPackStore';
 import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
 import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
+import { DEFAULT_DATA_PACK_ID } from '../../../utils/dataPackUtils';
 import type {
   ArmorDefinition,
   ArmorType,
@@ -40,6 +41,24 @@ const armorTypeFilter = ref<ArmorType | null>(null);
 
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
+
+watch(
+  libraryTree,
+  groups => {
+    groups.forEach(pack => {
+      if (pack.packId !== DEFAULT_DATA_PACK_ID && expandedState.value[pack.packId] === undefined) {
+        expandedState.value[pack.packId] = true;
+      }
+
+      pack.categoryGroups.forEach(category => {
+        if (pack.packId !== DEFAULT_DATA_PACK_ID && expandedState.value[category.id] === undefined) {
+          expandedState.value[category.id] = true;
+        }
+      });
+    });
+  },
+  { immediate: true }
+);
 const isWeaponSubGroup = (category: DataPackItemCategoryGroup, sub: DataPackItemSubGroup) =>
   category.label === '装备' && sub.title === '武器';
 const isArmorSubGroup = (category: DataPackItemCategoryGroup, sub: DataPackItemSubGroup) =>

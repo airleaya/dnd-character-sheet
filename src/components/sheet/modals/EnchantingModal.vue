@@ -41,26 +41,23 @@ const activeTab = ref<EnchantTab>('basic');
 const isDataPackMakerEditor = computed(() => editorContext.value?.dataPackMaker === true);
 const dataPackMenuGroups = computed(() => dataPackStore.activeDraftPack?.editorMeta?.menuGroups?.items ?? []);
 const dataPackEncryptionGroups = computed(() => dataPackStore.activeDraftPack?.editorMeta?.encryptionGroups ?? []);
-const groupKeySeparator = '\u001f';
 const targetData = computed(() => targetItem.value?.data as DataPackAssignmentData | undefined);
-const normalGroupOptions = computed(() =>
-  dataPackMenuGroups.value.flatMap(group => {
-    const children = group.children?.length ? group.children : [{ id: `${group.id}__self`, name: group.name }];
-    return children.map(child => ({
-      key: `${group.name}${groupKeySeparator}${child.name}`,
-      label: `${group.name} / ${child.name}`,
-      category: group.name,
-      subcategory: child.name,
-    }));
-  })
+const itemGroupCategoryOptions = computed(() => dataPackMenuGroups.value.map(group => group.name));
+const itemGroupSubcategoryOptions = computed(() =>
+  dataPackMenuGroups.value.flatMap(group => group.children?.map(child => child.name) ?? [])
 );
-const selectedNormalGroupKey = computed({
-  get: () => `${targetData.value?.displayCategory ?? ''}${groupKeySeparator}${targetData.value?.displaySubcategory ?? ''}`,
+const selectedDisplayCategory = computed({
+  get: () => targetData.value?.displayCategory ?? '',
   set: (value: string) => {
     if (!targetData.value) return;
-    const option = normalGroupOptions.value.find(entry => entry.key === value);
-    targetData.value.displayCategory = option?.category || undefined;
-    targetData.value.displaySubcategory = option?.subcategory || undefined;
+    targetData.value.displayCategory = value.trim() || undefined;
+  },
+});
+const selectedDisplaySubcategory = computed({
+  get: () => targetData.value?.displaySubcategory ?? '',
+  set: (value: string) => {
+    if (!targetData.value) return;
+    targetData.value.displaySubcategory = value.trim() || undefined;
   },
 });
 const selectedEncryptionGroupId = computed({
@@ -307,12 +304,25 @@ const saveNewCustomTrait = () => {
                 <div class="field-grid">
                   <label>
                     <span>分组</span>
-                    <select v-model="selectedNormalGroupKey">
-                      <option :value="groupKeySeparator">未分组</option>
-                      <option v-for="option in normalGroupOptions" :key="option.key" :value="option.key">
-                        {{ option.label }}
-                      </option>
-                    </select>
+                    <input
+                      v-model="selectedDisplayCategory"
+                      list="enchant-maker-category-list"
+                      placeholder="可选择已有分组或输入新一级分组"
+                    >
+                    <datalist id="enchant-maker-category-list">
+                      <option v-for="option in itemGroupCategoryOptions" :key="option" :value="option" />
+                    </datalist>
+                  </label>
+                  <label>
+                    <span>子分组</span>
+                    <input
+                      v-model="selectedDisplaySubcategory"
+                      list="enchant-maker-subcategory-list"
+                      placeholder="可选择已有子分组或输入新二级分组"
+                    >
+                    <datalist id="enchant-maker-subcategory-list">
+                      <option v-for="option in itemGroupSubcategoryOptions" :key="option" :value="option" />
+                    </datalist>
                   </label>
                   <label>
                     <span>加密分组</span>

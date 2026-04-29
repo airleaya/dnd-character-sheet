@@ -6,6 +6,7 @@ import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import DataPackMakerPanel from '../src/components/sheet/dataPackMaker/DataPackMakerPanel.vue';
 import { useDataPackStore } from '../src/stores/dataPackStore';
 import type { DataPackFile } from '../src/types/DataPack';
+import type { LibraryItem } from '../src/types/Library';
 
 const createDraftPack = (): DataPackFile => ({
   manifest: {
@@ -84,5 +85,30 @@ describe('DataPackMakerPanel', () => {
     expect(saveEditableDataPack).toHaveBeenCalledWith(expect.objectContaining({
       manifest: expect.objectContaining({ id: 'homebrew' }),
     }), 'create');
+  });
+
+  it('syncs editor-assigned item groups into the active data pack metadata', () => {
+    const store = useDataPackStore();
+    store.activeDraftPack = createDraftPack();
+
+    store.ensureItemAssignmentGroups({
+      id: 'custom-sword',
+      name: '自定义剑',
+      type: 'weapon',
+      cost: { value: 0, unit: 'gp' },
+      weight: 0,
+      description: '',
+      displayCategory: 'Magic Gear',
+      displaySubcategory: 'Longswords',
+    } as LibraryItem);
+
+    expect(store.activeDraftPack.editorMeta?.menuGroups?.items).toEqual([
+      {
+        id: 'Magic-Gear',
+        name: 'Magic Gear',
+        children: [{ id: 'Longswords', name: 'Longswords' }],
+      },
+    ]);
+    expect(store.draftDirty).toBe(true);
   });
 });

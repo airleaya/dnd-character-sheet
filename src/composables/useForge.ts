@@ -262,9 +262,9 @@ export function useForge() {
     data.description = draftItem.value.description ?? '';
     data.magic = draftItem.value.magic ?? { isMagic: false };
     draftItem.value.magic = data.magic;
-    if (data.displayCategory === '') data.displayCategory = undefined;
-    if (data.displaySubcategory === '') data.displaySubcategory = undefined;
-    if (data.encryptionGroupId === '') data.encryptionGroupId = undefined;
+    data.displayCategory = data.displayCategory?.trim() || undefined;
+    data.displaySubcategory = data.displaySubcategory?.trim() || undefined;
+    data.encryptionGroupId = data.encryptionGroupId?.trim() || undefined;
   };
 
     // --- 动作：保存 ---

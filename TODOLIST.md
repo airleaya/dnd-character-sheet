@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-29 version iteration update:
+> Current baseline grows from `0.14.11` to `0.14.12`; this round links maker workbench group assignment back into data-pack metadata and improves right-sidebar visibility for newly enabled packs.
+> 2026-04-29 maker group/library visibility update:
+> Maker-launched forge and enchanting editors can enter or select normal item groups; saved items sync those groups into `editorMeta.menuGroups.items` for the maker group-management panel, and newly enabled third-party packs auto-expand in the right sidebar.
+
+> 2026-04-29 version iteration update:
 > Current baseline grows from `0.14.10` to `0.14.11`; this round adds the shared `dnd_5e_characters` parent directory for local character and data-pack storage.
 > 2026-04-29 storage parent update:
 > Character saves now live under Electron `userData/dnd_5e_characters/characters/`, while third-party data packs live under `userData/dnd_5e_characters/data-packs/imported/`. Existing `userData/storage/*`, `userData/saves`, `userData/data-packs`, and project `saves/` paths remain migration sources.
