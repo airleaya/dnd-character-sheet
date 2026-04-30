@@ -41,3 +41,8 @@ select,
 textarea {
   font: inherit;
 }
+
+.preserve-user-lines {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -372,11 +372,11 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
                   <strong>{{ trait.name }}</strong>
                   <span>{{ formatMagicTraitMeta(trait) }}</span>
                 </div>
-                <p v-if="trait.description">{{ trait.description }}</p>
+                <p v-if="trait.description" class="preserve-user-lines">{{ trait.description }}</p>
                 <p v-if="trait.type === 'spell' && trait.spellId">
                   法术：{{ getMagicTraitSpellName(trait.spellId) }}
                 </p>
-                <p v-if="trait.spellExtraDescription">{{ trait.spellExtraDescription }}</p>
+                <p v-if="trait.spellExtraDescription" class="preserve-user-lines">{{ trait.spellExtraDescription }}</p>
                 <p v-if="formatMagicTraitDamage(trait)" class="trait-damage">
                   伤害：{{ formatMagicTraitDamage(trait) }}
                 </p>

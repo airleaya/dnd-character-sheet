@@ -57,7 +57,7 @@ const createPack = async () => {
     name: createForm.name.trim(),
     version: createForm.version.trim(),
     author: createForm.author.trim() || undefined,
-    description: createForm.description.trim() || undefined,
+    description: createForm.description.trim() ? createForm.description : undefined,
     tags: createForm.tags.split(',').map(tag => tag.trim()).filter(Boolean),
   }, {
     password: createForm.password.trim() || undefined,
@@ -116,7 +116,7 @@ const createPack = async () => {
                 ID: {{ pack.id }} · 版本 {{ pack.version }}
                 <template v-if="pack.manifest.author"> · 作者 {{ pack.manifest.author }}</template>
               </p>
-              <p v-if="pack.manifest.description" class="description">{{ pack.manifest.description }}</p>
+              <p v-if="pack.manifest.description" class="description preserve-user-lines">{{ pack.manifest.description }}</p>
               <div class="counts">
                 <span>物品 {{ pack.items.length }}</span>
                 <span>法术 {{ pack.spells.length }}</span>
@@ -344,6 +344,7 @@ const createPack = async () => {
   margin: 6px 0 0;
   color: #98a5b1;
   font-size: 0.8rem;
+  overflow-wrap: anywhere;
 }
 
 .counts {

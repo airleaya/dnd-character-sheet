@@ -14,6 +14,8 @@ const electronAPI: ElectronApi = {
   exportCharacter: (dirPath: string, filename: string, content: string) =>
     ipcRenderer.invoke('export-character', dirPath, filename, content),
   writeLog: (entry) => ipcRenderer.invoke('write-log', entry),
+  readCustomMagicTraits: () => ipcRenderer.invoke('read-custom-magic-traits'),
+  saveCustomMagicTraits: (traits) => ipcRenderer.invoke('save-custom-magic-traits', traits),
   readDataPackState: () => ipcRenderer.invoke('read-data-pack-state'),
   importDataPack: () => ipcRenderer.invoke('import-data-pack'),
   exportDataPack: (packId: string, options) => ipcRenderer.invoke('export-data-pack', packId, options),

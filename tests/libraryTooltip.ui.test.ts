@@ -43,4 +43,24 @@ describe('LibraryTooltip UI', () => {
 
     expect(wrapper.text()).toContain('容量: 40加仑液体，4立方尺固体');
   });
+
+  it('marks item descriptions as line-break preserving', () => {
+    const wrapper = mount(LibraryTooltip, {
+      props: {
+        type: 'item',
+        position: { x: 20, y: 20 },
+        item: {
+          name: '自定义卷轴',
+          type: 'consumable',
+          weight: 0,
+          cost: { value: 0, unit: 'gp' },
+          description: '第一行描述\n第二行描述',
+        },
+      },
+    });
+
+    const description = wrapper.find('.desc-paragraph');
+    expect(description.classes()).toContain('preserve-user-lines');
+    expect(description.element.textContent).toBe('第一行描述\n第二行描述');
+  });
 });

@@ -11,9 +11,9 @@ defineProps<{
   <div class="item-description">
     <template v-if="blocks?.length">
       <template v-for="(block, index) in blocks" :key="index">
-        <p v-if="block.type === 'paragraph'" class="desc-paragraph">{{ block.text }}</p>
+        <p v-if="block.type === 'paragraph'" class="desc-paragraph preserve-user-lines">{{ block.text }}</p>
         <ul v-else-if="block.type === 'list'" class="desc-list">
-          <li v-for="(entry, entryIndex) in block.items" :key="entryIndex">{{ entry }}</li>
+          <li v-for="(entry, entryIndex) in block.items" :key="entryIndex" class="preserve-user-lines">{{ entry }}</li>
         </ul>
         <div v-else-if="block.type === 'table'" class="desc-table-wrap">
           <div v-if="block.caption" class="desc-table-caption">{{ block.caption }}</div>
@@ -25,14 +25,14 @@ defineProps<{
             </thead>
             <tbody>
               <tr v-for="(row, rowIndex) in block.rows" :key="rowIndex">
-                <td v-for="(cell, cellIndex) in row" :key="cellIndex">{{ cell }}</td>
+                <td v-for="(cell, cellIndex) in row" :key="cellIndex" class="preserve-user-lines">{{ cell }}</td>
               </tr>
             </tbody>
           </table>
         </div>
       </template>
     </template>
-    <p v-else class="desc-paragraph">{{ description }}</p>
+    <p v-else class="desc-paragraph preserve-user-lines">{{ description }}</p>
   </div>
 </template>
 

@@ -74,7 +74,7 @@ const tooltipStyle = computed(() => {
     :style="tooltipStyle"
   >
     <div v-if="store.data.title" class="tooltip-title">{{ store.data.title }}</div>
-    <div v-if="store.data.content" class="tooltip-content">{{ store.data.content }}</div>
+    <div v-if="store.data.content" class="tooltip-content preserve-user-lines">{{ store.data.content }}</div>
 
     <div v-if="store.data.sections?.length" class="tooltip-sections">
       <section
@@ -84,7 +84,7 @@ const tooltipStyle = computed(() => {
       >
         <div v-if="section.label" class="section-label">{{ section.label }}</div>
         <ul class="section-list">
-          <li v-for="item in section.items" :key="item" class="section-item">{{ item }}</li>
+          <li v-for="item in section.items" :key="item" class="section-item preserve-user-lines">{{ item }}</li>
         </ul>
       </section>
     </div>

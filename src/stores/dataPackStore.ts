@@ -1054,7 +1054,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
     groups.push({
       id: makeUniqueLocalId(trimmed, groups.map(group => group.id)),
       name: trimmed,
-      description: description.trim() || undefined,
+      description: description.trim() ? description : undefined,
       lockedByDefault: true,
     });
     const editorMeta = ensureEditorMeta();
@@ -1090,7 +1090,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
       group.name = nextName;
     }
     if (updates.description !== undefined) {
-      group.description = updates.description.trim() || undefined;
+      group.description = updates.description.trim() ? updates.description : undefined;
     }
 
     editorMeta.unlockGroups ??= [];

@@ -7,14 +7,18 @@ import { nextTick } from 'vue';
 import EnchantingModal from '../src/components/sheet/modals/EnchantingModal.vue';
 import { useEnchanting } from '../src/composables/useEnchanting';
 import { useActiveSheetStore } from '../src/stores/activeSheet';
+import { useCustomMagicTraitStore } from '../src/stores/customMagicTraitStore';
 import { createDefaultCharacter } from '../src/utils/characterMigration';
 import type { InventoryItem } from '../src/types/Item';
+import type { ItemMagicTrait } from '../src/types/Library';
 
 const createElectronApiMock = () => ({
   saveCharacter: vi.fn().mockResolvedValue({ success: true, data: null }),
   loadAllCharacters: vi.fn().mockResolvedValue({ success: true, data: [] }),
   deleteCharacter: vi.fn().mockResolvedValue({ success: true, data: null }),
   writeLog: vi.fn().mockResolvedValue({ success: true, data: null }),
+  readCustomMagicTraits: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  saveCustomMagicTraits: vi.fn(async (traits: ItemMagicTrait[]) => ({ success: true, data: traits })),
 });
 
 const createWeapon = (): InventoryItem => ({
@@ -44,6 +48,8 @@ const mountModal = () =>
       },
     },
   });
+
+const flushAsync = () => new Promise(resolve => window.setTimeout(resolve, 0));
 
 describe('EnchantingModal', () => {
   beforeEach(() => {
@@ -89,20 +95,50 @@ describe('EnchantingModal', () => {
     await wrapper.find('[data-test="custom-trait-participates"]').setValue(true);
     await wrapper.find('[data-test="custom-trait-dice"]').setValue('1d6');
     await wrapper.find('[data-test="save-custom-trait"]').trigger('click');
+    await flushAsync();
 
-    expect(store.character.customMagicTraits).toHaveLength(1);
-    expect(store.character.customMagicTraits[0]).toMatchObject({
+    const traitStore = useCustomMagicTraitStore();
+    expect(traitStore.traits).toHaveLength(1);
+    expect(traitStore.traits[0]).toMatchObject({
       name: '寒霜',
       damageDice: '1d6',
       participatesInDamage: true,
     });
-    expect(weapon.magic?.selectedTraitIds).toEqual([store.character.customMagicTraits[0]?.id]);
+    expect(store.character.customMagicTraits).toEqual([]);
+    expect(weapon.magic?.selectedTraitIds).toEqual([traitStore.traits[0]?.id]);
     expect(weapon.magic?.customTraits?.[0]).toMatchObject({
       name: '寒霜',
       damageDice: '1d6',
       participatesInDamage: true,
     });
     expect(wrapper.text()).toContain('寒霜');
+  });
+
+  it('preserves custom trait description line breaks when saving and showing hover detail', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('enchant-modal-line-breaks');
+    const weapon = createWeapon();
+    character.inventory = [weapon];
+    store.character = character;
+
+    const wrapper = mountModal();
+    useEnchanting().openEnchantingForItem(weapon);
+    await nextTick();
+
+    const description = '第一行规则\n第二行规则\n第三行规则';
+    await wrapper.find('[data-test="enchant-tab-create"]').trigger('click');
+    await wrapper.find('[data-test="custom-trait-name"]').setValue('换行词条');
+    await wrapper.find('[data-test="custom-trait-description"]').setValue(description);
+    await wrapper.find('[data-test="save-custom-trait"]').trigger('click');
+    await flushAsync();
+
+    const traitStore = useCustomMagicTraitStore();
+    expect(traitStore.traits[0]?.description).toBe(description);
+    expect(weapon.magic?.customTraits?.[0]?.description).toBe(description);
+
+    await wrapper.find('[data-test="enchant-tab-traits"]').trigger('click');
+    const hoverCard = wrapper.findAll('.trait-hover-card').find(card => card.text().includes('换行词条'));
+    expect(hoverCard?.find('p.preserve-user-lines').element.textContent).toBe(description);
   });
 
   it('creates plain charged and defense custom trait categories without exposing raw data', async () => {
@@ -124,8 +160,10 @@ describe('EnchantingModal', () => {
     await wrapper.find('[data-test="custom-trait-charges-current"]').setValue(1);
     await wrapper.find('[data-test="custom-trait-charges-max"]').setValue(3);
     await wrapper.find('[data-test="save-custom-trait"]').trigger('click');
+    await flushAsync();
 
-    expect(store.character.customMagicTraits[0]).toMatchObject({
+    const traitStore = useCustomMagicTraitStore();
+    expect(traitStore.traits[0]).toMatchObject({
       type: 'plain',
       name: '火花',
       charges: { current: 1, max: 3 },
@@ -137,8 +175,9 @@ describe('EnchantingModal', () => {
     await wrapper.find('[data-test="custom-trait-type"]').setValue('defense');
     await wrapper.find('[data-test="custom-trait-name"]').setValue('守御');
     await wrapper.find('[data-test="save-custom-trait"]').trigger('click');
+    await flushAsync();
 
-    expect(store.character.customMagicTraits[1]).toMatchObject({
+    expect(traitStore.traits[1]).toMatchObject({
       type: 'defense',
       name: '守御',
     });
@@ -193,6 +232,46 @@ describe('EnchantingModal', () => {
       name: 'Flame Revised',
       damageDice: '2d6',
     });
+  });
+
+  it('removing a custom trait from the reusable library keeps item-bound snapshots', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('enchant-modal-retained-snapshot');
+    const weapon = createWeapon();
+    character.customMagicTraits = [
+      {
+        id: 'custom-ice',
+        source: 'custom',
+        type: 'damage',
+        name: 'Ice',
+        description: 'Frozen edge.',
+        activationMode: 'always',
+        participatesInDamage: true,
+        damageDice: '1d4',
+        damageBonus: 0,
+        damageType: 'cold',
+      },
+    ];
+    character.inventory = [weapon];
+    store.character = character;
+
+    const wrapper = mountModal();
+    useEnchanting().openEnchantingForItem(weapon);
+    useEnchanting().toggleTraitSelection('custom-ice');
+    await nextTick();
+
+    await wrapper.find('[data-test="enchant-tab-manage"]').trigger('click');
+    await wrapper.find('.btn-delete-trait').trigger('click');
+    await flushAsync();
+
+    expect(store.character.customMagicTraits).toEqual([]);
+    expect(weapon.magic?.selectedTraitIds).toEqual(['custom-ice']);
+    expect(weapon.magic?.customTraits?.[0]).toMatchObject({
+      id: 'custom-ice',
+      name: 'Ice',
+      damageDice: '1d4',
+    });
+    expect(wrapper.text()).toContain('Ice');
   });
 
   it('renders selectable magic traits as compact badges with hover detail text', async () => {

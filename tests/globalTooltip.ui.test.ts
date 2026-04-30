@@ -48,6 +48,26 @@ describe('GlobalTooltip UI', () => {
     expect(wrapper?.find('.tooltip-content').exists()).toBe(true);
   });
 
+  it('marks tooltip text as line-break preserving for user-authored descriptions', async () => {
+    const tooltip = useTooltipStore();
+    mountTooltip();
+
+    tooltip.show(
+      {
+        title: '自定义说明',
+        content: '第一行\n第二行',
+        sections: [{ label: '附加效果', items: ['效果一\n效果二'] }],
+      },
+      20,
+      40
+    );
+    await nextTick();
+
+    expect(wrapper?.find('.tooltip-content').classes()).toContain('preserve-user-lines');
+    expect(wrapper?.find('.section-item').classes()).toContain('preserve-user-lines');
+    expect(wrapper?.find('.tooltip-content').element.textContent).toBe('第一行\n第二行');
+  });
+
   it('renders structured sections for attack detail tooltips', async () => {
     const tooltip = useTooltipStore();
     mountTooltip();

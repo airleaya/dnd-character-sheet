@@ -604,8 +604,8 @@ const handleLongRest = async () => {
                     <span class="combat-badge type">法术：{{ action.spellName }}</span>
                   </div>
                   <div class="desc-divider"></div>
-                  <div v-if="action.description" class="desc-text">{{ action.description }}</div>
-                  <div v-if="action.spellExtraDescription" class="desc-text">{{ action.spellExtraDescription }}</div>
+                  <div v-if="action.description" class="desc-text preserve-user-lines">{{ action.description }}</div>
+                  <div v-if="action.spellExtraDescription" class="desc-text preserve-user-lines">{{ action.spellExtraDescription }}</div>
                   <div v-if="action.charges.resetCondition || action.charges.resetFormula" class="scaling">
                     <strong>恢复:</strong>
                     {{ [action.charges.resetCondition, action.charges.resetFormula].filter(Boolean).join(' · ') }}
@@ -704,7 +704,7 @@ const handleLongRest = async () => {
                   </div>
 
                   <div class="desc-divider"></div>
-                  <div class="desc-text" v-html="spell.description"></div>
+                  <div class="desc-text preserve-user-lines" v-html="spell.description"></div>
 
                   <div v-if="spell.scaling" class="scaling">
                     <strong>升环效果:</strong> {{ spell.scaling }}
@@ -1846,6 +1846,7 @@ const handleLongRest = async () => {
     line-height: 1.5;
     color: #555;
     margin-bottom: 8px;
+    overflow-wrap: anywhere;
   }
 
   .scaling {

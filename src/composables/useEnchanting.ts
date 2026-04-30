@@ -1,17 +1,17 @@
 import { ref } from 'vue';
 import { useActiveSheetStore } from '../stores/activeSheet';
+import { useCustomMagicTraitStore } from '../stores/customMagicTraitStore';
 import { parseDragPayload } from '../utils/inventoryDropUtils';
 import { createRendererLogger } from '../utils/rendererLogger';
 import type { InventoryItem } from '../types/Item';
 import type { ItemMagicTrait } from '../types/Library';
-import { createEmptyCustomMagicTrait, PRESET_MAGIC_TRAITS } from '../data/rules/magicTraits';
+import { PRESET_MAGIC_TRAITS } from '../data/rules/magicTraits';
 import {
   attachMagicTraitSnapshot,
   cloneMagicTrait,
   detachMagicTraitSnapshot,
   ensureMagicDefinition,
 } from '../utils/magicItems';
-import { generateUUID } from '../utils/idGenerator';
 
 type EnchantingEntrySource = 'button' | 'drop';
 
@@ -29,12 +29,24 @@ const logger = createRendererLogger('composables/useEnchanting');
 
 export function useEnchanting() {
   const activeSheet = useActiveSheetStore();
+  const customTraitStore = useCustomMagicTraitStore();
+
+  const ensurePermanentTraitLibrary = () => {
+    void customTraitStore.init().then(() => {
+      const legacyTraits = activeSheet.character?.customMagicTraits ?? [];
+      if (legacyTraits.length > 0) {
+        return customTraitStore.mergeTraits(legacyTraits);
+      }
+      return undefined;
+    });
+  };
 
   const openEnchanting = (source: EnchantingEntrySource = 'button') => {
     entrySource.value = source;
     if (!targetItem.value) {
       targetPayload.value = null;
     }
+    ensurePermanentTraitLibrary();
     isEnchantingOpen.value = true;
   };
 
@@ -102,42 +114,33 @@ export function useEnchanting() {
     closeEnchanting();
   };
 
-  const addCustomTrait = (patch?: Partial<ItemMagicTrait>): ItemMagicTrait | null => {
-    if (!activeSheet.character) return null;
-
-    const trait = {
-      ...createEmptyCustomMagicTrait(`custom_magic_trait_${generateUUID()}`),
-      ...patch,
-      source: 'custom' as const,
-    };
-
-    activeSheet.character.customMagicTraits = [
-      ...(activeSheet.character.customMagicTraits ?? []),
-      trait,
-    ];
-    activeSheet.save();
+  const addCustomTrait = async (patch?: Partial<ItemMagicTrait>): Promise<ItemMagicTrait | null> => {
+    const trait = await customTraitStore.addTrait(patch);
     return trait;
   };
 
-  const deleteCustomTrait = (traitId: string) => {
-    if (!activeSheet.character) return;
-
-    activeSheet.character.customMagicTraits = (activeSheet.character.customMagicTraits ?? []).filter(
-      trait => trait.id !== traitId
-    );
-    let detachedItemCount = 0;
-    activeSheet.character.inventory.forEach(item => {
-      if (!item.magic?.selectedTraitIds?.includes(traitId)) return;
-      detachMagicTraitSnapshot(item, traitId);
-      detachedItemCount += 1;
+  const deleteCustomTrait = async (traitId: string) => {
+    await customTraitStore.deleteTrait(traitId);
+    if (activeSheet.character) {
+      activeSheet.character.customMagicTraits = (activeSheet.character.customMagicTraits ?? []).filter(
+        trait => trait.id !== traitId
+      );
+    }
+    const retainedItemCount = (activeSheet.character?.inventory ?? []).filter(item =>
+      item.magic?.selectedTraitIds?.includes(traitId)
+    ).length;
+    logger.info('Custom magic trait removed from reusable library; item snapshots retained', {
+      traitId,
+      retainedItemCount,
     });
-    logger.info('Custom magic trait deleted', { traitId, detachedItemCount });
     activeSheet.save();
   };
 
-  const updateCustomTrait = (traitId: string, patch: Partial<ItemMagicTrait>) => {
-    if (!activeSheet.character) return;
-    const existing = activeSheet.character.customMagicTraits?.find(trait => trait.id === traitId);
+  const updateCustomTrait = async (traitId: string, patch: Partial<ItemMagicTrait>) => {
+    const existing = [
+      ...customTraitStore.traits,
+      ...(activeSheet.character?.customMagicTraits ?? []),
+    ].find(trait => trait.id === traitId);
     if (!existing) {
       logger.warn('Ignored custom magic trait update for missing trait', { traitId });
       return;
@@ -150,12 +153,15 @@ export function useEnchanting() {
       source: 'custom',
     });
 
-    activeSheet.character.customMagicTraits = (activeSheet.character.customMagicTraits ?? []).map(trait =>
-      trait.id === traitId ? nextTrait : trait
-    );
+    await customTraitStore.upsertTrait(nextTrait);
+    if (activeSheet.character) {
+      activeSheet.character.customMagicTraits = (activeSheet.character.customMagicTraits ?? []).filter(
+        trait => trait.id !== traitId
+      );
+    }
 
     let updatedItemCount = 0;
-    activeSheet.character.inventory.forEach(item => {
+    activeSheet.character?.inventory.forEach(item => {
       if (!item.magic?.selectedTraitIds?.includes(traitId)) return;
       const magic = ensureMagicDefinition(item);
       const customTraits = magic.customTraits ?? [];
@@ -176,6 +182,7 @@ export function useEnchanting() {
   const findAvailableTrait = (traitId: string): ItemMagicTrait | undefined => {
     return [
       ...PRESET_MAGIC_TRAITS,
+      ...customTraitStore.traits,
       ...(activeSheet.character?.customMagicTraits ?? []),
     ].find(trait => trait.id === traitId);
   };

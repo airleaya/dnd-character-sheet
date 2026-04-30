@@ -9,6 +9,7 @@ import type {
   DataPackUnlockProgress,
 } from './DataPack';
 import type { LogWriteInput } from './logging';
+import type { ItemMagicTrait } from './Library';
 
 export type IpcSuccessResult<T> = {
   success: true;
@@ -34,6 +35,8 @@ export interface ElectronApi {
   selectDirectory: () => Promise<string | null>;
   exportCharacter: (dirPath: string, filename: string, content: string) => Promise<IpcVoidResult>;
   writeLog: (entry: LogWriteInput) => Promise<IpcVoidResult>;
+  readCustomMagicTraits?: () => Promise<IpcResult<ItemMagicTrait[]>>;
+  saveCustomMagicTraits?: (traits: ItemMagicTrait[]) => Promise<IpcResult<ItemMagicTrait[]>>;
   readDataPackState?: () => Promise<IpcResult<DataPackState>>;
   importDataPack?: () => Promise<IpcResult<DataPackImportResult | null>>;
   exportDataPack?: (packId: string, options?: DataPackExportOptions) => Promise<IpcVoidResult>;

@@ -307,7 +307,7 @@ const attackSaveInfo = computed(() => {
 
       <div class="desc-divider"></div>
       
-      <div class="desc scrollable-desc" v-html="item.description"></div>
+      <div class="desc scrollable-desc preserve-user-lines" v-html="item.description"></div>
       
       <div class="scaling" v-if="item.scaling">
         <strong>升环效应:</strong> {{ item.scaling }}
@@ -461,7 +461,7 @@ const attackSaveInfo = computed(() => {
     }
   }
   .desc-divider { height: 1px; background: #444; margin-bottom: 8px; }
-  .desc { max-height: 250px; overflow-y: hidden; line-height: 1.5; }
+  .desc { max-height: 250px; overflow-y: hidden; line-height: 1.5; overflow-wrap: anywhere; }
   .scaling {
     margin-top: 8px; padding-top: 8px; border-top: 1px dashed #555; font-size: 0.75rem; color: #aaa;
     strong { color: #888; }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
+import { useCustomMagicTraitStore } from '../../../stores/customMagicTraitStore';
 import { useDataPackStore } from '../../../stores/dataPackStore';
 import { useEnchanting } from '../../../composables/useEnchanting';
 import { DAMAGE_TYPE_OPTIONS } from '../../../data/rules/damageTypes';
@@ -23,6 +24,7 @@ type DataPackAssignmentData = {
 };
 
 const store = useActiveSheetStore();
+const customTraitStore = useCustomMagicTraitStore();
 const dataPackStore = useDataPackStore();
 const {
   isEnchantingOpen,
@@ -90,8 +92,8 @@ const rarityOptions: Array<{ value: ItemRarity; label: string }> = [
 const tabs: Array<{ key: EnchantTab; label: string; note: string }> = [
   { key: 'basic', label: '基础', note: '加值 / 同调 / 视觉' },
   { key: 'traits', label: '选择词条', note: '为当前物品选择' },
-  { key: 'create', label: '新建词条', note: '保存为可复用' },
-  { key: 'manage', label: '管理词条', note: '修改或删除自定义词条' },
+  { key: 'create', label: '新建词条', note: '保存为半永久可用' },
+  { key: 'manage', label: '管理词条', note: '编辑可选库与已绑定快照' },
 ];
 
 const traitTypeOptions: Array<{ value: ItemMagicTrait['type']; label: string; note: string }> = [
@@ -118,10 +120,23 @@ const customDraft = reactive({
   resetFormula: '',
 });
 
-const allTraits = computed<ItemMagicTrait[]>(() => [
-  ...PRESET_MAGIC_TRAITS,
-  ...(store.character?.customMagicTraits ?? []),
-]);
+const dedupeTraits = (traits: ItemMagicTrait[]) => Array.from(
+  new Map(traits.map(trait => [trait.id, trait])).values()
+);
+
+const customTraitOptions = computed<ItemMagicTrait[]>(() =>
+  dedupeTraits([
+    ...customTraitStore.traits,
+    ...(store.character?.customMagicTraits ?? []),
+  ])
+);
+
+const allTraits = computed<ItemMagicTrait[]>(() =>
+  dedupeTraits([
+    ...PRESET_MAGIC_TRAITS,
+    ...customTraitOptions.value,
+  ])
+);
 
 const selectedTraits = computed<ItemMagicTrait[]>(() => {
   return targetItem.value ? resolveMagicTraitsForItem(targetItem.value) : [];
@@ -263,18 +278,20 @@ const resetCustomDraft = () => {
   customDraft.resetFormula = '';
 };
 
-const saveNewCustomTrait = () => {
-  const trait = addCustomTrait({
+const saveNewCustomTrait = async () => {
+  const trait = await addCustomTrait({
     type: customDraft.type,
     name: customDraft.name.trim() || '自定义魔法词条',
-    description: customDraft.description.trim(),
+    description: customDraft.description,
     activationMode: customDraft.activationMode,
     participatesInDamage: customDraft.type === 'damage' && customDraft.participatesInDamage,
     damageDice: customDraft.type === 'damage' ? customDraft.damageDice.trim() : undefined,
     damageBonus: customDraft.type === 'damage' ? Number(customDraft.damageBonus || 0) : undefined,
     damageType: customDraft.type === 'damage' ? customDraft.damageType : undefined,
     spellId: customDraft.type === 'spell' ? customDraft.spellId || undefined : undefined,
-    spellExtraDescription: customDraft.type === 'spell' ? customDraft.spellExtraDescription.trim() : undefined,
+    spellExtraDescription: customDraft.type === 'spell' && customDraft.spellExtraDescription.trim()
+      ? customDraft.spellExtraDescription
+      : undefined,
     charges: buildCharges(),
   });
 
@@ -497,9 +514,9 @@ const saveNewCustomTrait = () => {
                       </button>
                       <aside class="trait-hover-card" role="tooltip">
                         <strong>{{ trait.name }}</strong>
-                        <p>{{ trait.description || '暂无描述' }}</p>
-                        <p v-if="trait.spellExtraDescription">{{ trait.spellExtraDescription }}</p>
-                        <span v-for="line in getTraitDetailLines(trait)" :key="line">{{ line }}</span>
+                        <p class="preserve-user-lines">{{ trait.description || '暂无描述' }}</p>
+                        <p v-if="trait.spellExtraDescription" class="preserve-user-lines">{{ trait.spellExtraDescription }}</p>
+                        <span v-for="line in getTraitDetailLines(trait)" :key="line" class="preserve-user-lines">{{ line }}</span>
                       </aside>
                     </div>
                   </div>
@@ -508,7 +525,7 @@ const saveNewCustomTrait = () => {
                 <section v-show="activeTab === 'create'" class="form-section custom-trait-editor">
                   <div class="section-title">
                     <h4>新建自定义词条</h4>
-                    <p>保存后会进入角色级词条库，并自动绑定到当前物品。</p>
+                    <p>保存后会进入角色级半永久词条库，并自动把词条快照写入当前物品；后续从系统词条库删除时，已绑定物品仍会保留该词条。</p>
                   </div>
                   <div class="field-grid">
                     <label>
@@ -532,7 +549,7 @@ const saveNewCustomTrait = () => {
                   </label>
                     <label class="full-field">
                       <span>词条描述</span>
-                      <textarea v-model="customDraft.description" rows="3" placeholder="描述该词条的规则文本"></textarea>
+                      <textarea data-test="custom-trait-description" v-model="customDraft.description" rows="3" placeholder="描述该词条的规则文本"></textarea>
                     </label>
                   </div>
 
@@ -573,7 +590,7 @@ const saveNewCustomTrait = () => {
                     </label>
                     <label class="full-field">
                       <span>法术额外描述</span>
-                      <textarea v-model="customDraft.spellExtraDescription" rows="3" placeholder="记录该物品施展该法术时的额外规则"></textarea>
+                      <textarea data-test="custom-trait-spell-extra-description" v-model="customDraft.spellExtraDescription" rows="3" placeholder="记录该物品施展该法术时的额外规则"></textarea>
                     </label>
                   </div>
 
@@ -606,13 +623,13 @@ const saveNewCustomTrait = () => {
                 <section v-show="activeTab === 'manage'" class="form-section custom-trait-editor">
                   <div class="section-title">
                     <h4>管理自定义词条</h4>
-                    <p>这些词条保存在当前角色数据中，可被任意物品复用。</p>
+                    <p>这些词条保存在当前角色数据中，可被任意物品复用；编辑会同步写入所有已选择该词条的物品，删除只移出可选库，不清除物品上的已绑定快照。</p>
                   </div>
-                  <div v-if="!store.character?.customMagicTraits?.length" class="empty-inline">
+                  <div v-if="!customTraitOptions.length" class="empty-inline">
                     尚未创建自定义词条。
                   </div>
                   <div
-                    v-for="trait in store.character?.customMagicTraits ?? []"
+                    v-for="trait in customTraitOptions"
                     :key="trait.id"
                     class="saved-trait-edit"
                     :class="{ focused: editingTraitId === trait.id }"
@@ -621,7 +638,7 @@ const saveNewCustomTrait = () => {
                     <div class="saved-trait-head">
                       <strong>{{ trait.name || '未命名词条' }}</strong>
                       <span>编辑后会同步到所有已选择该词条的物品。</span>
-                      <button type="button" class="btn-delete-trait" @click="deleteCustomTrait(trait.id)">删除</button>
+                      <button type="button" class="btn-delete-trait" @click="deleteCustomTrait(trait.id)">从可选库删除</button>
                     </div>
                     <div class="field-grid">
                       <label>

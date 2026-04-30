@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import type { Character } from '../src/types/Character'
+import type { ItemMagicTrait } from '../src/types/Library'
 import type {
   DataPackExportOptions,
   DataPackFile,
@@ -54,6 +55,8 @@ const getDataPacksRoot = (): string => path.join(getStorageRoot(), 'data-packs')
 const getImportedDataPacksDir = (): string => path.join(getDataPacksRoot(), 'imported');
 const getDataPackSettingsPath = (): string => path.join(getDataPacksRoot(), 'data-pack-settings.json');
 const getLocalEditorIdPath = (): string => path.join(getDataPacksRoot(), 'local-editor-id');
+const getMagicTraitsRoot = (): string => path.join(getStorageRoot(), 'magic-traits');
+const getCustomMagicTraitsPath = (): string => path.join(getMagicTraitsRoot(), 'custom-magic-traits.json');
 
 const ensureDirectoryExists = (dirPath: string): void => {
   if (!fs.existsSync(dirPath)) {
@@ -183,6 +186,56 @@ const ensureEditableDataPackInCurrentStorage = (packId: string): string | undefi
 };
 
 const readJsonFile = (filePath: string): unknown => JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+const normalizeCustomMagicTraitsForStorage = (value: unknown): ItemMagicTrait[] => {
+  if (!Array.isArray(value)) return [];
+  const traits = new Map<string, ItemMagicTrait>();
+  value.forEach(entry => {
+    if (!entry || typeof entry !== 'object') return;
+    const trait = entry as Partial<ItemMagicTrait>;
+    if (typeof trait.id !== 'string' || !trait.id.trim()) return;
+    if (typeof trait.name !== 'string' || !trait.name.trim()) return;
+    traits.set(trait.id, {
+      id: trait.id,
+      source: 'custom',
+      type: trait.type === 'damage' || trait.type === 'spell' || trait.type === 'defense' ? trait.type : 'plain',
+      name: trait.name,
+      description: typeof trait.description === 'string' ? trait.description : '',
+      activationMode: trait.activationMode === 'charged' ? 'charged' : 'always',
+      participatesInDamage: trait.participatesInDamage === true,
+      damageDice: typeof trait.damageDice === 'string' ? trait.damageDice : undefined,
+      damageBonus: typeof trait.damageBonus === 'number' ? trait.damageBonus : undefined,
+      damageType: typeof trait.damageType === 'string' ? trait.damageType : undefined,
+      spellId: typeof trait.spellId === 'string' ? trait.spellId : undefined,
+      spellExtraDescription: typeof trait.spellExtraDescription === 'string' ? trait.spellExtraDescription : undefined,
+      charges:
+        trait.charges && typeof trait.charges === 'object'
+          ? {
+              current: typeof trait.charges.current === 'number' ? trait.charges.current : 0,
+              max: typeof trait.charges.max === 'number' ? trait.charges.max : 0,
+              resetCondition: typeof trait.charges.resetCondition === 'string' ? trait.charges.resetCondition : undefined,
+              resetFormula: typeof trait.charges.resetFormula === 'string' ? trait.charges.resetFormula : undefined,
+            }
+          : undefined,
+    });
+  });
+  return Array.from(traits.values());
+};
+
+const readCustomMagicTraits = (): ItemMagicTrait[] => {
+  ensureDirectoryExists(getMagicTraitsRoot());
+  const filePath = getCustomMagicTraitsPath();
+  if (!fs.existsSync(filePath)) return [];
+  return normalizeCustomMagicTraitsForStorage(readJsonFile(filePath));
+};
+
+const writeCustomMagicTraits = (traits: ItemMagicTrait[]): ItemMagicTrait[] => {
+  const normalized = normalizeCustomMagicTraitsForStorage(traits);
+  ensureDirectoryExists(getMagicTraitsRoot());
+  fs.writeFileSync(getCustomMagicTraitsPath(), JSON.stringify(normalized, null, 2), 'utf-8');
+  logger.info('Custom magic traits saved to local storage', { traitCount: normalized.length });
+  return normalized;
+};
 
 const summarizeDataPackFile = (dataPack: DataPackFile) => ({
   packId: dataPack.manifest.id,
@@ -412,6 +465,26 @@ app.whenReady().then(() => {
       return { success: true, data: null };
     } catch (e) {
       logger.error('Renderer log write failed', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('read-custom-magic-traits', async (): Promise<IpcResult<ItemMagicTrait[]>> => {
+    try {
+      const traits = readCustomMagicTraits();
+      logger.info('Custom magic traits read', { traitCount: traits.length });
+      return { success: true, data: traits };
+    } catch (e) {
+      logger.error('Failed to read custom magic traits', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('save-custom-magic-traits', async (_event, traits: ItemMagicTrait[]): Promise<IpcResult<ItemMagicTrait[]>> => {
+    try {
+      return { success: true, data: writeCustomMagicTraits(traits) };
+    } catch (e) {
+      logger.error('Failed to save custom magic traits', e);
       return createErrorResult(e);
     }
   });
