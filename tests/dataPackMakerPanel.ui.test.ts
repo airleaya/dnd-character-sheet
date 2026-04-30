@@ -112,6 +112,49 @@ describe('DataPackMakerPanel', () => {
     expect(store.draftDirty).toBe(true);
   });
 
+  it('renders draft magic items with their configured visual style', () => {
+    const store = useDataPackStore();
+    store.activeDraftPack = {
+      ...createDraftPack(),
+      items: [
+        {
+          id: 'magic-sword',
+          name: '月光长剑',
+          type: 'weapon',
+          cost: { value: 0, unit: 'gp' },
+          weight: 3,
+          description: '',
+          displayCategory: '魔法装备',
+          displaySubcategory: '武器',
+          category: 'martial_melee',
+          damage: '1d8',
+          damageType: 'slashing',
+          properties: [],
+          magic: {
+            isMagic: true,
+            magicBonus: 1,
+            visuals: {
+              inventoryBackground: '#32165f',
+              nameColor: '#f2d38b',
+            },
+          },
+        } as LibraryItem,
+      ],
+    };
+
+    wrapper = mount(DataPackMakerPanel, {
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    const card = wrapper.get('.content-item-card');
+    expect(card.classes()).toContain('magic');
+    expect(card.attributes('style')).toContain('background-color: rgb(50, 22, 95)');
+    expect(card.text()).toContain('月光长剑+1');
+    expect(card.get('.content-item-main strong').attributes('style')).toContain('color: rgb(242, 211, 139)');
+  });
+
   it('manages passphrase unlock groups and assigns spell visibility metadata', () => {
     const store = useDataPackStore();
     store.activeDraftPack = {

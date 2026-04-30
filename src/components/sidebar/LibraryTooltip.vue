@@ -9,7 +9,9 @@ import { WEAPON_CAT_MAP, ARMOR_TYPE_MAP } from '../../data/rules/proficiencies'
 import { ITEM_TYPE_MAP } from '../../data/rules/dndRules';
 import { getTooltipViewportPosition } from '../../stores/tooltip';
 import { formatContainerCapacity } from '../../utils/containerCapacity';
+import { formatMagicItemName, getMagicInventoryStyle } from '../../utils/magicItems';
 import ItemDescriptionRenderer from '../common/ItemDescriptionRenderer.vue';
+import type { ItemMagicDefinition } from '../../types/Library';
 
 type TooltipItemType = 'item' | 'spell';
 
@@ -41,6 +43,7 @@ type TooltipItem = {
   cost?: ItemCost;
   description?: string;
   descriptionBlocks?: ItemDescriptionBlock[];
+  magic?: ItemMagicDefinition;
   level?: number;
   school?: string;
   ritual?: boolean;
@@ -185,6 +188,14 @@ const attackSaveInfo = computed(() => {
   if (s.attackType === 'auto') return '自动命中';
   return null;
 });
+
+const itemHeaderStyle = computed(() =>
+  props.type === 'item' ? getMagicInventoryStyle(props.item) : undefined
+);
+
+const displayName = computed(() =>
+  props.type === 'item' ? formatMagicItemName(props.item) : props.item.name
+);
 </script>
 
 <template>
@@ -193,8 +204,8 @@ const attackSaveInfo = computed(() => {
     class="item-tooltip-card"
     :style="tooltipStyle"
   >
-    <div class="card-header">
-      <div class="card-title">{{ item.name }}</div>
+    <div class="card-header" :class="{ magic: type === 'item' && item.magic?.isMagic }" :style="itemHeaderStyle">
+      <div class="card-title">{{ displayName }}</div>
       <div class="card-subtitle">{{ subTypeLabel }}</div>
     </div>
     
@@ -345,6 +356,14 @@ const attackSaveInfo = computed(() => {
   }
   .card-title { 
     color: #fff; font-weight: bold; font-size: 0.95rem; 
+  }
+  .card-header.magic {
+    border-bottom-color: rgba(215, 193, 255, 0.55);
+
+    .card-title,
+    .card-subtitle {
+      color: inherit;
+    }
   }
   /* ✅ 新增：副标题样式 */
   .card-subtitle {

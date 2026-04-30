@@ -20,9 +20,11 @@ import { formatContainerCapacity } from '../../../utils/containerCapacity';
 import { getCarryingLoadTone } from '../../../utils/carryingLoad';
 import {
   formatMagicItemName,
+  formatMagicRarity,
   formatMagicTraitDamage,
   formatMagicTraitMeta,
   getMagicInventoryStyle,
+  hasExplicitMagicBonus,
   resolveMagicTraitsForItem,
 } from '../../../utils/magicItems';
 import { getRuntimeSpellById } from '../../../data/dataPacks/runtimeDataPacks';
@@ -212,6 +214,37 @@ const getBadges = (item: InventoryItem): InventoryTooltipBadge[] => {
   return badges;
 };
 
+const formatSigned = (value: number) => (value >= 0 ? `+${value}` : `${value}`);
+
+const getMagicAttributeRows = (item: InventoryItem): Array<{ label: string; value: string }> => {
+  if (!item.magic?.isMagic) return [];
+  const magic = item.magic;
+  const rows: Array<{ label: string; value: string }> = [
+    { label: '魔法物品', value: '是' },
+  ];
+
+  if (hasExplicitMagicBonus(item)) {
+    rows.push({ label: '魔法加值', value: formatSigned(magic.magicBonus!) });
+  }
+
+  rows.push({ label: '稀有度', value: formatMagicRarity(magic.rarity) });
+
+  if (magic.attunement?.requires) {
+    rows.push({ label: '同调', value: magic.attunement.attuned ? '需要 · 已同调' : '需要 · 未同调' });
+    if (magic.attunement.condition) {
+      rows.push({ label: '同调条件', value: magic.attunement.condition });
+    }
+  } else {
+    rows.push({ label: '同调', value: '不需要' });
+  }
+
+  if (magic.isCursed) {
+    rows.push({ label: '诅咒', value: '是' });
+  }
+
+  return rows;
+};
+
 const getMagicTraits = (item: InventoryItem) => resolveMagicTraitsForItem(item);
 
 const getMagicTraitSpellName = (spellId?: string) => {
@@ -363,6 +396,41 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
               >
                 {{ b.text }}
               </span>
+            </div>
+
+            <div v-if="hoveredItem.magic?.isMagic" class="magic-attributes-section">
+              <div class="magic-traits-title">魔法属性</div>
+              <div class="magic-attribute-grid">
+                <div
+                  v-for="row in getMagicAttributeRows(hoveredItem)"
+                  :key="`${row.label}:${row.value}`"
+                  class="magic-attribute-row"
+                >
+                  <span>{{ row.label }}</span>
+                  <strong class="preserve-user-lines">{{ row.value }}</strong>
+                </div>
+              </div>
+              <div v-if="hoveredItem.magic.visuals" class="magic-visual-row">
+                <span>视觉</span>
+                <i
+                  v-if="hoveredItem.magic.visuals.inventoryBackground"
+                  class="color-swatch"
+                  :style="{ backgroundColor: hoveredItem.magic.visuals.inventoryBackground }"
+                  title="行囊背景"
+                ></i>
+                <i
+                  v-if="hoveredItem.magic.visuals.attackBackground"
+                  class="color-swatch"
+                  :style="{ backgroundColor: hoveredItem.magic.visuals.attackBackground }"
+                  title="攻击项背景"
+                ></i>
+                <i
+                  v-if="hoveredItem.magic.visuals.nameColor"
+                  class="color-swatch"
+                  :style="{ backgroundColor: hoveredItem.magic.visuals.nameColor }"
+                  title="名字字体颜色"
+                ></i>
+              </div>
             </div>
 
             <div v-if="getMagicTraits(hoveredItem).length > 0" class="magic-traits-section">
@@ -526,6 +594,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
   .badge.cyan { color: #48c9b0; background: rgba(72, 201, 176, 0.1); }
   .badge.red { color: #ec7063; background: rgba(236, 112, 99, 0.1); }
 
+  .magic-attributes-section,
   .magic-traits-section {
     display: grid;
     gap: 6px;
@@ -537,6 +606,48 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.08em;
+  }
+
+  .magic-attribute-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .magic-attribute-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 4px 6px;
+    border: 1px solid rgba(215, 193, 255, 0.18);
+    border-radius: 5px;
+    background: rgba(240, 231, 255, 0.06);
+
+    span {
+      color: #a996c8;
+    }
+
+    strong {
+      color: #e6d8ff;
+      text-align: right;
+      font-weight: 800;
+    }
+  }
+
+  .magic-visual-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #a996c8;
+    font-size: 0.76rem;
+  }
+
+  .color-swatch {
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
   }
 
   .magic-trait-card {

@@ -4,6 +4,7 @@ import { useDataPackStore } from '../../../stores/dataPackStore';
 import { useForge } from '../../../composables/useForge';
 import { useEnchanting } from '../../../composables/useEnchanting';
 import { getDragPayloadFromEvent } from '../../../utils/inventoryDropUtils';
+import { formatMagicItemName, getMagicInventoryStyle } from '../../../utils/magicItems';
 import type { DataPackTraitDefinition } from '../../../types/DataPack';
 import type { LibraryItem } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
@@ -53,6 +54,10 @@ const unlockGroupStats = computed(() => store.getDraftUnlockGroupStats());
 const visibilityIssues = computed(() => store.getDraftVisibilityIssues());
 const getUnlockGroupStat = (groupId: string) =>
   unlockGroupStats.value.find(stat => stat.groupId === groupId);
+const getDraftItemStyle = (item: LibraryItem) => getMagicInventoryStyle(item);
+const getDraftItemNameStyle = (item: LibraryItem) =>
+  item.magic?.isMagic ? { color: item.magic.visuals?.nameColor || getDraftItemStyle(item)?.color } : undefined;
+const getDraftItemDisplayName = (item: LibraryItem) => formatMagicItemName(item);
 const contentGroups = computed(() => {
   const groups: Array<{
     category: string;
@@ -574,7 +579,8 @@ const saveDraftFromHeader = async () => {
                     v-for="item in subgroup.items"
                     :key="item.id"
                     class="content-item-card"
-                    :class="{ active: selectedItem?.id === item.id }"
+                    :class="{ active: selectedItem?.id === item.id, magic: item.magic?.isMagic }"
+                    :style="getDraftItemStyle(item)"
                     draggable="true"
                     @dragstart="onContentItemDragStart(item.id)"
                     @dragend="onContentItemDragEnd"
@@ -584,7 +590,7 @@ const saveDraftFromHeader = async () => {
                   >
                     <span class="drag-handle">⋮⋮</span>
                     <div class="content-item-main">
-                      <strong>{{ item.name }}</strong>
+                      <strong :style="getDraftItemNameStyle(item)">{{ getDraftItemDisplayName(item) }}</strong>
                       <small>{{ item.type }} / {{ item.source || pack.manifest.name }}</small>
                     </div>
                     <div class="content-item-actions">
@@ -850,8 +856,9 @@ textarea { min-height: 96px; resize: vertical; }
 .content-items { display: grid; gap: 7px; }
 .content-item-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; padding: 9px; border: 1px solid #dde6db; border-radius: 10px; background: #fbfcfa; cursor: grab; }
 .content-item-card.active { border-color: #263126; box-shadow: 0 0 0 2px rgba(38, 49, 38, 0.12); }
+.content-item-card.magic { border-color: rgba(126, 83, 183, 0.42); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
 .content-item-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.content-item-main small { color: #798379; }
+.content-item-main small { color: currentColor; opacity: 0.72; }
 .content-item-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
 .drag-handle { color: #9ba89b; font-weight: 900; letter-spacing: -0.18em; cursor: grab; }
 @media (max-width: 900px) { .maker-grid, .groups-panel { grid-template-columns: 1fr; } .group-card.encrypted { grid-column: auto; } .maker-header { flex-direction: column; } }

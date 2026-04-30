@@ -8,6 +8,22 @@ import {
 } from '../data/rules/magicTraits';
 import { DAMAGE_TYPES } from '../data/rules/damageTypes';
 
+type MagicItemLike = {
+  name: string;
+  type?: string;
+  magic?: ItemMagicDefinition;
+};
+
+export const MAGIC_RARITY_LABELS: Record<string, string> = {
+  common: '普通',
+  uncommon: '非普通',
+  rare: '稀有',
+  very_rare: '珍稀',
+  legendary: '传奇',
+  artifact: '神器',
+  varies: '可变',
+};
+
 export const ensureMagicDefinition = (item: InventoryItem): ItemMagicDefinition => {
   if (!item.magic) {
     item.magic = { isMagic: false };
@@ -57,7 +73,7 @@ export const cloneMagicDefinition = (magic?: ItemMagicDefinition): ItemMagicDefi
   isCursed: magic?.isCursed,
 });
 
-export const isMagicItem = (item: InventoryItem): boolean => item.magic?.isMagic === true;
+export const isMagicItem = (item: MagicItemLike): boolean => item.magic?.isMagic === true;
 
 export const requiresAttunement = (item: InventoryItem): boolean =>
   isMagicItem(item) && item.magic?.attunement?.requires === true;
@@ -70,10 +86,10 @@ export const getMagicBonus = (item: InventoryItem): number =>
     ? item.magic.magicBonus
     : 0;
 
-export const hasExplicitMagicBonus = (item: InventoryItem): boolean =>
+export const hasExplicitMagicBonus = (item: MagicItemLike): boolean =>
   isMagicItem(item) && typeof item.magic?.magicBonus === 'number' && Number.isFinite(item.magic.magicBonus);
 
-export const formatMagicItemName = (item: InventoryItem, baseName = item.name): string => {
+export const formatMagicItemName = (item: MagicItemLike, baseName = item.name): string => {
   if (item.type !== 'weapon' || !hasExplicitMagicBonus(item)) {
     return baseName;
   }
@@ -81,7 +97,7 @@ export const formatMagicItemName = (item: InventoryItem, baseName = item.name): 
   return `${baseName}${bonus >= 0 ? '+' : ''}${bonus}`;
 };
 
-export const getMagicInventoryStyle = (item: InventoryItem) => {
+export const getMagicInventoryStyle = (item: MagicItemLike) => {
   if (!isMagicItem(item)) return undefined;
 
   return {
@@ -90,7 +106,7 @@ export const getMagicInventoryStyle = (item: InventoryItem) => {
   };
 };
 
-export const getMagicAttackStyle = (item: InventoryItem) => {
+export const getMagicAttackStyle = (item: MagicItemLike) => {
   if (!isMagicItem(item)) return undefined;
 
   return {
@@ -98,6 +114,9 @@ export const getMagicAttackStyle = (item: InventoryItem) => {
     color: item.magic?.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
   };
 };
+
+export const formatMagicRarity = (rarity?: string): string =>
+  rarity ? `${MAGIC_RARITY_LABELS[rarity] ?? rarity} (${rarity})` : '未设置';
 
 export const attachMagicTraitSnapshot = (item: InventoryItem, trait: ItemMagicTrait) => {
   const magic = ensureMagicDefinition(item);

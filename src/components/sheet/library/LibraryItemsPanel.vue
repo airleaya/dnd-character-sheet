@@ -6,6 +6,7 @@ import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
 import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
 import { DEFAULT_DATA_PACK_ID } from '../../../utils/dataPackUtils';
+import { formatMagicItemName, getMagicInventoryStyle } from '../../../utils/magicItems';
 import type {
   ArmorDefinition,
   ArmorType,
@@ -137,9 +138,14 @@ const weaponPropertyLabels: Record<WeaponPropertyKey, string> = {
 const isWeaponItem = (item: LibraryItem): item is WeaponDefinition =>
   item.type === 'weapon' && 'properties' in item && Array.isArray(item.properties);
 
-const getBadges = (item: LibraryItem) => {
-  const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'red' | 'green' }> = [];
+const getLibraryItemStyle = (item: LibraryItem) => getMagicInventoryStyle(item);
+const getLibraryItemNameStyle = (item: LibraryItem) =>
+  item.magic?.isMagic ? { color: item.magic.visuals?.nameColor || getLibraryItemStyle(item)?.color } : undefined;
 
+const getBadges = (item: LibraryItem) => {
+  const badges: Array<{ text: string; color: 'blue' | 'orange' | 'cyan' | 'red' | 'green' | 'purple' }> = [];
+
+  if (item.magic?.isMagic) badges.push({ text: '魔法', color: 'purple' });
   if (item.source) badges.push({ text: item.source, color: 'blue' });
   if ('capacityVolume' in item && item.capacityVolume) badges.push({ text: '容器', color: 'orange' });
   if ('contents' in item && item.contents) badges.push({ text: '套组', color: 'orange' });
@@ -210,6 +216,8 @@ const getBadges = (item: LibraryItem) => {
                   <template #item="{ element }">
                     <div
                       class="library-item"
+                      :class="{ magic: element.magic?.isMagic }"
+                      :style="getLibraryItemStyle(element)"
                       draggable="true"
                       @mouseenter="emit('hover-item', element, $event)"
                       @mousemove="emit('move-item', $event)"
@@ -218,8 +226,8 @@ const getBadges = (item: LibraryItem) => {
                       @dragend="onDragEnd"
                     >
                       <div class="item-row">
-                        <span class="item-name">
-                          {{ element.name }}
+                        <span class="item-name" :style="getLibraryItemNameStyle(element)">
+                          {{ formatMagicItemName(element) }}
                           <small v-if="element.englishName">{{ element.englishName }}</small>
                         </span>
                         <span class="item-cost">{{ formatCost(element.cost) }}</span>
@@ -282,9 +290,10 @@ const getBadges = (item: LibraryItem) => {
 }
 
 .library-item { background-color: #1e1e1e; border-bottom: 1px solid #282828; padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: #2d2d2d; } }
+.library-item.magic { border-left: 3px solid rgba(215, 193, 255, 0.75); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
 .item-row { display: flex; justify-content: space-between; gap: 8px; }
 .item-name { color: #ccc; font-size: 0.9rem; font-weight: 500; min-width: 0; }
-.item-name small { display: block; color: #777; font-size: 0.7rem; margin-top: 2px; }
+.item-name small { display: block; color: currentColor; opacity: 0.62; font-size: 0.7rem; margin-top: 2px; }
 .item-cost { color: #d4ac0d; font-size: 0.8rem; font-family: monospace; white-space: nowrap; }
 
 .badges-row { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
@@ -294,5 +303,6 @@ const getBadges = (item: LibraryItem) => {
 .badge.cyan { color: #48c9b0; background: rgba(72, 201, 176, 0.1); }
 .badge.red { color: #ec7063; background: rgba(236, 112, 99, 0.1); }
 .badge.green { color: #82e0aa; background: rgba(130, 224, 170, 0.1); }
+.badge.purple { color: #d7c1ff; background: rgba(215, 193, 255, 0.12); }
 .empty-state { padding: 40px; text-align: center; color: #555; }
 </style>

@@ -80,6 +80,14 @@ describe('InventoryPanel carrying load color', () => {
     item.type = 'weapon';
     item.magic = {
       isMagic: true,
+      magicBonus: 1,
+      rarity: 'rare',
+      attunement: { requires: true, condition: '需要战士同调', attuned: false },
+      visuals: {
+        inventoryBackground: '#442266',
+        attackBackground: '#663322',
+        nameColor: '#ffeeaa',
+      },
       selectedTraitIds: ['frost'],
       customTraits: [
         {
@@ -102,6 +110,13 @@ describe('InventoryPanel carrying load color', () => {
     const wrapper = mountInventoryPanel();
     await wrapper.find('.item-row').trigger('mouseenter', { clientX: 20, clientY: 20 });
 
+    expect(wrapper.text()).toContain('魔法属性');
+    expect(wrapper.text()).toContain('魔法加值');
+    expect(wrapper.text()).toContain('+1');
+    expect(wrapper.text()).toContain('稀有 (rare)');
+    expect(wrapper.text()).toContain('需要 · 未同调');
+    expect(wrapper.text()).toContain('需要战士同调');
+    expect(wrapper.findAll('.color-swatch')).toHaveLength(3);
     expect(wrapper.text()).toContain('附魔词条');
     expect(wrapper.text()).toContain('寒霜');
     expect(wrapper.text()).toContain('命中时爆发寒气。');

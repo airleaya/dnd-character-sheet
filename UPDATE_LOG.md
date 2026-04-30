@@ -1,5 +1,33 @@
 # UPDATE_LOG
 
+## [0.14.19] - 2026-04-30
+- Type: Feature / Magic Item UI / Data Pack Maker / Item Library / Tests
+- Item: Synchronize magic item visuals across inventory, data-pack maker, and item library displays.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/utils/magicItems.ts`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/sidebar/LibraryTooltip.vue`
+  - `tests/inventoryPanelLoadColor.ui.test.ts`
+  - `tests/dataPackMakerPanel.ui.test.ts`
+  - `tests/libraryTooltip.ui.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.18` to `0.14.19` because this round adds magic-item UI visibility behavior, not just bug fixes.
+  - Inventory hover cards now show magic attributes for enchanted items, including magic bonus, rarity, attunement state/condition, curse flag, and visual color swatches.
+  - Data-pack maker item cards now reuse magic inventory visuals and magic item name formatting, so GM-authored enchanted items keep their color and `+N` name display in the content list.
+  - Right-side item library rows and item tooltips now reuse magic visuals, add a magic badge, and show magic weapon bonus names such as `长剑+1`.
+  - Shared magic item helpers now support both inventory instances and library definitions.
+- Verification:
+  - `npm run test -- tests/inventoryPanelLoadColor.ui.test.ts tests/dataPackMakerPanel.ui.test.ts tests/libraryTooltip.ui.test.ts` passed: 3 files / 13 tests.
+  - `npm run typecheck` passed.
+  - `npm run build` was not run, per current engineering rule.
+
 ## [0.14.18] - 2026-04-30
 - Type: Feature / Enchanting UI / Magic Traits / Tests / Logging
 - Item: Add custom-trait edit entry from enchanting selection and badge-based trait browsing.

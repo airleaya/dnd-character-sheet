@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-04-30 version iteration update:
+> Current baseline grows from `0.14.18` to `0.14.19`; this round synchronizes enchanted item magic visuals and magic attributes across inventory, data-pack maker, and item library UI.
+> 2026-04-30 magic item UI update:
+> Inventory hover cards expose magic attributes, data-pack maker content cards inherit enchanted-item visual styling, and right-side item library rows/tooltips now show magic colors, magic badges, and weapon `+N` names.
+
+> 2026-04-30 version iteration update:
 > Current baseline grows from `0.14.17` to `0.14.18`; this round upgrades the enchanting trait editor and selection UI.
 > 2026-04-30 enchanting trait editor update:
 > The enchanting interface now exposes custom-trait editing from the trait selection area, propagates saved custom-trait edits to all inventory items selecting that trait, and renders selectable traits as compact badges with hover-only detail cards instead of full text rows.
@@ -229,12 +234,15 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.14.16`
+当前基线版本：`0.14.19`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
 
 - `0.14.N`：数据包系统；`N` 为自增长补丁版本号。
+- `0.14.19`：已完成附魔物品魔法属性与魔法视觉在行囊、数据包制作器和物品库中的同步展示。
+- `0.14.18`：已完成附魔界面词条编辑入口、词条徽章化与悬停详情。
+- `0.14.17`：已完成数据包口令进度持久化、全局口令、公开/总数信息与导出重置控制。
 - `0.14.16`：已完成阶段四收尾：口令组内容统计、可见性元数据警告与导入校验提示。
 - `0.14.15`：已完成数据包口令解锁状态的本包重新锁定与全局清空本次解锁。
 - `0.14.14`：已完成 GM 制作器口令分组管理、物品/法术/词条公开状态写回与旧“加密分组”文案收敛。

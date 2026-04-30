@@ -63,4 +63,37 @@ describe('LibraryTooltip UI', () => {
     expect(description.classes()).toContain('preserve-user-lines');
     expect(description.element.textContent).toBe('第一行描述\n第二行描述');
   });
+
+  it('applies magic visual style to item library tooltip headers', () => {
+    const wrapper = mount(LibraryTooltip, {
+      props: {
+        type: 'item',
+        position: { x: 20, y: 20 },
+        item: {
+          name: '星辉短剑',
+          type: 'weapon',
+          category: 'simple_melee',
+          damage: '1d4',
+          damageType: 'piercing',
+          properties: [],
+          weight: 1,
+          cost: { value: 0, unit: 'gp' },
+          description: '',
+          magic: {
+            isMagic: true,
+            magicBonus: 1,
+            visuals: {
+              inventoryBackground: '#3a175f',
+              nameColor: '#ffe0a3',
+            },
+          },
+        },
+      },
+    });
+
+    const header = wrapper.get('.card-header');
+    expect(header.classes()).toContain('magic');
+    expect(header.attributes('style')).toContain('background-color: rgb(58, 23, 95)');
+    expect(wrapper.text()).toContain('星辉短剑+1');
+  });
 });
