@@ -189,4 +189,50 @@ describe('LibraryTooltip UI', () => {
     expect(wrapper.text()).toContain('这是自定义描述。');
     expect(wrapper.text()).not.toContain('这是来自PHB玩家手册的武器物品。');
   });
+
+  it('renders third-party shop catalog description tables from structured blocks', () => {
+    const wrapper = mount(LibraryTooltip, {
+      props: {
+        type: 'item',
+        position: { x: 20, y: 20 },
+        item: {
+          id: 'market-pack:shop_catalog',
+          name: 'frontier caravan catalog',
+          type: 'treasure',
+          displayCategory: 'trade goods',
+          displaySubcategory: 'shop catalog',
+          weight: 0,
+          cost: { value: 0, unit: 'gp' },
+          description: 'weekly restock',
+          descriptionBlocks: [
+            { type: 'paragraph', text: 'weekly restock' },
+            {
+              type: 'table',
+              caption: 'frontier caravan catalog',
+              columns: ['category', 'name', 'price', 'note'],
+              rows: [['weapons', 'catalog-only longsword', '99 gp', 'one only\nnegotiable']],
+            },
+          ],
+          shopCatalog: {
+            title: 'frontier caravan catalog',
+            description: 'weekly restock',
+            entries: [
+              {
+                itemId: 'longsword',
+                name: 'catalog-only longsword',
+                category: 'weapons',
+                price: { value: 99, unit: 'gp' },
+                note: 'one only\nnegotiable',
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(wrapper.find('.desc-table').exists()).toBe(true);
+    expect(wrapper.text()).toContain('catalog-only longsword');
+    expect(wrapper.text()).toContain('one only\nnegotiable');
+  });
+
 });

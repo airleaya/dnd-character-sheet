@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { formatCost } from '../../utils/currencyUtils';
-import type { ItemCost, ItemDescriptionBlock } from '../../types/Library';
+import type { ItemCost, ItemDescriptionBlock, ShopCatalogData } from '../../types/Library';
 import { getSchoolLabel } from '../../data/rules/dndRules';
 import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
@@ -51,6 +51,7 @@ type TooltipItem = {
   cost?: ItemCost;
   description?: string;
   descriptionBlocks?: ItemDescriptionBlock[];
+  shopCatalog?: ShopCatalogData;
   magic?: ItemMagicDefinition;
   level?: number;
   school?: string;
@@ -207,7 +208,7 @@ const displayName = computed(() =>
 );
 
 const shouldPreferPlainDescription = computed(() =>
-  props.type === 'item' && Boolean(props.item.id?.includes(':'))
+  props.type === 'item' && Boolean(props.item.id?.includes(':')) && !props.item.shopCatalog
 );
 
 const magicTraits = computed(() =>

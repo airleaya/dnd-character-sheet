@@ -6,6 +6,7 @@ import { useLibraryFilter } from '../../../composables/useLibraryFilter';
 import { formatCost } from '../../../utils/currencyUtils';
 import { clearGlobalDragPayload, setupDragData } from '../../../utils/inventoryDropUtils';
 import { DEFAULT_DATA_PACK_ID } from '../../../utils/dataPackUtils';
+import { getEntryUnlockGroupId, getNormalizedUnlockGroups } from '../../../utils/dataPackVisibility';
 import { formatMagicItemName, getMagicInventoryStyle } from '../../../utils/magicItems';
 import type {
   ArmorDefinition,
@@ -32,16 +33,62 @@ const queryRef = toRef(props, 'searchQuery');
 const dataPackStore = useDataPackStore();
 const { filteredList } = useLibraryFilter(dataPackStore.itemLibraryItems, queryRef);
 
-const libraryTree = computed(() =>
-  dataPackStore.getItemGroups(new Set(filteredList.value.map(item => item.id)))
-);
-
 const expandedState = ref<Record<string, boolean>>({ 'dnd5e-default': true });
+const passphraseGroupedPackIds = ref<Record<string, boolean>>({});
 const weaponCategoryFilter = ref<WeaponCategory | null>(null);
 const armorTypeFilter = ref<ArmorType | null>(null);
 
+const visibleItemIds = computed(() => new Set(filteredList.value.map(item => item.id)));
+
+const buildPassphraseGroups = (packId: string, ids: Set<string>) => {
+  const pack = dataPackStore.enabledDataPacks.find(entry => entry.id === packId);
+  if (!pack) return [];
+
+  const unlockGroupById = new Map(
+    getNormalizedUnlockGroups(pack.editorMeta).map(group => [group.id, group.passphrase])
+  );
+  const grouped = new Map<string, { id: string; title: string; items: LibraryItem[] }>();
+  const visibleItems = pack.items.filter(item => ids.has(item.id));
+
+  visibleItems.forEach(item => {
+    const groupId = getEntryUnlockGroupId(item);
+    const key = groupId ? `unlock:${groupId}` : 'public';
+    const title = groupId ? unlockGroupById.get(groupId) ?? '已解锁口令' : '公开内容';
+    if (!grouped.has(key)) {
+      grouped.set(key, { id: `${packId}:passphrase:${key}`, title, items: [] });
+    }
+    grouped.get(key)!.items.push(item);
+  });
+
+  return Array.from(grouped.values()).filter(group => group.items.length > 0);
+};
+
+const libraryTree = computed(() => {
+  const packsById = new Map(dataPackStore.enabledDataPacks.map(pack => [pack.id, pack]));
+  const ids = visibleItemIds.value;
+
+  return dataPackStore.getItemGroups(ids).map(packGroup => {
+    const pack = packsById.get(packGroup.packId);
+    const passphraseGroups = buildPassphraseGroups(packGroup.packId, ids);
+    const hasPassphraseGroups = Boolean(pack && getNormalizedUnlockGroups(pack.editorMeta).length > 0);
+
+    return {
+      ...packGroup,
+      hasPassphraseGroups,
+      passphraseMode: Boolean(passphraseGroupedPackIds.value[packGroup.packId]) && hasPassphraseGroups,
+      passphraseGroups,
+    };
+  });
+});
+
 const isVisible = (key: string) => !!expandedState.value[key] || props.searchQuery.length > 0;
 const toggleExpand = (key: string) => { expandedState.value[key] = !expandedState.value[key]; };
+const togglePassphraseGrouping = (packId: string) => {
+  passphraseGroupedPackIds.value = {
+    ...passphraseGroupedPackIds.value,
+    [packId]: !passphraseGroupedPackIds.value[packId],
+  };
+};
 
 watch(
   libraryTree,
@@ -54,6 +101,12 @@ watch(
       pack.categoryGroups.forEach(category => {
         if (pack.packId !== DEFAULT_DATA_PACK_ID && expandedState.value[category.id] === undefined) {
           expandedState.value[category.id] = true;
+        }
+      });
+
+      pack.passphraseGroups.forEach(group => {
+        if (pack.packId !== DEFAULT_DATA_PACK_ID && expandedState.value[group.id] === undefined) {
+          expandedState.value[group.id] = true;
         }
       });
     });
@@ -168,17 +221,69 @@ const getBadges = (item: LibraryItem) => {
   <div class="items-panel">
     <div v-for="pack in libraryTree" :key="pack.packId" class="main-group">
       <div class="main-group-header" @click="toggleExpand(pack.packId)" :class="{ 'is-open': isVisible(pack.packId) }">
-        <div class="header-content"><span class="arrow-icon">▶</span>{{ pack.label }}</div>
+        <div class="header-content"><span class="arrow-icon">&gt;</span>{{ pack.label }}</div>
+        <button
+          v-if="pack.hasPassphraseGroups"
+          type="button"
+          class="passphrase-toggle"
+          :class="{ active: pack.passphraseMode }"
+          title="Passphrase grouping"
+          @click.stop="togglePassphraseGrouping(pack.packId)"
+        >
+          Key
+        </button>
       </div>
-      <div v-show="isVisible(pack.packId)">
+      <div v-show="isVisible(pack.packId) && pack.passphraseMode">
+        <div v-for="group in pack.passphraseGroups" :key="group.id" class="category-group">
+          <div class="category-header passphrase-header" @click="toggleExpand(group.id)" :class="{ 'is-open': isVisible(group.id) }">
+            <div class="header-left"><span class="arrow-icon">&gt;</span>{{ group.title }}</div>
+            <span class="count">{{ group.items.length }}</span>
+          </div>
+          <div v-show="isVisible(group.id)">
+            <draggable
+              :list="group.items"
+              :group="{ name: 'library', pull: 'clone', put: false }"
+              :clone="cloneItem"
+              item-key="id"
+              class="item-list"
+            >
+              <template #item="{ element }">
+                <div
+                  class="library-item"
+                  :class="{ magic: element.magic?.isMagic }"
+                  :style="getLibraryItemStyle(element)"
+                  draggable="true"
+                  @mouseenter="emit('hover-item', element, $event)"
+                  @mousemove="emit('move-item', $event)"
+                  @mouseleave="emit('leave-item')"
+                  @dragstart="onNativeDragStart($event, element)"
+                  @dragend="onDragEnd"
+                >
+                  <div class="item-row">
+                    <span class="item-name" :style="getLibraryItemNameStyle(element)">
+                      {{ formatMagicItemName(element) }}
+                      <small v-if="element.englishName">{{ element.englishName }}</small>
+                    </span>
+                    <span class="item-cost">{{ formatCost(element.cost) }}</span>
+                  </div>
+                  <div class="badges-row" v-if="getBadges(element).length > 0">
+                    <span v-for="(b, i) in getBadges(element)" :key="i" class="badge" :class="b.color">{{ b.text }}</span>
+                  </div>
+                </div>
+              </template>
+            </draggable>
+          </div>
+        </div>
+      </div>
+      <div v-show="isVisible(pack.packId) && !pack.passphraseMode">
         <div v-for="category in pack.categoryGroups" :key="category.id" class="category-group">
           <div class="category-header" @click="toggleExpand(category.id)" :class="{ 'is-open': isVisible(category.id) }">
-            <div class="header-left"><span class="arrow-icon">▶</span>{{ category.label }}</div>
+            <div class="header-left"><span class="arrow-icon">&gt;</span>{{ category.label }}</div>
           </div>
           <div v-show="isVisible(category.id)">
             <div v-for="sub in category.subGroups" :key="sub.title" class="sub-group">
               <div class="sticky-sub-header" @click="toggleExpand(`${category.id}_${sub.title}`)" :class="{ 'is-open': isVisible(`${category.id}_${sub.title}`) }">
-                <div class="header-left"><span class="arrow-icon">▶</span>{{ sub.title }}</div>
+                <div class="header-left"><span class="arrow-icon">&gt;</span>{{ sub.title }}</div>
                 <div v-if="isWeaponSubGroup(category, sub)" class="weapon-filter" @click.stop>
                   <button
                     v-for="option in weaponCategoryOptions"
@@ -257,10 +362,26 @@ const getBadges = (item: LibraryItem) => {
   position: sticky; top: 0; z-index: 20; min-height: var(--main-group-sticky-height);
   padding: 14px 12px; margin-top: 1px; background-color: #252525; border-bottom: 1px solid #333; border-left: 4px solid #555;
   font-size: 0.95rem; font-weight: 800; color: #ddd; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
   &:hover { background-color: #2d2d2d; color: #fff; }
   .header-content { display: flex; align-items: center; gap: 8px; }
   .arrow-icon { font-size: 0.75rem; color: #888; transition: transform 0.2s ease; display: inline-block; }
   &.is-open { background-color: #2c2c2c; border-left-color: #42b983; border-bottom-color: #42b983; color: #42b983; .arrow-icon { transform: rotate(90deg); color: #42b983; } }
+}
+
+.passphrase-toggle {
+  border: 1px solid rgba(215, 193, 255, 0.28);
+  background: rgba(215, 193, 255, 0.08);
+  color: #d7c1ff;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  &:hover { border-color: rgba(215, 193, 255, 0.6); background: rgba(215, 193, 255, 0.16); color: #fff; }
+  &.active { border-color: #d7c1ff; background: #3a175f; color: #fff; }
 }
 
 .sticky-sub-header {
@@ -280,6 +401,13 @@ const getBadges = (item: LibraryItem) => {
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
   &.is-open { color: #d8c36a; border-left-color: #d8c36a; .arrow-icon { transform: rotate(90deg); } }
+}
+
+.category-header.passphrase-header {
+  color: #d7c1ff;
+  border-left-color: rgba(215, 193, 255, 0.5);
+  .count { font-size: 0.7rem; color: #cdb8ff; background: rgba(215, 193, 255, 0.1); padding: 1px 6px; border-radius: 8px; }
+  &.is-open { color: #f0e7ff; border-left-color: #d7c1ff; }
 }
 
 .weapon-filter { display: flex; gap: 4px; margin-left: auto; margin-right: 8px; }
