@@ -1,5 +1,34 @@
 # UPDATE_LOG
 
+## [0.14.21] - 2026-05-06
+- Type: Feature / Data Pack Maker / Shop Catalog / UI Cleanup / Tests
+- Item: Add data-pack maker shop catalog generation and remove the maker behavior monitor panel.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/types/Library.ts`
+  - `src/types/Item.ts`
+  - `src/data/libraries/itemLibrary.ts`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/layout/AppLayout.vue`
+  - `tests/dataPackMakerPanel.ui.test.ts`
+  - `tests/itemLibraryAdapter.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.20` to `0.14.21` because this round adds the data-pack maker shop catalog workflow.
+  - Data-pack maker can create and edit `shop catalog` items under the trade-goods shop-catalog category, including custom description, weight, price, and catalog title.
+  - Added the built-in shop catalog template with 0 weight and 0 gp as a blank starting point.
+  - Catalog entries are stored as snapshots; editing catalog display name, category, price, or note does not modify the selected source item.
+  - The catalog picker can repeatedly switch selectable item sources across enabled/default/third-party data packs.
+  - Catalog descriptions and entry notes preserve user line breaks and are rendered into structured description blocks and table rows.
+  - Removed the floating data-pack maker behavior monitor panel from the UI while keeping internal diagnostics/logging paths available for future troubleshooting.
+- Verification:
+  - `npm run test -- tests/dataPackMakerPanel.ui.test.ts tests/itemLibraryAdapter.test.ts` passed: 2 files / 20 tests.
+  - `npm run typecheck` passed.
+  - `npm run build` was not run, per current engineering rule.
+
 ## [0.14.20] - 2026-05-06
 - Type: Feature / Data Pack Maker / Forge Workflow / Diagnostics / Tests
 - Item: Copy data-pack maker content items into the forge workflow and harden maker save diagnostics.

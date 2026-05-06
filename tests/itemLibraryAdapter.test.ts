@@ -4,7 +4,7 @@ import { normalizeCharacterData, type LegacyCharacterData } from '../src/utils/c
 
 describe('structured item library adapter', () => {
   it('uses the audited structured mundane library as the runtime source', () => {
-    expect(ITEM_LIBRARY_AUDIT_REPORT.total).toBe(498);
+    expect(ITEM_LIBRARY_AUDIT_REPORT.total).toBe(499);
     expect(ITEM_LIBRARY_AUDIT_REPORT.sourceMismatched).toBe(0);
     expect(ITEM_LIBRARY_AUDIT_REPORT.duplicateIds).toBe(0);
     expect(ITEM_LIBRARY_AUDIT_REPORT.magicItems).toBe(0);
@@ -19,6 +19,7 @@ describe('structured item library adapter', () => {
       ['blank_template_tool', '工具模板', 'tool'],
       ['blank_template_consumable', '消耗品模板', 'consumable'],
       ['blank_template_treasure', '财宝模板', 'treasure'],
+      ['blank_template_shop_catalog', '商品清单模板', 'treasure'],
       ['blank_template_container', '容器模板', 'container'],
       ['blank_template_pack', '套组模板', 'pack'],
       ['blank_template_misc', '其他模板', 'misc'],
@@ -31,11 +32,13 @@ describe('structured item library adapter', () => {
         name,
         type,
         weight: 0,
-        description: '',
         cost: { value: 0, unit: 'gp' },
         magic: { isMagic: false },
         tags: expect.arrayContaining(['blank_template']),
       });
+      if (id !== 'blank_template_shop_catalog') {
+        expect(template?.description).toBe('');
+      }
     });
 
     expect(getLibraryItemById('blank_template_weapon')).toMatchObject({
@@ -50,6 +53,13 @@ describe('structured item library adapter', () => {
     });
     expect(getLibraryItemById('blank_template_pack')).toMatchObject({
       contents: [],
+    });
+    expect(getLibraryItemById('blank_template_shop_catalog')).toMatchObject({
+      displayCategory: '贸易品',
+      displaySubcategory: '商品清单',
+      weight: 0,
+      cost: { value: 0, unit: 'gp' },
+      shopCatalog: { title: '商品清单', entries: [] },
     });
   });
 

@@ -130,6 +130,22 @@ export type ItemDescriptionBlock =
   | { type: 'list'; items: string[] }
   | { type: 'table'; caption?: string; columns: string[]; rows: string[][] };
 
+export interface ShopCatalogEntry {
+  itemId: string;
+  name: string;
+  price?: ItemCost;
+  category: string;
+  note?: string;
+  source?: string;
+}
+
+export interface ShopCatalogData {
+  title: string;
+  description: string;
+  entries: ShopCatalogEntry[];
+  updatedAt?: string;
+}
+
 export interface ItemLibraryAudit {
   sourceIntakeId: string;
   sourceFile: string;
@@ -171,6 +187,7 @@ export interface ItemDefinition {
   weight: number;        
   description: string;   
   descriptionBlocks?: ItemDescriptionBlock[];
+  shopCatalog?: ShopCatalogData;
   magic?: ItemMagicDefinition;
   multiplicity?: ItemMultiplicity;
   acquisitionRule?: ItemAcquisitionRule;

@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import DataPackMakerPanel from '../src/components/sheet/dataPackMaker/DataPackMakerPanel.vue';
-import DataPackMakerMonitor from '../src/components/sheet/dataPackMaker/DataPackMakerMonitor.vue';
 import { useForge } from '../src/composables/useForge';
 import { useDataPackStore } from '../src/stores/dataPackStore';
 import type { DataPackFile } from '../src/types/DataPack';
@@ -154,37 +153,6 @@ describe('DataPackMakerPanel', () => {
     });
   });
 
-  it('shows a copyable floating maker behavior monitor for save diagnostics', async () => {
-    const store = useDataPackStore();
-    store.isMakerOpen = true;
-    store.activeDraftPack = createDraftPack();
-    store.recordMakerDragDiagnostic('forge.save-start', 'info', 'Forge save button invoked', {
-      itemName: '不朽精粹',
-    });
-    const writeText = vi.fn(async () => undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText },
-      configurable: true,
-    });
-
-    wrapper = mount(DataPackMakerMonitor, {
-      global: {
-        plugins: [pinia],
-      },
-    });
-
-    await wrapper.find('.monitor-toggle').trigger('click');
-
-    expect(wrapper.text()).toContain('数据包编辑器行为监视');
-    expect(wrapper.text()).toContain('Forge save button invoked');
-    expect(wrapper.find('.monitor-copy-box').exists()).toBe(true);
-
-    await wrapper.find('.monitor-actions button').trigger('click');
-
-    expect(writeText).toHaveBeenCalledTimes(1);
-    const copiedText = writeText.mock.calls.at(0)?.at(0);
-    expect(copiedText).toContain('forge.save-start');
-  });
 
   it('syncs editor-assigned item groups into the active data pack metadata', () => {
     const store = useDataPackStore();
@@ -305,6 +273,193 @@ describe('DataPackMakerPanel', () => {
       name: '长剑',
     });
     expect(store.makerDragDiagnostics.some(entry => entry.step === 'maker.copy-forge')).toBe(true);
+  });
+
+  it('generates and edits a shop catalog item from data-pack maker items', async () => {
+    const store = useDataPackStore();
+    store.isMakerOpen = true;
+    store.packs = [
+      {
+        id: 'market-pack',
+        name: 'market pack',
+        version: '1.0.0',
+        builtin: false,
+        enabled: true,
+        sourceKind: 'imported',
+        manifest: { schemaVersion: 1, id: 'market-pack', name: 'market pack', version: '1.0.0' },
+        itemMenuName: 'market pack',
+        spellMenuName: 'market pack',
+        items: [
+          {
+            id: 'market-pack:silk',
+            name: 'silk',
+            type: 'treasure',
+            cost: { value: 10, unit: 'gp' },
+            weight: 1,
+            description: '',
+            displayCategory: 'trade goods',
+            displaySubcategory: 'trade goods',
+            source: 'market pack',
+          } as LibraryItem,
+        ],
+        spells: [],
+        traits: [],
+      },
+    ];
+    store.activeDraftPack = {
+      ...createDraftPack(),
+      items: [
+        {
+          id: 'longsword',
+          name: 'longsword',
+          type: 'weapon',
+          cost: { value: 15, unit: 'gp' },
+          weight: 3,
+          description: '',
+          displayCategory: 'equipment',
+          displaySubcategory: 'weapon',
+        } as LibraryItem,
+      ],
+    };
+
+    wrapper = mount(DataPackMakerPanel, {
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    await wrapper.find('.shop-catalog-card button').trigger('click');
+    await wrapper.find('.shop-catalog-editor input').setValue('frontier caravan catalog');
+    await wrapper.find('.catalog-description textarea').setValue('weekly restock\nrare goods require preorder');
+
+    const candidates = wrapper.findAll('.catalog-candidate');
+    expect(candidates.length).toBeGreaterThanOrEqual(2);
+    await candidates.find(button => button.text().includes('longsword'))!.trigger('click');
+    await candidates.find(button => button.text().includes('silk'))!.trigger('click');
+
+    const selectedInputs = wrapper.findAll('.catalog-entry-fields input');
+    await selectedInputs[0]!.setValue('catalog-only longsword');
+    await selectedInputs[1]!.setValue('catalog-only category');
+    await selectedInputs[2]!.setValue(99);
+    const notes = wrapper.findAll('.catalog-entry textarea');
+    await notes[0]!.setValue('one only\nnegotiable');
+    await wrapper.find('.catalog-actions button').trigger('click');
+
+    const catalog = store.activeDraftPack.items?.find(item => item.shopCatalog);
+    expect(catalog).toMatchObject({
+      id: 'shop_catalog',
+      name: 'frontier caravan catalog',
+      type: 'treasure',
+      displayCategory: expect.any(String),
+      displaySubcategory: expect.any(String),
+      weight: 0,
+      cost: { value: 0, unit: 'gp' },
+      description: 'weekly restock\nrare goods require preorder',
+    });
+    expect(catalog?.shopCatalog?.entries.map(entry => entry.name)).toEqual(['catalog-only longsword', 'silk']);
+    expect(catalog?.shopCatalog?.entries[0]).toMatchObject({
+      category: 'catalog-only category',
+      price: { value: 99, unit: 'gp' },
+    });
+    expect(store.activeDraftPack.items?.find(item => item.id === 'longsword')).toMatchObject({
+      name: 'longsword',
+      displayCategory: 'equipment',
+      cost: { value: 15, unit: 'gp' },
+    });
+    expect(catalog?.descriptionBlocks?.find(block => block.type === 'table')).toMatchObject({
+      caption: 'frontier caravan catalog',
+      columns: expect.any(Array),
+    });
+    expect(catalog?.descriptionBlocks?.find(block => block.type === 'table' && block.rows.some(row => row.includes('one only\nnegotiable')))).toBeTruthy();
+    expect(store.activeDraftPack.editorMeta?.menuGroups?.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        name: expect.any(String),
+        children: expect.arrayContaining([expect.objectContaining({ name: expect.any(String) })]),
+      }),
+    ]));
+
+    const editCatalogButton = wrapper.findAll('.content-item-actions button').find(button => button.text().length === 4 && !button.classes().includes('danger'));
+    expect(editCatalogButton).toBeTruthy();
+    await editCatalogButton!.trigger('click');
+    await wrapper.find('.shop-catalog-editor input').setValue('revised catalog');
+    await wrapper.find('.catalog-actions button').trigger('click');
+
+    const editedCatalogs = store.activeDraftPack.items?.filter(item => item.shopCatalog);
+    expect(editedCatalogs).toHaveLength(1);
+    expect(editedCatalogs?.[0]?.name).toBe('revised catalog');
+  });
+
+  it('filters shop catalog candidates by repeatedly toggled data-pack sources', async () => {
+    const store = useDataPackStore();
+    store.isMakerOpen = true;
+    store.packs = [
+      {
+        id: 'market-pack',
+        name: 'market pack',
+        version: '1.0.0',
+        builtin: false,
+        enabled: true,
+        sourceKind: 'imported',
+        manifest: { schemaVersion: 1, id: 'market-pack', name: 'market pack', version: '1.0.0' },
+        itemMenuName: 'market pack',
+        spellMenuName: 'market pack',
+        items: [
+          {
+            id: 'market-pack:silk',
+            name: 'silk',
+            type: 'treasure',
+            cost: { value: 10, unit: 'gp' },
+            weight: 1,
+            description: '',
+            displayCategory: 'trade goods',
+            displaySubcategory: 'trade goods',
+            source: 'market pack',
+          } as LibraryItem,
+        ],
+        spells: [],
+        traits: [],
+      },
+    ];
+    store.activeDraftPack = {
+      ...createDraftPack(),
+      items: [
+        {
+          id: 'longsword',
+          name: 'longsword',
+          type: 'weapon',
+          cost: { value: 15, unit: 'gp' },
+          weight: 3,
+          description: '',
+          displayCategory: 'equipment',
+          displaySubcategory: 'weapon',
+        } as LibraryItem,
+      ],
+    };
+
+    wrapper = mount(DataPackMakerPanel, {
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    await wrapper.find('.shop-catalog-card button').trigger('click');
+    expect(wrapper.text()).toContain('longsword');
+    expect(wrapper.text()).toContain('silk');
+
+    const sourceChecks = wrapper.findAll('.catalog-source-option input');
+    expect(sourceChecks).toHaveLength(2);
+    await sourceChecks[1]!.setValue(false);
+    expect(wrapper.text()).toContain('longsword');
+    expect(wrapper.text()).not.toContain('silk / trade goods');
+
+    await sourceChecks[0]!.setValue(false);
+    await sourceChecks[1]!.setValue(true);
+    expect(wrapper.text()).not.toContain('longsword / equipment');
+    expect(wrapper.text()).toContain('silk');
+
+    await wrapper.findAll('.catalog-source-actions button')[0]!.trigger('click');
+    expect(wrapper.text()).toContain('longsword');
+    expect(wrapper.text()).toContain('silk');
   });
 
   it('manages passphrase unlock groups and assigns spell visibility metadata', () => {

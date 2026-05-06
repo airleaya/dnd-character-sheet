@@ -3,7 +3,6 @@ import SidebarLeft from './SidebarLeft.vue';
 import SidebarRight from './SidebarRight.vue';
 import ForgeModal from '../sheet/modals/ForgeModal.vue';
 import EnchantingModal from '../sheet/modals/EnchantingModal.vue';
-import DataPackMakerMonitor from '../sheet/dataPackMaker/DataPackMakerMonitor.vue';
 </script>
 
 <template>
@@ -18,7 +17,6 @@ import DataPackMakerMonitor from '../sheet/dataPackMaker/DataPackMakerMonitor.vu
 
     <ForgeModal />
     <EnchantingModal />
-    <DataPackMakerMonitor />
   </div>
 </template>
 

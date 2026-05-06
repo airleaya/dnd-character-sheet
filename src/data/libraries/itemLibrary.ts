@@ -500,6 +500,21 @@ export const BLANK_ITEM_TEMPLATES: LibraryItem[] = [
     ...blankBase('blank_template_treasure', '财宝模板', 'treasure', '财宝'),
   } as TreasureDefinition,
   {
+    ...blankBase('blank_template_shop_catalog', '商品清单模板', 'treasure', '贸易品'),
+    displayCategory: '贸易品',
+    displaySubcategory: '商品清单',
+    description: '用于记录商人、据点或数据包内可出售物品的商品清单模板。',
+    descriptionBlocks: [
+      { type: 'paragraph', text: '用于记录商人、据点或数据包内可出售物品的商品清单模板。' },
+      { type: 'table', caption: '商品清单', columns: ['类别', '名称', '价格', '备注'], rows: [] },
+    ],
+    shopCatalog: {
+      title: '商品清单',
+      description: '',
+      entries: [],
+    },
+  } as TreasureDefinition,
+  {
     ...blankBase('blank_template_container', '容器模板', 'container', '容器'),
     capacityWeight: 0,
     capacityVolume: '',

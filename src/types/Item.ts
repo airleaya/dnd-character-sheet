@@ -19,6 +19,7 @@ type CommonExclude =
   | 'weight'
   | 'description'
   | 'descriptionBlocks'
+  | 'shopCatalog'
   | 'type'
   | 'rarity'
   | 'cost'

@@ -1,6 +1,11 @@
 # TODOLIST
 
 > 2026-05-06 version iteration update:
+> Current baseline grows from `0.14.20` to `0.14.21`; this round adds data-pack maker shop catalog generation and removes the behavior monitor panel.
+> 2026-05-06 data-pack maker shop catalog update:
+> Shop catalog can select items from chosen data-pack sources, save snapshot-only custom display data without changing source items, and live under the trade-goods shop-catalog category; the floating behavior monitor UI has been removed.
+
+> 2026-05-06 version iteration update:
 > Current baseline grows from `0.14.19` to `0.14.20`; this round adds data-pack maker copy-to-forge editing and maker workflow diagnostics.
 > 2026-05-06 data-pack maker forge workflow update:
 > Data-pack content items can now be copied into a new independent draft item before opening the forge editor via either the `??????` item button or by dragging a content item to the maker forge target; maker save diagnostics now stay available in a floating behavior monitor with one-click copy.

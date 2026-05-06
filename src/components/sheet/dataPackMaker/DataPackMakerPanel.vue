@@ -6,8 +6,9 @@ import { useEnchanting } from '../../../composables/useEnchanting';
 import { getDragPayloadFromEvent } from '../../../utils/inventoryDropUtils';
 import { formatMagicItemName, getMagicInventoryStyle } from '../../../utils/magicItems';
 import { makeUniqueLocalId } from '../../../utils/dataPackUtils';
+import { formatCost } from '../../../utils/currencyUtils';
 import type { DataPackTraitDefinition } from '../../../types/DataPack';
-import type { LibraryItem } from '../../../types/Library';
+import type { ItemCost, LibraryItem, ShopCatalogEntry } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
 import type { SpellDefinition } from '../../../types/Spell';
 
@@ -31,6 +32,18 @@ const newEncryptionGroupDescription = ref('');
 const draggedContentItemId = ref('');
 const draggedContentGroupKey = ref('');
 const isSavingDraft = ref(false);
+const isShopCatalogEditorOpen = ref(false);
+const shopCatalogDraft = reactive({
+  editingItemId: '',
+  name: '商品清单',
+  description: '',
+  weight: 0,
+  costValue: 0,
+  costUnit: 'gp' as ItemCost['unit'],
+  search: '',
+  selectedPackIds: [] as string[],
+  entries: [] as ShopCatalogEntry[],
+});
 const lockDraft = reactive({
   enabled: false,
   password: '',
@@ -59,6 +72,7 @@ const getDraftItemStyle = (item: LibraryItem) => getMagicInventoryStyle(item);
 const getDraftItemNameStyle = (item: LibraryItem) =>
   item.magic?.isMagic ? { color: item.magic.visuals?.nameColor || getDraftItemStyle(item)?.color } : undefined;
 const getDraftItemDisplayName = (item: LibraryItem) => formatMagicItemName(item);
+const isShopCatalogItem = (item?: LibraryItem) => Boolean(item?.shopCatalog);
 const contentGroups = computed(() => {
   const groups: Array<{
     category: string;
@@ -90,6 +104,83 @@ const contentGroups = computed(() => {
 
   return groups;
 });
+
+const allCatalogCandidateItems = computed(() => {
+  const byId = new Map<string, LibraryItem>();
+  const enabledPackIds = new Set(shopCatalogDraft.selectedPackIds);
+
+  store.orderedDataPacks.forEach(dataPack => {
+    if (!enabledPackIds.has(dataPack.id)) return;
+    dataPack.items.forEach(item => {
+      byId.set(item.id, item);
+    });
+  });
+
+  if (!pack.value || enabledPackIds.has(pack.value.manifest.id)) {
+    items.value.forEach(item => {
+      byId.set(item.id, item);
+    });
+  }
+
+  return Array.from(byId.values()).filter(item => !isShopCatalogItem(item));
+});
+
+const filteredCatalogCandidateItems = computed(() => {
+  const query = shopCatalogDraft.search.trim().toLowerCase();
+  if (!query) return allCatalogCandidateItems.value;
+  return allCatalogCandidateItems.value.filter(item =>
+    [
+      item.name,
+      item.englishName,
+      item.id,
+      item.displayCategory,
+      item.displaySubcategory,
+      item.source,
+    ]
+      .filter(Boolean)
+      .some(value => String(value).toLowerCase().includes(query))
+  );
+});
+
+const catalogPackSources = computed(() => {
+  const sources = store.orderedDataPacks.map(dataPack => ({
+    id: dataPack.id,
+    name: dataPack.name,
+    itemCount: dataPack.items.filter(item => !isShopCatalogItem(item)).length,
+  }));
+
+  if (pack.value && !sources.some(source => source.id === pack.value?.manifest.id)) {
+    sources.unshift({
+      id: pack.value.manifest.id,
+      name: `${pack.value.manifest.name}（当前草稿）`,
+      itemCount: items.value.filter(item => !isShopCatalogItem(item)).length,
+    });
+  }
+
+  return sources;
+});
+
+const syncCatalogSelectedPackIds = () => {
+  const validIds = catalogPackSources.value.map(source => source.id);
+  const selected = shopCatalogDraft.selectedPackIds.filter(id => validIds.includes(id));
+  shopCatalogDraft.selectedPackIds = selected.length > 0 ? selected : validIds;
+};
+
+watch(catalogPackSources, syncCatalogSelectedPackIds, { immediate: true });
+
+const toggleCatalogPackSource = (packId: string, checked: boolean) => {
+  const selected = new Set(shopCatalogDraft.selectedPackIds);
+  if (checked) {
+    selected.add(packId);
+  } else {
+    selected.delete(packId);
+  }
+  shopCatalogDraft.selectedPackIds = Array.from(selected);
+};
+
+const setAllCatalogPackSources = (enabled: boolean) => {
+  shopCatalogDraft.selectedPackIds = enabled ? catalogPackSources.value.map(source => source.id) : [];
+};
 
 watch(pack, next => {
   const lock = next?.editorMeta?.editLock;
@@ -357,6 +448,131 @@ const addEncryptionGroup = () => {
 const getEntryUnlockGroupId = (entry?: { encryptionGroupId?: string; visibility?: { unlockGroupId?: string } }) =>
   entry?.visibility?.unlockGroupId ?? entry?.encryptionGroupId ?? '';
 
+const sortedCatalogEntries = computed(() =>
+  [...shopCatalogDraft.entries].sort((a, b) => {
+    const categoryCompare = a.category.localeCompare(b.category, 'zh-CN');
+    if (categoryCompare !== 0) return categoryCompare;
+    return a.name.localeCompare(b.name, 'zh-CN');
+  })
+);
+
+const setCatalogDraftFromItem = (item?: LibraryItem) => {
+  shopCatalogDraft.editingItemId = item?.id ?? '';
+  shopCatalogDraft.name = item?.name ?? '商品清单';
+  shopCatalogDraft.description = item?.shopCatalog?.description ?? item?.description ?? '';
+  shopCatalogDraft.weight = item?.weight ?? 0;
+  shopCatalogDraft.costValue = item?.cost?.value ?? 0;
+  shopCatalogDraft.costUnit = item?.cost?.unit ?? 'gp';
+  shopCatalogDraft.search = '';
+  shopCatalogDraft.entries = clonePlain(item?.shopCatalog?.entries ?? []);
+  syncCatalogSelectedPackIds();
+};
+
+const resetCatalogDraft = () => {
+  setCatalogDraftFromItem();
+  isShopCatalogEditorOpen.value = false;
+};
+
+const openShopCatalogEditor = (item?: LibraryItem) => {
+  activeSection.value = 'items';
+  isShopCatalogEditorOpen.value = true;
+  setCatalogDraftFromItem(item);
+};
+
+const getCatalogEntryCategory = (item: LibraryItem) =>
+  item.displayCategory && item.displaySubcategory
+    ? `${item.displayCategory} / ${item.displaySubcategory}`
+    : item.displayCategory ?? item.displaySubcategory ?? item.type;
+
+const addItemToCatalogDraft = (item: LibraryItem) => {
+  if (shopCatalogDraft.entries.some(entry => entry.itemId === item.id)) return;
+  shopCatalogDraft.entries.push({
+    itemId: item.id,
+    name: getDraftItemDisplayName(item),
+    price: clonePlain(item.cost ?? { value: 0, unit: 'gp' }),
+    category: getCatalogEntryCategory(item),
+    note: '',
+    source: item.source,
+  });
+};
+
+const removeItemFromCatalogDraft = (itemId: string) => {
+  shopCatalogDraft.entries = shopCatalogDraft.entries.filter(entry => entry.itemId !== itemId);
+};
+
+const buildShopCatalogDescriptionBlocks = (): LibraryItem['descriptionBlocks'] => {
+  const blocks: LibraryItem['descriptionBlocks'] = [];
+  if (shopCatalogDraft.description.trim()) {
+    blocks.push({ type: 'paragraph', text: shopCatalogDraft.description });
+  }
+  blocks.push({
+    type: 'table',
+    caption: shopCatalogDraft.name.trim() || '商品清单',
+    columns: ['类别', '名称', '价格', '备注'],
+    rows: sortedCatalogEntries.value.map(entry => [
+      entry.category,
+      entry.name,
+      formatCost(entry.price),
+      entry.note ?? '',
+    ]),
+  });
+  return blocks;
+};
+
+const ensureTradeGoodCatalogGroup = () => {
+  store.ensureMenuGroupForAssignment('items', '贸易品', '商品清单');
+};
+
+const saveShopCatalog = () => {
+  if (!pack.value) return;
+  const now = new Date().toISOString();
+  const catalogName = shopCatalogDraft.name.trim() || '商品清单';
+  const catalogDescription = shopCatalogDraft.description;
+  const catalogData = {
+    title: catalogName,
+    description: catalogDescription,
+    entries: sortedCatalogEntries.value.map(entry => clonePlain(entry)),
+    updatedAt: now,
+  };
+  const catalogItem: LibraryItem = {
+    id: shopCatalogDraft.editingItemId || makeUniqueLocalId('shop_catalog', items.value.map(item => item.id)),
+    name: catalogName,
+    englishName: '',
+    type: 'treasure',
+    source: pack.value.manifest.name,
+    category: 'trade_good',
+    subcategory: 'shop_catalog',
+    displayCategory: '贸易品',
+    displaySubcategory: '商品清单',
+    cost: { value: Number(shopCatalogDraft.costValue) || 0, unit: shopCatalogDraft.costUnit },
+    weight: Number(shopCatalogDraft.weight) || 0,
+    description: catalogDescription,
+    descriptionBlocks: buildShopCatalogDescriptionBlocks(),
+    shopCatalog: catalogData,
+    magic: { isMagic: false },
+  } as LibraryItem;
+
+  const existingIndex = items.value.findIndex(item => item.id === catalogItem.id);
+  pack.value.items = existingIndex >= 0
+    ? items.value.map((item, index) => index === existingIndex ? catalogItem : item)
+    : [...items.value, catalogItem];
+
+  ensureTradeGoodCatalogGroup();
+  selectedItemIndex.value = pack.value.items.findIndex(item => item.id === catalogItem.id);
+  store.markDraftDirty();
+  store.recordMakerDragDiagnostic('maker.shop-catalog', 'ok', 'Shop catalog saved into active draft pack', {
+    packId: pack.value.manifest.id,
+    itemId: catalogItem.id,
+    itemName: catalogItem.name,
+    entryCount: catalogData.entries.length,
+  });
+  isShopCatalogEditorOpen.value = true;
+  setCatalogDraftFromItem(catalogItem);
+};
+
+const getCandidateSelected = (itemId: string) =>
+  shopCatalogDraft.entries.some(entry => entry.itemId === itemId);
+
 const setSpellUnlockGroup = (spell: SpellDefinition, value: string) => {
   store.assignDraftSpellUnlockGroup(spell.id, value || undefined);
 };
@@ -620,6 +836,11 @@ const saveDraftFromHeader = async () => {
           <strong>编辑方式</strong>
           <span>点击内容区物品上的“DIY 编辑”或“附魔”按钮，会打开已有的物品/附魔窗口。</span>
         </div>
+        <div class="shop-catalog-card">
+          <strong>商品清单生成</strong>
+          <span>建立可修改的商品清单物品，可选当前数据包或其他数据包的物品，并按类别整理价格与备注。</span>
+          <button type="button" @click="openShopCatalogEditor()">新建商品清单</button>
+        </div>
       </aside>
 
       <main class="content-panel">
@@ -631,7 +852,103 @@ const saveDraftFromHeader = async () => {
         </div>
 
         <div v-if="contentGroups.length === 0" class="empty-panel compact">从右侧物品库拖拽物品到铁匠台或附魔台。</div>
-        <section v-else class="content-groups">
+        <section class="shop-catalog-editor" v-if="isShopCatalogEditorOpen">
+          <header class="shop-catalog-editor-title">
+            <div>
+              <h3>商品清单编辑器</h3>
+              <p class="hint">清单会保存为贸易品 / 商品清单分类下的物品；描述和每条备注会保留换行。</p>
+            </div>
+            <button type="button" class="ghost small" @click="resetCatalogDraft">收起 / 重置</button>
+          </header>
+          <div class="catalog-fields">
+            <label>清单名<input v-model="shopCatalogDraft.name" /></label>
+            <label>重量<input type="number" v-model.number="shopCatalogDraft.weight" /></label>
+            <label>价格
+              <span class="catalog-cost-row">
+                <input type="number" v-model.number="shopCatalogDraft.costValue" />
+                <select v-model="shopCatalogDraft.costUnit">
+                  <option value="cp">cp</option>
+                  <option value="sp">sp</option>
+                  <option value="ep">ep</option>
+                  <option value="gp">gp</option>
+                  <option value="pp">pp</option>
+                </select>
+              </span>
+            </label>
+            <label class="catalog-description">描述<textarea v-model="shopCatalogDraft.description" placeholder="输入商品清单说明、店铺背景、购买规则等。"></textarea></label>
+          </div>
+
+          <div class="catalog-picker">
+            <section>
+              <h4>可选物品</h4>
+              <div class="catalog-source-filter">
+                <div class="catalog-source-actions">
+                  <strong>来源数据包</strong>
+                  <button type="button" class="small" @click="setAllCatalogPackSources(true)">全选</button>
+                  <button type="button" class="small ghost" @click="setAllCatalogPackSources(false)">全不选</button>
+                </div>
+                <label v-for="source in catalogPackSources" :key="source.id" class="catalog-source-option">
+                  <input
+                    type="checkbox"
+                    :checked="shopCatalogDraft.selectedPackIds.includes(source.id)"
+                    @change="toggleCatalogPackSource(source.id, ($event.target as HTMLInputElement).checked)"
+                  />
+                  <span>{{ source.name }}（{{ source.itemCount }}）</span>
+                </label>
+              </div>
+              <input v-model="shopCatalogDraft.search" placeholder="搜索名称 / ID / 分类 / 来源" />
+              <div class="catalog-candidates">
+                <button
+                  v-for="item in filteredCatalogCandidateItems.slice(0, 80)"
+                  :key="item.id"
+                  type="button"
+                  class="catalog-candidate"
+                  :disabled="getCandidateSelected(item.id)"
+                  @click="addItemToCatalogDraft(item)"
+                >
+                  <strong>{{ getDraftItemDisplayName(item) }}</strong>
+                  <span>{{ getCatalogEntryCategory(item) }} / {{ formatCost(item.cost) }}</span>
+                </button>
+              </div>
+            </section>
+
+            <section>
+              <h4>已选物品（按类别排序）</h4>
+              <div class="catalog-selected">
+                <article v-for="entry in sortedCatalogEntries" :key="entry.itemId" class="catalog-entry">
+                  <div class="catalog-entry-head">
+                    <strong>{{ entry.name }}</strong>
+                    <span>{{ entry.category }} / {{ formatCost(entry.price) }}</span>
+                    <button type="button" class="danger small" @click="removeItemFromCatalogDraft(entry.itemId)">移除</button>
+                  </div>
+                  <div class="catalog-entry-fields">
+                    <label>展示名<input v-model="entry.name" /></label>
+                    <label>类别<input v-model="entry.category" /></label>
+                    <label>价格
+                      <span class="catalog-cost-row">
+                        <input type="number" v-model.number="entry.price!.value" />
+                        <select v-model="entry.price!.unit">
+                          <option value="cp">cp</option>
+                          <option value="sp">sp</option>
+                          <option value="ep">ep</option>
+                          <option value="gp">gp</option>
+                          <option value="pp">pp</option>
+                        </select>
+                      </span>
+                    </label>
+                  </div>
+                  <label>备注<textarea v-model="entry.note" placeholder="可填写库存、折扣、购买限制等。"></textarea></label>
+                </article>
+                <p v-if="sortedCatalogEntries.length === 0" class="hint">尚未选择商品。</p>
+              </div>
+            </section>
+          </div>
+
+          <div class="catalog-actions">
+            <button type="button" @click="saveShopCatalog">{{ shopCatalogDraft.editingItemId ? '保存商品清单修改' : '生成商品清单物品' }}</button>
+          </div>
+        </section>
+        <section v-if="contentGroups.length > 0" class="content-groups">
           <article v-for="group in contentGroups" :key="group.category" class="content-category">
             <header class="content-category-title">
               <span>{{ group.category }}</span>
@@ -682,6 +999,7 @@ const saveDraftFromHeader = async () => {
                       <button type="button" class="small" @click.stop="openForgeEditorForDraftItem(item)">DIY 编辑</button>
                       <button type="button" class="small" @click.stop="openForgeEditorForDraftItemCopy(item)">复制到铁匠台</button>
                       <button type="button" class="small" @click.stop="openEnchantEditorForDraftItem(item)">附魔</button>
+                      <button v-if="isShopCatalogItem(item)" type="button" class="small" @click.stop="openShopCatalogEditor(item)">修改清单</button>
                       <button type="button" class="danger small" @click.stop="removeDraftItem(item.id)">删除</button>
                     </div>
                   </article>
@@ -900,6 +1218,8 @@ button.small { padding: 4px 7px; font-size: 0.78rem; }
 .workbench-panel { align-self: start; }
 .workbench-hint { border: 1px solid #dbe5db; border-radius: 12px; padding: 10px; display: grid; gap: 5px; color: #596359; background: #f8fbf6; }
 .workbench-hint span { line-height: 1.5; }
+.shop-catalog-card { margin-top: 10px; border: 1px solid #e2d2ad; border-radius: 12px; padding: 10px; display: grid; gap: 7px; color: #604d23; background: #fff9e9; }
+.shop-catalog-card span { line-height: 1.45; font-size: 0.86rem; }
 .drop-grid { display: grid; gap: 10px; margin-bottom: 12px; }
 .drop-card { border: 2px dashed #b78945; background: #fff8e7; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 5px; color: #6a4a1f; transition: transform 0.15s ease, box-shadow 0.15s ease; }
 .drop-card.hovering { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(183, 137, 69, 0.22); background: #fff1c7; }
@@ -932,6 +1252,27 @@ textarea { min-height: 96px; resize: vertical; }
 .hint { color: #7b847b; font-size: 0.85rem; }
 .empty-panel { display: flex; align-items: center; justify-content: center; color: #778077; min-height: 280px; }
 .empty-panel.compact { min-height: 180px; }
+.shop-catalog-editor { display: grid; gap: 12px; margin-bottom: 14px; padding: 12px; border: 1px solid #dfc27b; border-radius: 14px; background: #fffaf0; }
+.shop-catalog-editor-title { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.shop-catalog-editor h3, .shop-catalog-editor h4 { margin: 0; }
+.catalog-fields { display: grid; grid-template-columns: minmax(180px, 1fr) 120px 180px; gap: 10px; }
+.catalog-description { grid-column: 1 / -1; }
+.catalog-cost-row { display: grid; grid-template-columns: minmax(0, 1fr) 74px; gap: 6px; }
+.catalog-picker { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 12px; }
+.catalog-picker section { display: grid; align-content: start; gap: 8px; }
+.catalog-source-filter { display: grid; gap: 6px; padding: 8px; border: 1px solid #ead9a8; border-radius: 10px; background: rgba(255, 255, 255, 0.56); }
+.catalog-source-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.catalog-source-actions strong { margin-right: auto; }
+.catalog-source-option { flex-direction: row; align-items: center; font-weight: 700; font-size: 0.82rem; }
+.catalog-candidates, .catalog-selected { display: grid; gap: 7px; max-height: 360px; overflow: auto; padding-right: 4px; }
+.catalog-candidate { text-align: left; display: grid; gap: 2px; background: white; }
+.catalog-candidate:disabled { opacity: 0.55; }
+.catalog-candidate span, .catalog-entry-head span { color: #746b58; font-size: 0.78rem; }
+.catalog-entry { display: grid; gap: 7px; padding: 9px; border: 1px solid #ead9a8; border-radius: 10px; background: white; }
+.catalog-entry-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, auto) auto; gap: 8px; align-items: center; }
+.catalog-entry-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 170px; gap: 8px; }
+.catalog-entry textarea { min-height: 58px; }
+.catalog-actions { display: flex; justify-content: flex-end; }
 .content-groups { display: grid; gap: 14px; }
 .content-category { border: 1px solid #e0e6df; border-radius: 12px; overflow: hidden; background: #fbfdfa; }
 .content-category-title { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: #edf3ea; color: #354333; font-weight: 900; }
@@ -947,5 +1288,5 @@ textarea { min-height: 96px; resize: vertical; }
 .content-item-main small { color: currentColor; opacity: 0.72; }
 .content-item-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
 .drag-handle { color: #9ba89b; font-weight: 900; letter-spacing: -0.18em; cursor: grab; }
-@media (max-width: 900px) { .maker-grid, .groups-panel { grid-template-columns: 1fr; } .group-card.encrypted { grid-column: auto; } .maker-header { flex-direction: column; } }
+@media (max-width: 900px) { .maker-grid, .groups-panel, .catalog-picker, .catalog-fields, .catalog-entry-fields { grid-template-columns: 1fr; } .group-card.encrypted { grid-column: auto; } .maker-header { flex-direction: column; } }
 </style>
