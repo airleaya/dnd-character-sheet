@@ -4,12 +4,13 @@ import type { ItemDescriptionBlock } from '../../types/Library';
 defineProps<{
   description?: string;
   blocks?: ItemDescriptionBlock[];
+  preferPlainDescription?: boolean;
 }>();
 </script>
 
 <template>
   <div class="item-description">
-    <template v-if="blocks?.length">
+    <template v-if="blocks?.length && !(preferPlainDescription && description?.trim())">
       <template v-for="(block, index) in blocks" :key="index">
         <p v-if="block.type === 'paragraph'" class="desc-paragraph preserve-user-lines">{{ block.text }}</p>
         <ul v-else-if="block.type === 'list'" class="desc-list">

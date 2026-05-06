@@ -25,6 +25,8 @@ interface CharacterMeta {
 }
 
 const logger = createRendererLogger('stores/characterStore');
+const GROUPS_STORAGE_KEY = 'dnd_app_groups';
+const UNGROUPED_STORAGE_KEY = 'dnd_app_ungrouped_expanded';
 
 // 🔧 辅助函数：生成标准化的文件名
 const getFilename = (char: Character): string => {
@@ -92,7 +94,7 @@ export const useCharacterStore = defineStore('characterStore', {
             avatarUrl: char.profile.avatarUrl,
           });
         });
-        this.loadGroups();
+        await this.loadGroups();
       } catch (error) {
         logger.warn('Failed to load characters', undefined, error);
       }
@@ -238,25 +240,37 @@ export const useCharacterStore = defineStore('characterStore', {
 
     // --- 8. 分组管理逻辑 ---
     // 加载分组数据 (带数据清洗)
-    loadGroups() {
+    async loadGroups() {
       try {
-        const stored = localStorage.getItem('dnd_app_groups');
-        if (stored) {
-          const parsed = JSON.parse(stored) as CharacterGroup[];
+        const localGroups = localStorage.getItem(GROUPS_STORAGE_KEY);
+        const localUngroupedExpanded = localStorage.getItem(UNGROUPED_STORAGE_KEY);
+        const localState = localGroups
+          ? {
+              groups: JSON.parse(localGroups) as CharacterGroup[],
+              ungroupedExpanded: localUngroupedExpanded !== null ? localUngroupedExpanded === 'true' : true,
+            }
+          : null;
+        const result = await window.electronAPI?.readCharacterGroups?.();
+        const persistedState = result?.success ? result.data : null;
+        const nextState = persistedState && persistedState.groups.length > 0 ? persistedState : localState;
+
+        if (nextState) {
           const allCharIds = new Set(this.characterList.map(c => c.id));
-          
-          this.groups = parsed.map(group => ({
+          this.groups = nextState.groups.map(group => ({
             ...group,
             // 确保旧数据也有折叠属性，默认为展开
             isExpanded: group.isExpanded !== undefined ? group.isExpanded : true,
-            characterIds: group.characterIds.filter(id => allCharIds.has(id))
+            characterIds: Array.isArray(group.characterIds)
+              ? group.characterIds.filter(id => allCharIds.has(id))
+              : []
           }));
-        }
+          this.ungroupedExpanded = nextState.ungroupedExpanded;
 
-        // 读取未分组区域的状态
-        const ungroupedState = localStorage.getItem('dnd_app_ungrouped_expanded');
-        if (ungroupedState !== null) {
-          this.ungroupedExpanded = ungroupedState === 'true';
+          if (localState && (!persistedState || persistedState.groups.length === 0)) {
+            await this.saveGroups();
+            localStorage.removeItem(GROUPS_STORAGE_KEY);
+            localStorage.removeItem(UNGROUPED_STORAGE_KEY);
+          }
         }
       } catch (e) {
         logger.error('Failed to load groups', e);
@@ -265,8 +279,23 @@ export const useCharacterStore = defineStore('characterStore', {
 
     // 保存分组数据到本地
     saveGroups() {
-      localStorage.setItem('dnd_app_groups', JSON.stringify(this.groups));
-      localStorage.setItem('dnd_app_ungrouped_expanded', String(this.ungroupedExpanded));
+      const state = {
+        groups: this.groups,
+        ungroupedExpanded: this.ungroupedExpanded,
+      };
+      if (window.electronAPI?.saveCharacterGroups) {
+        void window.electronAPI.saveCharacterGroups(state).then(result => {
+          if (!result.success) {
+            logger.warn('Failed to persist character groups via Electron API', { error: result.error });
+          }
+        });
+        localStorage.removeItem(GROUPS_STORAGE_KEY);
+        localStorage.removeItem(UNGROUPED_STORAGE_KEY);
+        return;
+      }
+
+      localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(this.groups));
+      localStorage.setItem(UNGROUPED_STORAGE_KEY, String(this.ungroupedExpanded));
     },
 
     // 切换未分组区域状态

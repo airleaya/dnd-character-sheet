@@ -6,7 +6,7 @@ import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import TrashPanel from './TrashPanel.vue';
 import InventoryItemRow from './InventoryItemRow.vue';
 import ItemDescriptionRenderer from '../../common/ItemDescriptionRenderer.vue';
-import { getTooltipViewportPosition } from '../../../stores/tooltip';
+import { getTooltipViewportMaxHeight, getTooltipViewportPosition } from '../../../stores/tooltip';
 import {
   calcRealIndex,
   isInventoryInstanceDragElement,
@@ -126,6 +126,7 @@ const hoveredItem = ref<InventoryItem | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
 const tooltipPoint = ref({ x: 0, y: 0 });
 const tooltipSize = ref({ width: 320, height: 0 });
+let tooltipHideTimer: number | undefined;
 
 const measureTooltip = () => {
   const rect = tooltipRef.value?.getBoundingClientRect();
@@ -168,6 +169,7 @@ const carryingLoadTone = computed(() =>
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onWindowResize);
+  clearTooltipHideTimer();
 });
 
 const tooltipStyle = computed(() => {
@@ -189,9 +191,16 @@ const tooltipStyle = computed(() => {
 
   return {
     top: `${position.top}px`,
-    left: `${position.left}px`
+    left: `${position.left}px`,
+    maxHeight: `${getTooltipViewportMaxHeight(window.innerHeight)}px`
   };
 });
+
+const clearTooltipHideTimer = () => {
+  if (tooltipHideTimer === undefined) return;
+  window.clearTimeout(tooltipHideTimer);
+  tooltipHideTimer = undefined;
+};
 
 // 1. 获取徽章 (Badges)
 const getBadges = (item: InventoryItem): InventoryTooltipBadge[] => {
@@ -254,6 +263,7 @@ const getMagicTraitSpellName = (spellId?: string) => {
 
 // 2. 显示悬浮窗
 const onShowTooltip = (item: InventoryItem, event: MouseEvent) => {
+  clearTooltipHideTimer();
   hoveredItem.value = item;
   // 简单的位置计算：鼠标右下方偏移
   tooltipPoint.value = {
@@ -265,6 +275,19 @@ const onShowTooltip = (item: InventoryItem, event: MouseEvent) => {
 
 // 3. 隐藏悬浮窗
 const onHideTooltip = () => {
+  clearTooltipHideTimer();
+  tooltipHideTimer = window.setTimeout(() => {
+    hoveredItem.value = null;
+    tooltipHideTimer = undefined;
+  }, 180);
+};
+
+const onTooltipEnter = () => {
+  clearTooltipHideTimer();
+};
+
+const onTooltipLeave = () => {
+  clearTooltipHideTimer();
   hoveredItem.value = null;
 };
 
@@ -373,6 +396,8 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
           ref="tooltipRef"
           class="inventory-tooltip"
           :style="tooltipStyle"
+          @mouseenter="onTooltipEnter"
+          @mouseleave="onTooltipLeave"
         >
           <div class="card-header">
             <div class="card-title" :style="getMagicInventoryStyle(hoveredItem)">{{ formatMagicItemName(hoveredItem) }}</div>
@@ -576,6 +601,14 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
   box-shadow: 0 5px 20px rgba(0,0,0,0.5);
   backdrop-filter: blur(4px);
   color: #ddd;
+  pointer-events: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: rgba(0,0,0,0.22); }
+  &::-webkit-scrollbar-thumb { background: #555; border-radius: 999px; }
+  &::-webkit-scrollbar-thumb:hover { background: #777; }
 
   .card-header { padding: 10px; background: #222; border-radius: 8px 8px 0 0; border-bottom: 1px solid #333; }
   .card-title { color: #fff; font-weight: bold; font-size: 0.95rem; }

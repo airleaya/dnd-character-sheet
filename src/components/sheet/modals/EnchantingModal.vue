@@ -131,16 +131,17 @@ const customTraitOptions = computed<ItemMagicTrait[]>(() =>
   ])
 );
 
+const selectedTraits = computed<ItemMagicTrait[]>(() => {
+  return targetItem.value ? resolveMagicTraitsForItem(targetItem.value) : [];
+});
+
 const allTraits = computed<ItemMagicTrait[]>(() =>
   dedupeTraits([
     ...PRESET_MAGIC_TRAITS,
     ...customTraitOptions.value,
+    ...selectedTraits.value,
   ])
 );
-
-const selectedTraits = computed<ItemMagicTrait[]>(() => {
-  return targetItem.value ? resolveMagicTraitsForItem(targetItem.value) : [];
-});
 
 const filteredTraits = computed(() => {
   const keyword = traitKeyword.value.trim().toLowerCase();
@@ -1168,6 +1169,7 @@ input[type='color'] {
   left: 12px;
   top: calc(100% + 8px);
   width: min(340px, 78vw);
+  max-height: min(52vh, 420px);
   display: grid;
   gap: 5px;
   padding: 11px 12px;
@@ -1178,8 +1180,15 @@ input[type='color'] {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.36);
   opacity: 0;
   pointer-events: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   transform: translateY(-4px);
   transition: opacity 0.16s ease, transform 0.16s ease;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.24); }
+  &::-webkit-scrollbar-thumb { background: rgba(245, 197, 96, 0.45); border-radius: 999px; }
+  &::-webkit-scrollbar-thumb:hover { background: rgba(245, 197, 96, 0.68); }
 
   strong {
     color: #f7d58a;

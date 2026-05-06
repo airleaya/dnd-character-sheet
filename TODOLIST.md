@@ -1,5 +1,10 @@
 # TODOLIST
 
+> 2026-05-06 version iteration update:
+> Current baseline grows from `0.14.19` to `0.14.20`; this round adds data-pack maker copy-to-forge editing and maker workflow diagnostics.
+> 2026-05-06 data-pack maker forge workflow update:
+> Data-pack content items can now be copied into a new independent draft item before opening the forge editor via either the `??????` item button or by dragging a content item to the maker forge target; maker save diagnostics now stay available in a floating behavior monitor with one-click copy.
+
 > 2026-04-30 version iteration update:
 > Current baseline grows from `0.14.18` to `0.14.19`; this round synchronizes enchanted item magic visuals and magic attributes across inventory, data-pack maker, and item library UI.
 > 2026-04-30 magic item UI update:

@@ -41,6 +41,8 @@ describe('preload electronAPI contract', () => {
       saveCharacter: (filename: string, content: string) => Promise<unknown>;
       loadAllCharacters: () => Promise<unknown>;
       deleteCharacter: (filename: string) => Promise<unknown>;
+      readCharacterGroups: () => Promise<unknown>;
+      saveCharacterGroups: (state: unknown) => Promise<unknown>;
       onAppWillClose: (callback: () => void) => void;
       confirmClose: () => Promise<unknown>;
       setZoomFactor: (factor: number) => void;
@@ -53,6 +55,8 @@ describe('preload electronAPI contract', () => {
     await api.saveCharacter('hero.json', '{}');
     await api.loadAllCharacters();
     await api.deleteCharacter('hero.json');
+    await api.readCharacterGroups();
+    await api.saveCharacterGroups({ groups: [], ungroupedExpanded: true });
     api.onAppWillClose(callback);
     await api.confirmClose();
     api.setZoomFactor(1.25);
@@ -63,12 +67,14 @@ describe('preload electronAPI contract', () => {
     expect(invoke).toHaveBeenNthCalledWith(1, 'save-character', 'hero.json', '{}');
     expect(invoke).toHaveBeenNthCalledWith(2, 'load-all-characters');
     expect(invoke).toHaveBeenNthCalledWith(3, 'delete-character', 'hero.json');
+    expect(invoke).toHaveBeenNthCalledWith(4, 'read-character-groups');
+    expect(invoke).toHaveBeenNthCalledWith(5, 'save-character-groups', { groups: [], ungroupedExpanded: true });
     expect(on).toHaveBeenCalledWith('app-will-close', callback);
-    expect(invoke).toHaveBeenNthCalledWith(4, 'app-can-close');
+    expect(invoke).toHaveBeenNthCalledWith(6, 'app-can-close');
     expect(setZoomFactor).toHaveBeenCalledWith(1.25);
-    expect(invoke).toHaveBeenNthCalledWith(5, 'select-directory');
-    expect(invoke).toHaveBeenNthCalledWith(6, 'export-character', 'E:/exports', 'hero.json', '{}');
-    expect(invoke).toHaveBeenNthCalledWith(7, 'write-log', {
+    expect(invoke).toHaveBeenNthCalledWith(7, 'select-directory');
+    expect(invoke).toHaveBeenNthCalledWith(8, 'export-character', 'E:/exports', 'hero.json', '{}');
+    expect(invoke).toHaveBeenNthCalledWith(9, 'write-log', {
       level: 'info',
       scope: 'renderer',
       namespace: 'test',

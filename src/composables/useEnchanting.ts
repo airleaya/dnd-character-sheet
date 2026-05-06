@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { useActiveSheetStore } from '../stores/activeSheet';
 import { useCustomMagicTraitStore } from '../stores/customMagicTraitStore';
+import { useDataPackStore } from '../stores/dataPackStore';
 import { parseDragPayload } from '../utils/inventoryDropUtils';
 import { createRendererLogger } from '../utils/rendererLogger';
 import type { InventoryItem } from '../types/Item';
@@ -11,6 +12,7 @@ import {
   cloneMagicTrait,
   detachMagicTraitSnapshot,
   ensureMagicDefinition,
+  updateSelectedMagicTraitSnapshot,
 } from '../utils/magicItems';
 
 type EnchantingEntrySource = 'button' | 'drop';
@@ -30,6 +32,7 @@ const logger = createRendererLogger('composables/useEnchanting');
 export function useEnchanting() {
   const activeSheet = useActiveSheetStore();
   const customTraitStore = useCustomMagicTraitStore();
+  const dataPackStore = useDataPackStore();
 
   const ensurePermanentTraitLibrary = () => {
     void customTraitStore.init().then(() => {
@@ -162,20 +165,25 @@ export function useEnchanting() {
 
     let updatedItemCount = 0;
     activeSheet.character?.inventory.forEach(item => {
-      if (!item.magic?.selectedTraitIds?.includes(traitId)) return;
-      const magic = ensureMagicDefinition(item);
-      const customTraits = magic.customTraits ?? [];
-      const existingIndex = customTraits.findIndex(trait => trait.id === traitId);
-      if (existingIndex >= 0) {
-        customTraits[existingIndex] = cloneMagicTrait(nextTrait);
-        magic.customTraits = [...customTraits];
-      } else {
-        magic.customTraits = [...customTraits, cloneMagicTrait(nextTrait)];
-      }
-      updatedItemCount += 1;
+      updatedItemCount += updateSelectedMagicTraitSnapshot(item, nextTrait) ? 1 : 0;
     });
 
-    logger.info('Custom magic trait updated and propagated', { traitId, updatedItemCount });
+    let updatedDraftItemCount = 0;
+    dataPackStore.activeDraftPack?.items?.forEach(item => {
+      updatedDraftItemCount += updateSelectedMagicTraitSnapshot(item, nextTrait) ? 1 : 0;
+    });
+    if (updatedDraftItemCount > 0) {
+      dataPackStore.markDraftDirty();
+    }
+
+    const updatedTarget = targetItem.value && updateSelectedMagicTraitSnapshot(targetItem.value, nextTrait);
+
+    logger.info('Custom magic trait updated and propagated', {
+      traitId,
+      updatedItemCount,
+      updatedDraftItemCount,
+      updatedCurrentTarget: Boolean(updatedTarget),
+    });
     activeSheet.save();
   };
 

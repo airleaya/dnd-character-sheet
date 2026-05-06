@@ -1,5 +1,7 @@
 import { ref, computed } from 'vue';
 import { useActiveSheetStore } from '../stores/activeSheet';
+import { useDataPackStore } from '../stores/dataPackStore';
+import { useUiFeedbackStore } from '../stores/uiFeedback';
 import { createItemFromLibrary } from '../utils/itemFactory';
 import { parseDragPayload } from '../utils/inventoryDropUtils';
 import { createRendererLogger } from '../utils/rendererLogger';
@@ -83,6 +85,8 @@ const logger = createRendererLogger('composables/useForge');
 
 export function useForge() {
   const store = useActiveSheetStore();
+  const dataPackStore = useDataPackStore();
+  const feedback = useUiFeedbackStore();
   const draftData = computed<ForgeDraftData>(() => {
     if (!draftItem.value) {
       return {
@@ -234,12 +238,69 @@ export function useForge() {
     editorContext.value = context ?? null;
     saveOverride.value = onSave ?? null;
     ensureCostStructure();
+    if (editorContext.value?.dataPackMaker) {
+      const itemDraft = draftItem.value;
+      if (!itemDraft) return;
+      dataPackStore.recordMakerDragDiagnostic('forge.open', 'info', 'Data-pack forge editor opened', {
+        mode,
+        itemName: itemDraft.name,
+        instanceId: itemDraft.instanceId,
+        templateId: itemDraft.templateId,
+        itemType: itemDraft.type,
+      });
+    }
   };
 
   const updateItemType = (type: ItemType) => {
     if (!draftItem.value) return;
     draftItem.value.type = type;
     ensureTypeDefaults(type);
+  };
+
+  const updateItemTemplate = (templateId: string) => {
+    if (!draftItem.value) return;
+    if (!templateId) {
+      draftItem.value.templateId = '';
+      return;
+    }
+
+    const templateItem = createItemFromLibrary(templateId);
+    if (!templateItem) {
+      logger.warn('Cannot apply missing forge template', { templateId });
+      draftItem.value.templateId = templateId;
+      return;
+    }
+
+    const current = draftItem.value;
+    const currentData = draftData.value;
+    const preservedDataPackFields = editorContext.value?.dataPackMaker
+      ? {
+          displayCategory: currentData.displayCategory,
+          displaySubcategory: currentData.displaySubcategory,
+          encryptionGroupId: currentData.encryptionGroupId,
+          visibility: currentData.visibility,
+          source: currentData.source,
+        }
+      : {};
+
+    Object.assign(current, {
+      ...templateItem,
+      instanceId: current.instanceId,
+      quantity: current.quantity,
+      parentId: current.parentId,
+      data: {
+        ...(templateItem.data as ForgeDraftData),
+        ...preservedDataPackFields,
+      },
+    });
+    ensureCostStructure();
+    if (editorContext.value?.dataPackMaker) {
+      dataPackStore.recordMakerDragDiagnostic('forge.template-change', 'info', 'Forge template applied in data-pack editor', {
+        templateId,
+        itemName: draftItem.value.name,
+        itemType: draftItem.value.type,
+      });
+    }
   };
 
   const toggleWeaponProperty = (property: WeaponPropertyKey) => {
@@ -274,20 +335,58 @@ export function useForge() {
     ensureCostStructure(); // ✅ 确保新物品有价格结构
     syncRootFieldsToData();
 
-    if (forgeMode.value === 'create') {
-      if (saveOverride.value) {
+    if (editorContext.value?.dataPackMaker) {
+      dataPackStore.recordMakerDragDiagnostic('forge.save-start', 'info', 'Forge save button invoked', {
+        mode: forgeMode.value,
+        itemName: draftItem.value.name,
+        instanceId: draftItem.value.instanceId,
+        templateId: draftItem.value.templateId,
+        itemType: draftItem.value.type,
+        displayCategory: draftData.value.displayCategory,
+        displaySubcategory: draftData.value.displaySubcategory,
+        encryptionGroupId: draftData.value.encryptionGroupId,
+        hasSaveOverride: Boolean(saveOverride.value),
+      });
+    }
+
+    const runSaveOverride = () => {
+      if (!saveOverride.value || !draftItem.value) return false;
+      try {
         saveOverride.value(draftItem.value);
+        if (editorContext.value?.dataPackMaker) {
+          dataPackStore.recordMakerDragDiagnostic('forge.save-override', 'ok', 'Forge save override completed', {
+            itemName: draftItem.value.name,
+            templateId: draftItem.value.templateId,
+            itemType: draftItem.value.type,
+          });
+        }
         close();
-        return;
+        return true;
+      } catch (error) {
+        logger.error('Forge save override failed', error, {
+          itemName: draftItem.value.name,
+          templateId: draftItem.value.templateId,
+          itemType: draftItem.value.type,
+          dataPackMaker: Boolean(editorContext.value?.dataPackMaker),
+        });
+        if (editorContext.value?.dataPackMaker) {
+          dataPackStore.recordMakerDragDiagnostic('forge.save-override', 'error', 'Forge save override failed', {
+            itemName: draftItem.value.name,
+            templateId: draftItem.value.templateId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        feedback.showToast(`铁匠台保存失败：${error instanceof Error ? error.message : String(error)}`, 'danger', 5200);
+        return true;
       }
+    };
+
+    if (forgeMode.value === 'create') {
+      if (runSaveOverride()) return;
       store.character?.inventory.push(draftItem.value);
       store.save();
     } else {
-      if (saveOverride.value) {
-        saveOverride.value(draftItem.value);
-        close();
-        return;
-      }
+      if (runSaveOverride()) return;
       store.updateInventoryItem(draftItem.value);
     }
     close();
@@ -308,6 +407,7 @@ export function useForge() {
     openForgeForItem,
     handleDropData,
     updateItemType,
+    updateItemTemplate,
     toggleWeaponProperty,
     save,
     close

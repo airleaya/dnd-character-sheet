@@ -6,6 +6,7 @@ import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import { nextTick } from 'vue';
 import GlobalTooltip from '../src/components/ui/GlobalTooltip.vue';
 import {
+  getTooltipViewportMaxHeight,
   getTooltipViewportPosition,
   useTooltipStore,
 } from '../src/stores/tooltip';
@@ -114,5 +115,19 @@ describe('GlobalTooltip UI', () => {
         viewportHeight: 600,
       })
     ).toEqual({ left: 12, top: 12 });
+  });
+
+  it('caps tooltip height to the viewport so overflowing content can scroll inside', async () => {
+    const originalHeight = window.innerHeight;
+    Object.defineProperty(window, 'innerHeight', { value: 220, configurable: true });
+    const tooltip = useTooltipStore();
+    mountTooltip();
+
+    tooltip.show({ title: 'Long', content: Array.from({ length: 40 }, (_, index) => `line ${index}`).join('\n') }, 20, 40);
+    await nextTick();
+
+    expect(getTooltipViewportMaxHeight(window.innerHeight)).toBe(196);
+    expect(wrapper?.get('.global-tooltip').attributes('style')).toContain('max-height: 196px');
+    Object.defineProperty(window, 'innerHeight', { value: originalHeight, configurable: true });
   });
 });

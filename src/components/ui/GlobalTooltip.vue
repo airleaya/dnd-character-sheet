@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import {
+  getTooltipViewportMaxHeight,
   getTooltipViewportPosition,
   useTooltipStore,
 } from '../../stores/tooltip';
@@ -62,6 +63,7 @@ const tooltipStyle = computed(() => {
   return {
     top: `${position.top}px`,
     left: `${position.left}px`,
+    maxHeight: `${getTooltipViewportMaxHeight(window.innerHeight)}px`,
   };
 });
 </script>
@@ -72,6 +74,8 @@ const tooltipStyle = computed(() => {
     ref="tooltipRef"
     class="global-tooltip"
     :style="tooltipStyle"
+    @mouseenter="store.cancelHide()"
+    @mouseleave="store.hide()"
   >
     <div v-if="store.data.title" class="tooltip-title">{{ store.data.title }}</div>
     <div v-if="store.data.content" class="tooltip-content preserve-user-lines">{{ store.data.content }}</div>
@@ -95,18 +99,26 @@ const tooltipStyle = computed(() => {
 .global-tooltip {
   position: fixed;
   z-index: 9999;
-  pointer-events: none;
+  pointer-events: auto;
   background: rgba(44, 62, 80, 0.95);
   color: #ecf0f1;
   border: 1px solid #34495e;
   border-radius: 4px;
   padding: 8px 12px;
   max-width: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   font-size: 0.85rem;
   line-height: 1.4;
   backdrop-filter: blur(2px);
+
 }
+
+.global-tooltip::-webkit-scrollbar { width: 6px; }
+.global-tooltip::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+.global-tooltip::-webkit-scrollbar-thumb { background: #5f7182; border-radius: 999px; }
+.global-tooltip::-webkit-scrollbar-thumb:hover { background: #7890a4; }
 
 .tooltip-title {
   font-weight: bold;

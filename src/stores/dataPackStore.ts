@@ -14,6 +14,7 @@ import {
   makeUniqueLocalId,
   normalizeDataPackSettings,
   stripRuntimePrefix,
+  toRuntimeDataPack,
 } from '../utils/dataPackUtils';
 import {
   collectVisibilityIssues,
@@ -142,10 +143,39 @@ export const useDataPackStore = defineStore('dataPack', () => {
     return [...ordered, ...appended];
   });
 
+  const overlayActiveDraftPack = (runtimePacks: RuntimeDataPack[]): RuntimeDataPack[] => {
+    const draft = activeDraftPack.value;
+    if (!isMakerOpen.value || !draft) return runtimePacks;
+
+    const draftRuntime = toRuntimeDataPack(draft, true, false);
+    const isEnabled = settings.value.enabledPackIds.includes(draftRuntime.id);
+    const existingIndex = runtimePacks.findIndex(pack => pack.id === draftRuntime.id);
+    if (existingIndex < 0) return isEnabled ? [...runtimePacks, draftRuntime] : runtimePacks;
+
+    return runtimePacks.map((pack, index) => index === existingIndex ? draftRuntime : pack);
+  };
+
+  const replaceSavedRuntimePack = (packFile: DataPackFile) => {
+    const savedRuntime = toRuntimeDataPack(packFile, true, false);
+    const index = packs.value.findIndex(pack => pack.id === savedRuntime.id);
+    packs.value = index >= 0
+      ? packs.value.map((pack, packIndex) => packIndex === index ? savedRuntime : pack)
+      : [...packs.value, savedRuntime];
+
+    if (!settings.value.packOrder.includes(savedRuntime.id)) {
+      settings.value = {
+        ...settings.value,
+        packOrder: [...settings.value.packOrder, savedRuntime.id],
+      };
+    }
+  };
+
   const rawEnabledDataPacks = computed(() =>
-    orderedDataPacks.value
-      .filter(pack => settings.value.enabledPackIds.includes(pack.id))
-      .map(pack => ({ ...pack, enabled: true }))
+    overlayActiveDraftPack(
+      orderedDataPacks.value
+        .filter(pack => settings.value.enabledPackIds.includes(pack.id))
+        .map(pack => ({ ...pack, enabled: true }))
+    )
   );
 
   const getStoredUnlockProgress = (pack: RuntimeDataPack | undefined): DataPackUnlockProgress | undefined =>
@@ -175,7 +205,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
   );
 
   const syncRuntimePacks = () => {
-    applyPackRuntime(orderedDataPacks.value.map(pack => {
+    applyPackRuntime(overlayActiveDraftPack(orderedDataPacks.value.map(pack => {
       const enabled = settings.value.enabledPackIds.includes(pack.id);
       const visiblePack = filterRuntimePackByVisibility(
         { ...pack, enabled },
@@ -183,7 +213,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
         shouldIgnoreUnlockForRuntime() || isPackFullyPublic(pack.id)
       );
       return { ...visiblePack, enabled };
-    }));
+    })));
   };
 
   const itemLibraryItems = computed(() =>
@@ -245,6 +275,11 @@ export const useDataPackStore = defineStore('dataPack', () => {
   };
 
   const refresh = async () => {
+    if (!window.electronAPI?.readDataPackState) {
+      syncRuntimePacks();
+      return;
+    }
+
     isLoaded.value = false;
     await init();
   };
@@ -669,6 +704,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
       if (!result.success) throw new Error(result.error);
       if (!(await canEditDraftWithLock(result.data))) return;
       activeDraftPack.value = clonePlain(result.data);
+      replaceSavedRuntimePack(result.data);
       draftDirty.value = false;
       isMakerOpen.value = true;
       logger.info('Data pack maker opened', summarizeDraftPack(result.data));
@@ -755,6 +791,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
         return false;
       }
       activeDraftPack.value = clonePlain(result.data);
+      replaceSavedRuntimePack(result.data);
       draftDirty.value = false;
       logger.info('Data pack draft saved', {
         ...summarizeDraftPack(result.data),
@@ -801,6 +838,7 @@ export const useDataPackStore = defineStore('dataPack', () => {
 
   const markDraftDirty = () => {
     draftDirty.value = true;
+    syncRuntimePacks();
   };
 
   const setMakerLibraryTab = (tab: 'items' | 'spells') => {

@@ -24,6 +24,20 @@ export interface TooltipViewportPositionInput {
 
 export const DEFAULT_TOOLTIP_OFFSET = 15;
 export const DEFAULT_TOOLTIP_PADDING = 12;
+export const MIN_TOOLTIP_MAX_HEIGHT = 120;
+
+export const getTooltipViewportMaxHeight = (
+  viewportHeight: number,
+  padding = DEFAULT_TOOLTIP_PADDING
+) => Math.max(MIN_TOOLTIP_MAX_HEIGHT, viewportHeight - padding * 2);
+
+let tooltipHideTimer: number | undefined;
+
+const clearTooltipHideTimer = () => {
+  if (tooltipHideTimer === undefined || typeof window === 'undefined') return;
+  window.clearTimeout(tooltipHideTimer);
+  tooltipHideTimer = undefined;
+};
 
 export const getTooltipViewportPosition = ({
   x,
@@ -55,13 +69,29 @@ export const useTooltipStore = defineStore('tooltip', {
   }),
   actions: {
     show(data: TooltipData, x: number, y: number) {
+      clearTooltipHideTimer();
       this.data = data;
       this.x = x;
       this.y = y;
       this.visible = true;
     },
     hide() {
+      clearTooltipHideTimer();
       this.visible = false;
+    },
+    hideSoon(delay = 180) {
+      clearTooltipHideTimer();
+      if (typeof window === 'undefined') {
+        this.visible = false;
+        return;
+      }
+      tooltipHideTimer = window.setTimeout(() => {
+        this.visible = false;
+        tooltipHideTimer = undefined;
+      }, delay);
+    },
+    cancelHide() {
+      clearTooltipHideTimer();
     },
     updatePosition(x: number, y: number) {
       this.x = x;

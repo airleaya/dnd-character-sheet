@@ -50,7 +50,10 @@ const getLegacyWindowConfigPath = (): string => path.join(process.cwd(), 'window
 const getUserDataRoot = (): string => app.getPath('userData');
 const getStorageRoot = (): string => path.join(getUserDataRoot(), 'dnd_5e_characters');
 const getSavesDir = (): string => path.join(getStorageRoot(), 'characters');
-const getWindowConfigPath = (): string => path.join(getUserDataRoot(), 'window-config.json');
+const getAppStateRoot = (): string => path.join(getStorageRoot(), 'app-state');
+const getWindowConfigPath = (): string => path.join(getAppStateRoot(), 'window-config.json');
+const getLegacyUserDataWindowConfigPath = (): string => path.join(getUserDataRoot(), 'window-config.json');
+const getCharacterGroupsPath = (): string => path.join(getAppStateRoot(), 'character-groups.json');
 const getDataPacksRoot = (): string => path.join(getStorageRoot(), 'data-packs');
 const getImportedDataPacksDir = (): string => path.join(getDataPacksRoot(), 'imported');
 const getDataPackSettingsPath = (): string => path.join(getDataPacksRoot(), 'data-pack-settings.json');
@@ -100,8 +103,10 @@ const migrateLegacyStorageIfNeeded = (): void => {
   const legacySavesDir = getLegacySavesDir();
   const windowConfigPath = getWindowConfigPath();
   const legacyWindowConfigPath = getLegacyWindowConfigPath();
+  const legacyUserDataWindowConfigPath = getLegacyUserDataWindowConfigPath();
 
   ensureDirectoryExists(savesDir);
+  ensureDirectoryExists(getAppStateRoot());
   ensureDirectoryExists(getImportedDataPacksDir());
 
   if (!directoryHasJsonFiles(savesDir)) {
@@ -122,7 +127,10 @@ const migrateLegacyStorageIfNeeded = (): void => {
     }
   }
 
-  if (!fs.existsSync(windowConfigPath) && fs.existsSync(legacyWindowConfigPath)) {
+  if (!fs.existsSync(windowConfigPath) && fs.existsSync(legacyUserDataWindowConfigPath)) {
+    ensureDirectoryExists(path.dirname(windowConfigPath));
+    fs.copyFileSync(legacyUserDataWindowConfigPath, windowConfigPath);
+  } else if (!fs.existsSync(windowConfigPath) && fs.existsSync(legacyWindowConfigPath)) {
     ensureDirectoryExists(path.dirname(windowConfigPath));
     fs.copyFileSync(legacyWindowConfigPath, windowConfigPath);
   }
@@ -133,7 +141,7 @@ let isReadyToQuit = false;
 
 // 读取窗口状态辅助函数
 const loadWindowState = () => {
-  const candidatePaths = [getWindowConfigPath(), getLegacyWindowConfigPath()];
+  const candidatePaths = [getWindowConfigPath(), getLegacyUserDataWindowConfigPath(), getLegacyWindowConfigPath()];
 
   try {
     for (const configPath of candidatePaths) {
@@ -220,6 +228,39 @@ const normalizeCustomMagicTraitsForStorage = (value: unknown): ItemMagicTrait[] 
     });
   });
   return Array.from(traits.values());
+};
+
+type CharacterGroupState = {
+  groups: unknown[];
+  ungroupedExpanded: boolean;
+};
+
+const normalizeCharacterGroupState = (value: unknown): CharacterGroupState => {
+  if (!value || typeof value !== 'object') {
+    return { groups: [], ungroupedExpanded: true };
+  }
+  const raw = value as Partial<CharacterGroupState>;
+  return {
+    groups: Array.isArray(raw.groups) ? raw.groups : [],
+    ungroupedExpanded: typeof raw.ungroupedExpanded === 'boolean' ? raw.ungroupedExpanded : true,
+  };
+};
+
+const readCharacterGroups = (): CharacterGroupState => {
+  const filePath = getCharacterGroupsPath();
+  if (!fs.existsSync(filePath)) return { groups: [], ungroupedExpanded: true };
+  return normalizeCharacterGroupState(readJsonFile(filePath));
+};
+
+const writeCharacterGroups = (state: CharacterGroupState): CharacterGroupState => {
+  const normalized = normalizeCharacterGroupState(state);
+  ensureDirectoryExists(getAppStateRoot());
+  fs.writeFileSync(getCharacterGroupsPath(), JSON.stringify(normalized, null, 2), 'utf-8');
+  logger.info('Character groups saved to local storage', {
+    groupCount: normalized.groups.length,
+    ungroupedExpanded: normalized.ungroupedExpanded,
+  });
+  return normalized;
 };
 
 const readCustomMagicTraits = (): ItemMagicTrait[] => {
@@ -723,6 +764,24 @@ app.whenReady().then(() => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       return { success: true, data: null };
     } catch (e) {
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('read-character-groups', async (): Promise<IpcResult<CharacterGroupState>> => {
+    try {
+      return { success: true, data: readCharacterGroups() };
+    } catch (e) {
+      logger.error('Failed to read character groups', e);
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('save-character-groups', async (_event, state: CharacterGroupState): Promise<IpcResult<CharacterGroupState>> => {
+    try {
+      return { success: true, data: writeCharacterGroups(state) };
+    } catch (e) {
+      logger.error('Failed to save character groups', e);
       return createErrorResult(e);
     }
   });

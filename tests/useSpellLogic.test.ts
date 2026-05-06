@@ -34,12 +34,38 @@ describe('useSpellLogic', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
-  it('recovers spell slots and clamps pact slots to their max', () => {
+  it('recovers character spell slots without refreshing equipment trait charges', () => {
     const character = ref(createDefaultCharacter('spell-3'));
     const save = vi.fn();
     character.value.spells.slots.current = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0];
     character.value.spells.slots.max = [0, 4, 3, 0, 0, 0, 0, 0, 0, 0];
     character.value.spells.pactSlots = { level: 2, current: 1, max: 2 };
+    character.value.inventory.push({
+      instanceId: 'staff-1',
+      templateId: 'staff',
+      name: '充能法杖',
+      description: '',
+      weight: 4,
+      quantity: 1,
+      type: 'gear',
+      magic: {
+        isMagic: true,
+        selectedTraitIds: ['spell-charge'],
+        customTraits: [
+          {
+            id: 'spell-charge',
+            source: 'custom',
+            type: 'spell',
+            name: '装备法术',
+            description: '来自装备的法术充能。',
+            activationMode: 'charged',
+            participatesInDamage: false,
+            charges: { current: 0, max: 3 },
+          },
+        ],
+      },
+      data: {},
+    });
     const logic = useSpellLogic(character, save, ref(2));
 
     logic.updatePactSlotMax(1, 3);
@@ -47,6 +73,7 @@ describe('useSpellLogic', () => {
 
     expect(character.value.spells.pactSlots).toEqual({ level: 3, current: 1, max: 1 });
     expect(character.value.spells.slots.current).toEqual([0, 4, 3, 0, 0, 0, 0, 0, 0, 0]);
+    expect(character.value.inventory[0]?.magic?.customTraits?.[0]?.charges?.current).toBe(0);
     expect(save).toHaveBeenCalledTimes(2);
   });
 

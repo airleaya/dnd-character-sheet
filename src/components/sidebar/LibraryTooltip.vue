@@ -7,9 +7,16 @@ import { DAMAGE_TYPES } from '../../data/rules/damageTypes';
 import { WEAPON_PROPERTIES } from '../../data/rules/weaponProperties';
 import { WEAPON_CAT_MAP, ARMOR_TYPE_MAP } from '../../data/rules/proficiencies'
 import { ITEM_TYPE_MAP } from '../../data/rules/dndRules';
-import { getTooltipViewportPosition } from '../../stores/tooltip';
+import { getTooltipViewportMaxHeight, getTooltipViewportPosition } from '../../stores/tooltip';
 import { formatContainerCapacity } from '../../utils/containerCapacity';
-import { formatMagicItemName, getMagicInventoryStyle } from '../../utils/magicItems';
+import {
+  formatMagicItemName,
+  formatMagicTraitDamage,
+  formatMagicTraitMeta,
+  getMagicInventoryStyle,
+  resolveMagicTraitsForItem,
+} from '../../utils/magicItems';
+import { getRuntimeSpellById } from '../../data/dataPacks/runtimeDataPacks';
 import ItemDescriptionRenderer from '../common/ItemDescriptionRenderer.vue';
 import type { ItemMagicDefinition } from '../../types/Library';
 
@@ -22,6 +29,7 @@ type SpellComponents = {
 };
 
 type TooltipItem = {
+  id?: string;
   name: string;
   type?: string;
   category?: string;
@@ -122,7 +130,8 @@ const tooltipStyle = computed(() => {
 
   return {
     top: `${safePosition.top}px`,
-    left: `${safePosition.left}px`
+    left: `${safePosition.left}px`,
+    maxHeight: `${getTooltipViewportMaxHeight(window.innerHeight)}px`
   };
 });
 
@@ -196,6 +205,17 @@ const itemHeaderStyle = computed(() =>
 const displayName = computed(() =>
   props.type === 'item' ? formatMagicItemName(props.item) : props.item.name
 );
+
+const shouldPreferPlainDescription = computed(() =>
+  props.type === 'item' && Boolean(props.item.id?.includes(':'))
+);
+
+const magicTraits = computed(() =>
+  props.type === 'item' ? resolveMagicTraitsForItem(props.item) : []
+);
+
+const getMagicTraitSpellName = (spellId?: string) =>
+  spellId ? getRuntimeSpellById(spellId)?.name ?? spellId : '';
 </script>
 
 <template>
@@ -272,8 +292,30 @@ const displayName = computed(() =>
       <div v-if="item.type === 'container'" class="stat-row capacity-row">
         <span>容量: {{ containerCapacity }}</span>
       </div>
+
+      <div v-if="magicTraits.length > 0" class="magic-traits-section">
+        <div class="magic-traits-title">附魔词条</div>
+        <div v-for="trait in magicTraits" :key="trait.id" class="magic-trait-card">
+          <div class="trait-head">
+            <strong>{{ trait.name }}</strong>
+            <span>{{ formatMagicTraitMeta(trait) }}</span>
+          </div>
+          <p v-if="trait.description" class="preserve-user-lines">{{ trait.description }}</p>
+          <p v-if="trait.type === 'spell' && trait.spellId">
+            法术：{{ getMagicTraitSpellName(trait.spellId) }}
+          </p>
+          <p v-if="trait.spellExtraDescription" class="preserve-user-lines">{{ trait.spellExtraDescription }}</p>
+          <p v-if="formatMagicTraitDamage(trait)" class="trait-damage">
+            伤害：{{ formatMagicTraitDamage(trait) }}
+          </p>
+        </div>
+      </div>
       
-      <ItemDescriptionRenderer :description="item.description" :blocks="item.descriptionBlocks" />
+      <ItemDescriptionRenderer
+        :description="item.description"
+        :blocks="item.descriptionBlocks"
+        :prefer-plain-description="shouldPreferPlainDescription"
+      />
     </div>
 
     <div class="card-body" v-if="type === 'spell'">
@@ -339,9 +381,9 @@ const displayName = computed(() =>
   border-radius: 6px;
   width: 320px; 
 
-  max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   
   .card-header { 
     padding: 10px 12px; 
@@ -374,9 +416,16 @@ const displayName = computed(() =>
     font-size: 0.85rem; 
     color: #ccc; 
 
-    overflow: hidden;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
+
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    &::-webkit-scrollbar-thumb { background: #555; border-radius: 999px; }
+    &::-webkit-scrollbar-thumb:hover { background: #777; }
   }
 
   /* ✅ 新增：战斗属性区域样式 */
@@ -495,6 +544,53 @@ const displayName = computed(() =>
     line-height: 1.35;
   }
   .gold { color: #f1c40f; }
+
+  .magic-traits-section {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0;
+  }
+
+  .magic-traits-title {
+    color: #d7c1ff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .magic-trait-card {
+    border: 1px solid rgba(215, 193, 255, 0.24);
+    border-radius: 6px;
+    padding: 6px;
+    background: rgba(240, 231, 255, 0.08);
+
+    p {
+      margin: 4px 0 0;
+      color: #c9c1d8;
+      line-height: 1.35;
+    }
+  }
+
+  .trait-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+
+    strong {
+      color: #dcc2ff;
+    }
+
+    span {
+      color: #b7a2e6;
+      font-size: 0.68rem;
+    }
+  }
+
+  .trait-damage {
+    color: #ffbc8a !important;
+    font-weight: 800;
+  }
 
   /* [新增]：专门针对长文本描述的滚动条样式 */
   .desc.scrollable-desc {

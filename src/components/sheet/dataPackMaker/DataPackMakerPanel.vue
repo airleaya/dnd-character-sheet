@@ -5,6 +5,7 @@ import { useForge } from '../../../composables/useForge';
 import { useEnchanting } from '../../../composables/useEnchanting';
 import { getDragPayloadFromEvent } from '../../../utils/inventoryDropUtils';
 import { formatMagicItemName, getMagicInventoryStyle } from '../../../utils/magicItems';
+import { makeUniqueLocalId } from '../../../utils/dataPackUtils';
 import type { DataPackTraitDefinition } from '../../../types/DataPack';
 import type { LibraryItem } from '../../../types/Library';
 import type { InventoryItem } from '../../../types/Item';
@@ -104,7 +105,8 @@ const switchLibraryTab = (tab: 'items' | 'spells') => {
   store.setMakerLibraryTab(tab);
 };
 
-const clonePlain = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+const clonePlain = <T,>(value: T): T =>
+  value === undefined || value === null ? value : JSON.parse(JSON.stringify(value)) as T;
 
 const libraryItemToInventoryItem = (item: LibraryItem): InventoryItem => {
   const {
@@ -154,14 +156,40 @@ const inventoryItemToLibraryItem = (original: LibraryItem, item: InventoryItem):
 };
 
 const updateDraftItemFromInventory = (itemId: string, inventoryItem: InventoryItem) => {
-  if (!pack.value) return;
+  if (!pack.value) {
+    store.recordMakerDragDiagnostic('maker.forge-save', 'error', 'Forge save returned without an active draft pack', {
+      itemId,
+      itemName: inventoryItem.name,
+    });
+    return;
+  }
   const index = items.value.findIndex(item => item.id === itemId);
-  if (index < 0) return;
+  if (index < 0) {
+    store.recordMakerDragDiagnostic('maker.forge-save', 'error', 'Forge save returned for an item no longer in draft pack', {
+      itemId,
+      itemName: inventoryItem.name,
+      draftItemCount: items.value.length,
+    });
+    return;
+  }
+  const before = items.value[index];
   const updated = inventoryItemToLibraryItem(items.value[index], inventoryItem);
   pack.value.items = items.value.map((item, itemIndex) => itemIndex === index ? updated : item);
   store.ensureItemAssignmentGroups(updated);
   selectedItemIndex.value = index;
   store.markDraftDirty();
+  store.recordMakerDragDiagnostic('maker.forge-save', 'ok', 'Forge save wrote item back into active draft pack', {
+    itemId,
+    beforeName: before.name,
+    afterName: updated.name,
+    beforeDescriptionLength: before.description?.length ?? 0,
+    afterDescriptionLength: updated.description?.length ?? 0,
+    displayCategory: updated.displayCategory,
+    displaySubcategory: updated.displaySubcategory,
+    encryptionGroupId: updated.encryptionGroupId,
+    draftDirty: store.draftDirty,
+    draftItemCount: pack.value.items?.length ?? 0,
+  });
 };
 
 const openForgeEditorForDraftItem = (item: LibraryItem) => {
@@ -238,6 +266,7 @@ const activateItemWorkbenchFromDrop = async (event: DragEvent, target: 'forge' |
   event.preventDefault();
   event.stopPropagation();
   hoveringWorkbench.value = null;
+  if (await onWorkbenchDraftItemDrop(target)) return;
   const payload = getDragPayloadFromEvent(event);
   if (payload?.type === 'library-item') {
     await importItemIntoWorkbench(payload.id, target);
@@ -370,8 +399,31 @@ const removeDraftItem = (itemId: string) => {
   store.markDraftDirty();
 };
 
-const onContentItemDragStart = (itemId: string) => {
+const openForgeEditorForDraftItemCopy = (item: LibraryItem) => {
+  if (!pack.value) return;
+  const copiedItem = clonePlain(item) as LibraryItem;
+  copiedItem.id = makeUniqueLocalId(item.id, items.value.map(entry => entry.id));
+  copiedItem.source = pack.value.manifest.name;
+  pack.value.items = [...items.value, copiedItem];
+  selectedItemIndex.value = pack.value.items.length - 1;
+  store.ensureItemAssignmentGroups(copiedItem);
+  store.markDraftDirty();
+  store.recordMakerDragDiagnostic('maker.copy-forge', 'ok', 'Draft item copied for forge editing', {
+    sourceItemId: item.id,
+    copiedItemId: copiedItem.id,
+    itemName: copiedItem.name,
+    draftItemCount: pack.value.items.length,
+  });
+  openForgeEditorForDraftItem(copiedItem);
+};
+
+const onContentItemDragStart = (event: DragEvent, itemId: string) => {
   draggedContentItemId.value = itemId;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'copyMove';
+    event.dataTransfer.setData('application/x-dnd-maker-item-id', itemId);
+    event.dataTransfer.setData('text/plain', JSON.stringify({ type: 'maker-draft-item', id: itemId }));
+  }
 };
 
 const onContentItemDragEnd = () => {
@@ -405,6 +457,20 @@ const moveContentItemToGroup = (
   selectedItemIndex.value = source.findIndex(item => item.id === moving.id);
   draggedContentItemId.value = '';
   store.markDraftDirty();
+};
+
+const onWorkbenchDraftItemDrop = async (target: 'forge' | 'enchant') => {
+  if (!pack.value || !draggedContentItemId.value) return false;
+  const item = items.value.find(entry => entry.id === draggedContentItemId.value);
+  if (!item) return false;
+  hoveringWorkbench.value = null;
+  draggedContentItemId.value = '';
+  if (target === 'forge') {
+    openForgeEditorForDraftItemCopy(item);
+  } else {
+    openEnchantEditorForDraftItem(item);
+  }
+  return true;
 };
 
 const onContentGroupDragStart = (key: string) => {
@@ -445,8 +511,27 @@ const saveLock = async () => {
 const saveDraftFromHeader = async () => {
   if (isSavingDraft.value) return;
   isSavingDraft.value = true;
+  store.recordMakerDragDiagnostic('maker.header-save', 'info', 'Data-pack maker header save clicked', {
+    packId: pack.value?.manifest.id,
+    draftDirty: store.draftDirty,
+    itemCount: items.value.length,
+    spellCount: spells.value.length,
+    traitCount: traits.value.length,
+  });
   try {
-    await store.saveDraftPack('update');
+    const saved = await store.saveDraftPack('update');
+    store.recordMakerDragDiagnostic(
+      'maker.header-save',
+      saved ? 'ok' : 'error',
+      saved ? 'Data-pack maker header save finished' : 'Data-pack maker header save returned false',
+      {
+        packId: pack.value?.manifest.id,
+        draftDirty: store.draftDirty,
+        itemCount: items.value.length,
+        runtimePackCount: store.packs.length,
+        enabledPackIds: store.settings.enabledPackIds,
+      }
+    );
   } finally {
     isSavingDraft.value = false;
   }
@@ -582,7 +667,7 @@ const saveDraftFromHeader = async () => {
                     :class="{ active: selectedItem?.id === item.id, magic: item.magic?.isMagic }"
                     :style="getDraftItemStyle(item)"
                     draggable="true"
-                    @dragstart="onContentItemDragStart(item.id)"
+                    @dragstart="onContentItemDragStart($event, item.id)"
                     @dragend="onContentItemDragEnd"
                     @dragover.prevent
                     @drop.prevent.stop="moveContentItemToGroup(subgroup.category, subgroup.subcategory, item.id)"
@@ -595,6 +680,7 @@ const saveDraftFromHeader = async () => {
                     </div>
                     <div class="content-item-actions">
                       <button type="button" class="small" @click.stop="openForgeEditorForDraftItem(item)">DIY 编辑</button>
+                      <button type="button" class="small" @click.stop="openForgeEditorForDraftItemCopy(item)">复制到铁匠台</button>
                       <button type="button" class="small" @click.stop="openEnchantEditorForDraftItem(item)">附魔</button>
                       <button type="button" class="danger small" @click.stop="removeDraftItem(item.id)">删除</button>
                     </div>

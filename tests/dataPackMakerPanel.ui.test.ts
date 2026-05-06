@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import DataPackMakerPanel from '../src/components/sheet/dataPackMaker/DataPackMakerPanel.vue';
+import DataPackMakerMonitor from '../src/components/sheet/dataPackMaker/DataPackMakerMonitor.vue';
+import { useForge } from '../src/composables/useForge';
 import { useDataPackStore } from '../src/stores/dataPackStore';
 import type { DataPackFile } from '../src/types/DataPack';
 import type { LibraryItem } from '../src/types/Library';
@@ -34,6 +36,7 @@ describe('DataPackMakerPanel', () => {
       },
       configurable: true,
     });
+    useForge().close();
   });
 
   afterEach(() => {
@@ -85,6 +88,102 @@ describe('DataPackMakerPanel', () => {
     expect(saveEditableDataPack).toHaveBeenCalledWith(expect.objectContaining({
       manifest: expect.objectContaining({ id: 'homebrew' }),
     }), 'create');
+  });
+
+  it('keeps saved maker edits in the runtime library even when the pack is disabled', async () => {
+    const store = useDataPackStore();
+    store.packs = [];
+    store.settings = {
+      enabledPackIds: [],
+      packOrder: [],
+    };
+    store.isMakerOpen = true;
+    store.activeDraftPack = {
+      ...createDraftPack(),
+      items: [
+        {
+          id: 'resin',
+          name: '原始精粹',
+          type: 'consumable',
+          cost: { value: 75, unit: 'gp' },
+          weight: 0,
+          description: '旧描述',
+          displayCategory: '战斗道具',
+          displaySubcategory: '消耗品',
+        } as LibraryItem,
+      ],
+    };
+    const saveEditableDataPack = vi.fn(async (packFile: DataPackFile) => ({
+      success: true as const,
+      data: packFile,
+    }));
+
+    Object.defineProperty(window, 'electronAPI', {
+      value: {
+        writeLog: vi.fn(async () => ({ success: true, data: null })),
+        saveEditableDataPack,
+      },
+      configurable: true,
+    });
+
+    store.activeDraftPack.items![0].name = '不朽精粹';
+    store.activeDraftPack.items![0].description = '新描述';
+
+    await expect(store.saveDraftPack('update')).resolves.toBe(true);
+
+    expect(store.packs).toHaveLength(1);
+    expect(store.packs[0]?.id).toBe('homebrew');
+    expect(store.packs[0]?.items).toHaveLength(1);
+    const savedItem = store.packs[0]?.items.find(item => item.id === 'homebrew:resin');
+    expect(savedItem).toMatchObject({
+      id: 'homebrew:resin',
+      name: '不朽精粹',
+      description: '新描述',
+    });
+    expect(store.itemLibraryItems).toEqual([]);
+
+    store.settings = {
+      enabledPackIds: ['homebrew'],
+      packOrder: ['homebrew'],
+    };
+
+    expect(store.itemLibraryItems[0]).toMatchObject({
+      id: 'homebrew:resin',
+      name: '不朽精粹',
+      description: '新描述',
+    });
+  });
+
+  it('shows a copyable floating maker behavior monitor for save diagnostics', async () => {
+    const store = useDataPackStore();
+    store.isMakerOpen = true;
+    store.activeDraftPack = createDraftPack();
+    store.recordMakerDragDiagnostic('forge.save-start', 'info', 'Forge save button invoked', {
+      itemName: '不朽精粹',
+    });
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    wrapper = mount(DataPackMakerMonitor, {
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    await wrapper.find('.monitor-toggle').trigger('click');
+
+    expect(wrapper.text()).toContain('数据包编辑器行为监视');
+    expect(wrapper.text()).toContain('Forge save button invoked');
+    expect(wrapper.find('.monitor-copy-box').exists()).toBe(true);
+
+    await wrapper.find('.monitor-actions button').trigger('click');
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const copiedText = writeText.mock.calls.at(0)?.at(0);
+    expect(copiedText).toContain('forge.save-start');
   });
 
   it('syncs editor-assigned item groups into the active data pack metadata', () => {
@@ -153,6 +252,59 @@ describe('DataPackMakerPanel', () => {
     expect(card.attributes('style')).toContain('background-color: rgb(50, 22, 95)');
     expect(card.text()).toContain('月光长剑+1');
     expect(card.get('.content-item-main strong').attributes('style')).toContain('color: rgb(242, 211, 139)');
+  });
+
+  it('copies a draft item into a new draft entry before opening it in the forge', async () => {
+    const store = useDataPackStore();
+    store.isMakerOpen = true;
+    store.activeDraftPack = {
+      ...createDraftPack(),
+      items: [
+        {
+          id: 'longsword',
+          name: '长剑',
+          type: 'weapon',
+          cost: { value: 15, unit: 'gp' },
+          weight: 3,
+          description: '原始描述',
+          displayCategory: '武器',
+          displaySubcategory: '军用近战',
+          category: 'martial_melee',
+          damage: '1d8',
+          damageType: 'slashing',
+          properties: [],
+        } as LibraryItem,
+      ],
+    };
+
+    wrapper = mount(DataPackMakerPanel, {
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    const copyButton = wrapper
+      .findAll('.content-item-actions button')
+      .find(button => button.text() === '复制到铁匠台');
+
+    expect(copyButton).toBeTruthy();
+    await copyButton!.trigger('click');
+
+    expect(store.activeDraftPack.items).toHaveLength(2);
+    expect(store.activeDraftPack.items?.[1]).toMatchObject({
+      id: 'longsword-2',
+      name: '长剑',
+      source: store.activeDraftPack.manifest.name,
+      displayCategory: '武器',
+      displaySubcategory: '军用近战',
+    });
+    expect(store.activeDraftPack.items?.[1]).not.toBe(store.activeDraftPack.items?.[0]);
+    expect(store.draftDirty).toBe(true);
+    expect(useForge().draftItem.value).toMatchObject({
+      templateId: 'longsword-2',
+      name: '长剑',
+    });
+    expect(store.makerDragDiagnostics.some(entry => entry.step === 'maker.copy-forge')).toBe(true);
   });
 
   it('manages passphrase unlock groups and assigns spell visibility metadata', () => {

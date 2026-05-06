@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useDataPackStore } from '../src/stores/dataPackStore';
-import type { RuntimeDataPack } from '../src/types/DataPack';
+import type { DataPackFile, RuntimeDataPack } from '../src/types/DataPack';
 
 const createPack = (): RuntimeDataPack => ({
   id: 'campaign',
@@ -123,6 +123,43 @@ describe('data pack passphrase unlock store', () => {
     store.setIgnoreUnlockInMaker(true);
 
     expect(store.itemLibraryItems.map(item => item.id)).toEqual(['campaign:torch', 'campaign:secret-blade']);
+  });
+
+  it('uses the active maker draft as the right-sidebar library source before saving', () => {
+    const store = useDataPackStore();
+    store.packs = [createPack()];
+    store.settings = { enabledPackIds: ['campaign'], packOrder: ['campaign'] };
+    store.isMakerOpen = true;
+    store.activeDraftPack = {
+      manifest: {
+        schemaVersion: 1,
+        id: 'campaign',
+        name: 'Campaign Pack',
+        version: '1.0.0',
+      },
+      items: [
+        {
+          id: 'torch',
+          name: 'Torch',
+          type: 'gear',
+          weight: 1,
+          description: 'Draft-side edited description.',
+        },
+      ],
+      spells: [],
+      traits: [],
+    } satisfies DataPackFile;
+
+    expect(store.itemLibraryItems).toHaveLength(1);
+    expect(store.itemLibraryItems[0]).toMatchObject({
+      id: 'campaign:torch',
+      description: 'Draft-side edited description.',
+    });
+
+    store.activeDraftPack.items![0].description = 'Unsaved hover description.';
+    store.markDraftDirty();
+
+    expect(store.itemLibraryItems[0]?.description).toBe('Unsaved hover description.');
   });
 
   it('can relock one pack or clear all persisted unlocks without changing pack data', () => {

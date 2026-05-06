@@ -1,4 +1,5 @@
 import type { Character } from './Character';
+import type { CharacterGroup } from '../stores/characterStore';
 import type {
   DataPackExportOptions,
   DataPackFile,
@@ -25,10 +26,17 @@ export type IpcResult<T> = IpcSuccessResult<T> | IpcFailureResult;
 
 export type IpcVoidResult = IpcResult<null>;
 
+export type CharacterGroupState = {
+  groups: CharacterGroup[];
+  ungroupedExpanded: boolean;
+};
+
 export interface ElectronApi {
   saveCharacter: (filename: string, content: string) => Promise<IpcVoidResult>;
   loadAllCharacters: () => Promise<IpcResult<Character[]>>;
   deleteCharacter: (filename: string) => Promise<IpcVoidResult>;
+  readCharacterGroups?: () => Promise<IpcResult<CharacterGroupState>>;
+  saveCharacterGroups?: (state: CharacterGroupState) => Promise<IpcResult<CharacterGroupState>>;
   onAppWillClose: (callback: () => void) => void;
   confirmClose: () => Promise<void>;
   setZoomFactor: (factor: number) => void;

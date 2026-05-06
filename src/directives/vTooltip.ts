@@ -53,7 +53,7 @@ export const vTooltip: Directive<HTMLElement, TooltipBindingValue> = {
 
     // 鼠标移出：隐藏
     el.addEventListener('mouseleave', () => {
-      store.hide();
+      store.hideSoon();
     });
   }
 };

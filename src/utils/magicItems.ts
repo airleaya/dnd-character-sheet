@@ -139,7 +139,20 @@ export const detachMagicTraitSnapshot = (item: InventoryItem, traitId: string) =
   magic.customTraits = (magic.customTraits ?? []).filter(trait => trait.id !== traitId);
 };
 
-export const resolveMagicTraitsForItem = (item: InventoryItem): ItemMagicTrait[] => {
+export const updateSelectedMagicTraitSnapshot = (item: MagicItemLike, trait: ItemMagicTrait): boolean => {
+  const magic = item.magic;
+  if (!magic?.selectedTraitIds?.includes(trait.id)) return false;
+
+  const customTraits = magic.customTraits ?? [];
+  const snapshot = cloneMagicTrait(trait);
+  const existingIndex = customTraits.findIndex(entry => entry.id === trait.id);
+  magic.customTraits = existingIndex >= 0
+    ? customTraits.map((entry, index) => index === existingIndex ? snapshot : entry)
+    : [...customTraits, snapshot];
+  return true;
+};
+
+export const resolveMagicTraitsForItem = (item: MagicItemLike): ItemMagicTrait[] => {
   if (!item.magic) return [];
   if (!item.magic.customTraits) {
     item.magic.customTraits = [];

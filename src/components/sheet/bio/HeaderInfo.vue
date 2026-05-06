@@ -153,7 +153,7 @@ const moveTooltip = (event: MouseEvent) => {
         @click="showExpertiseModal = true"
         @mouseenter="showTooltip(buildExpertiseTooltip(), $event)"
         @mousemove="moveTooltip"
-        @mouseleave="tooltipStore.hide()"
+        @mouseleave="tooltipStore.hideSoon()"
       >
         ✦ 专精
       </button>
@@ -163,7 +163,7 @@ const moveTooltip = (event: MouseEvent) => {
         @click="showProfModal = true"
         @mouseenter="showTooltip(buildProficiencyTooltip(), $event)"
         @mousemove="moveTooltip"
-        @mouseleave="tooltipStore.hide()"
+        @mouseleave="tooltipStore.hideSoon()"
       >
         ⚙️ 熟练
       </button>

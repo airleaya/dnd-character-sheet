@@ -1,5 +1,35 @@
 # UPDATE_LOG
 
+## [0.14.20] - 2026-05-06
+- Type: Feature / Data Pack Maker / Forge Workflow / Diagnostics / Tests
+- Item: Copy data-pack maker content items into the forge workflow and harden maker save diagnostics.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `src/components/sheet/dataPackMaker/DataPackMakerMonitor.vue`
+  - `src/components/layout/AppLayout.vue`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/composables/useForge.ts`
+  - `src/stores/dataPackStore.ts`
+  - `tests/dataPackMakerPanel.ui.test.ts`
+  - `tests/forgeModal.ui.test.ts`
+  - `tests/useForge.test.ts`
+- Completed changes:
+  - Project version grows from `0.14.19` to `0.14.20` because this round adds a data-pack maker copy-to-forge workflow and persistent maker diagnostics.
+  - Data-pack maker content cards now provide `??????`, creating an independent draft item copy with a unique local id before opening the existing forge editor.
+  - Dragging an existing data-pack content item onto the maker forge target now copies that item into a new draft entry and opens the forge editor, while normal content-list drag sorting and grouping remain available.
+  - Forge save diagnostics now record maker save start, save override, draft write-back, header saves, and copy-to-forge events in a floating behavior monitor with one-click copy.
+  - The maker forge save path now safely handles optional fields such as `descriptionBlocks` and `magic` when they are `undefined`, preventing JSON clone errors.
+  - Data-pack runtime refresh and maker save tests were expanded around stale library data, template replacement, focused-field save flushing, and copy-to-forge behavior.
+- Verification:
+  - `npm run test -- tests/dataPackMakerPanel.ui.test.ts tests/forgeModal.ui.test.ts tests/useForge.test.ts` passed: 3 files / 31 tests.
+  - `npm run typecheck` passed.
+  - `npm run build` was not run, per current engineering rule.
+
 ## [0.14.19] - 2026-04-30
 - Type: Feature / Magic Item UI / Data Pack Maker / Item Library / Tests
 - Item: Synchronize magic item visuals across inventory, data-pack maker, and item library displays.

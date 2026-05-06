@@ -5,6 +5,8 @@ const electronAPI: ElectronApi = {
   saveCharacter: (filename: string, content: string) => ipcRenderer.invoke('save-character', filename, content),
   loadAllCharacters: () => ipcRenderer.invoke('load-all-characters'),
   deleteCharacter: (filename: string) => ipcRenderer.invoke('delete-character', filename),
+  readCharacterGroups: () => ipcRenderer.invoke('read-character-groups'),
+  saveCharacterGroups: (state) => ipcRenderer.invoke('save-character-groups', state),
   onAppWillClose: (callback: () => void) => ipcRenderer.on('app-will-close', callback),
   confirmClose: () => ipcRenderer.invoke('app-can-close'),
   //设置缩放比例 (factor: 1.0 = 100%, 1.2 = 120%)

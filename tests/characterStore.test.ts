@@ -52,6 +52,8 @@ describe('characterStore persistence flows', () => {
         persistedFiles.delete(filename);
         return { success: true, data: null };
       },
+      readCharacterGroups: async () => ({ success: true, data: { groups: [], ungroupedExpanded: true } }),
+      saveCharacterGroups: async (state) => ({ success: true, data: state }),
       onAppWillClose: () => undefined,
       confirmClose: async () => undefined,
       setZoomFactor: () => undefined,
@@ -138,6 +140,37 @@ describe('characterStore persistence flows', () => {
     expect(store.getCharacterData('delete-1')).toBeNull();
     expect(persistedFiles.has('delete-1.json')).toBe(false);
     expect(store.groups[0]?.characterIds).toEqual([]);
+  });
+
+  it('persists character groups through the Electron local storage bridge', async () => {
+    let groupState = {
+      groups: [
+        {
+          id: 'group-1',
+          name: 'Saved Group',
+          characterIds: ['grouped-1'],
+          isExpanded: false,
+        },
+      ],
+      ungroupedExpanded: false,
+    };
+    electronApi.readCharacterGroups = async () => ({ success: true, data: deepClone(groupState) });
+    electronApi.saveCharacterGroups = async (state) => {
+      groupState = deepClone(state);
+      return { success: true, data: deepClone(groupState) };
+    };
+    const character = createDefaultCharacter('grouped-1');
+    character.profile.name = 'Grouped Hero';
+    persistedFiles.set('grouped-1.json', character);
+
+    const store = useCharacterStore();
+    await store.init();
+
+    expect(store.groups).toEqual(groupState.groups);
+    expect(store.ungroupedExpanded).toBe(false);
+
+    store.toggleGroup('group-1');
+    expect(groupState.groups[0]?.isExpanded).toBe(true);
   });
 
   it('exports characters with a sanitized human-readable filename', async () => {

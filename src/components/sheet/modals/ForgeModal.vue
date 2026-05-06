@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useForge } from '../../../composables/useForge';
 import { useUiFeedbackStore } from '../../../stores/uiFeedback';
 import { useDataPackStore } from '../../../stores/dataPackStore';
@@ -29,6 +29,7 @@ const {
   save,
   close,
   updateItemType,
+  updateItemTemplate,
   toggleWeaponProperty,
 } = useForge();
 const { openEnchantingForItem } = useEnchanting();
@@ -135,13 +136,18 @@ const onTypeChange = (event: Event) => {
 };
 
 const onTemplateChange = (event: Event) => {
-  if (!draftItem.value) return;
   const templateId = (event.target as HTMLSelectElement).value;
-  draftItem.value.templateId = templateId;
+  updateItemTemplate(templateId);
   const template = getRuntimeLibraryItemById(templateId);
   templateSearch.value = template?.name ?? '';
 };
 
+const updateDescription = (value: string) => {
+  if (!draftItem.value) return;
+  draftItem.value.description = value;
+  // Once the GM writes custom text, the old structured source blocks must not shadow it in library tooltips.
+  draftItem.value.descriptionBlocks = undefined;
+};
 
 // 记录鼠标按下时是否在遮罩层上
 const isMouseDownOnBackdrop = ref(false);
@@ -199,6 +205,18 @@ const onBackdropMouseup = async () => {
   }
   // 无论如何，松开鼠标后重置状态
   isMouseDownOnBackdrop.value = false;
+};
+
+const flushActiveEditor = async () => {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+    await nextTick();
+  }
+};
+
+const handleSave = async () => {
+  await flushActiveEditor();
+  save();
 };
 </script>
 
@@ -320,7 +338,7 @@ const onBackdropMouseup = async () => {
               <label>物品描述 / 备注</label>
               <EditableTextarea
                 :model-value="draftItem!.description ?? ''"
-                @update:model-value="val => draftItem!.description = val"
+                @update:model-value="updateDescription"
                 :rows="6"
                 class="desc-area"
               />
@@ -547,7 +565,7 @@ const onBackdropMouseup = async () => {
 
           <div class="modal-footer">
             <button class="btn-cancel" @click="safeClose">取消 (Esc)</button>
-            <button class="btn-save" @click="save">保存更改</button>
+            <button class="btn-save" @mousedown.capture="flushActiveEditor" @click="handleSave">保存更改</button>
           </div>
 
         </div>

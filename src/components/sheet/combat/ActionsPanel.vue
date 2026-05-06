@@ -207,7 +207,7 @@ const onTraitMove = (event: MouseEvent) => {
 };
 
 const onTraitLeave = () => {
-  tooltipStore.hide();
+  tooltipStore.hideSoon();
 };
 
 const onAttackEnter = (attack: AttackCatalogEntry, event: MouseEvent) => {
@@ -219,7 +219,7 @@ const onAttackMove = (event: MouseEvent) => {
 };
 
 const onAttackLeave = () => {
-  tooltipStore.hide();
+  tooltipStore.hideSoon();
 };
 
 const openAttackPicker = () => {

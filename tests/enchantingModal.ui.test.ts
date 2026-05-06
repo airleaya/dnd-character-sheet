@@ -8,9 +8,10 @@ import EnchantingModal from '../src/components/sheet/modals/EnchantingModal.vue'
 import { useEnchanting } from '../src/composables/useEnchanting';
 import { useActiveSheetStore } from '../src/stores/activeSheet';
 import { useCustomMagicTraitStore } from '../src/stores/customMagicTraitStore';
+import { useDataPackStore } from '../src/stores/dataPackStore';
 import { createDefaultCharacter } from '../src/utils/characterMigration';
 import type { InventoryItem } from '../src/types/Item';
-import type { ItemMagicTrait } from '../src/types/Library';
+import type { ItemMagicTrait, LibraryItem } from '../src/types/Library';
 
 const createElectronApiMock = () => ({
   saveCharacter: vi.fn().mockResolvedValue({ success: true, data: null }),
@@ -234,6 +235,79 @@ describe('EnchantingModal', () => {
     });
   });
 
+  it('propagates custom trait edits to data-pack draft items selecting that trait', async () => {
+    const store = useActiveSheetStore();
+    const dataPackStore = useDataPackStore();
+    const traitStore = useCustomMagicTraitStore();
+    store.character = createDefaultCharacter('enchant-modal-data-pack-trait');
+    await traitStore.upsertTrait({
+      id: 'custom-light-wave',
+      source: 'custom',
+      type: 'plain',
+      name: '光暗波动',
+      description: '旧描述',
+      activationMode: 'always',
+      participatesInDamage: false,
+    });
+    const oldSnapshot: ItemMagicTrait = {
+      id: 'custom-light-wave',
+      source: 'custom',
+      type: 'plain',
+      name: '光暗波动',
+      description: '旧描述',
+      activationMode: 'always',
+      participatesInDamage: false,
+    };
+    const draftItem = {
+      id: 'ancient-staff-light',
+      name: '古老附魔的长棍-光',
+      type: 'weapon',
+      cost: { value: 289, unit: 'gp' },
+      weight: 4,
+      description: '',
+      category: 'simple_melee',
+      damage: '1d6',
+      damageType: 'bludgeoning',
+      properties: ['versatile'],
+      magic: {
+        isMagic: true,
+        selectedTraitIds: ['custom-light-wave'],
+        customTraits: [oldSnapshot],
+      },
+    } as LibraryItem;
+    dataPackStore.activeDraftPack = {
+      manifest: {
+        schemaVersion: 1,
+        id: 'homebrew',
+        name: '不朽精神数据包',
+        version: '1.0.0',
+      },
+      items: [draftItem],
+      spells: [],
+      traits: [],
+    };
+    dataPackStore.isMakerOpen = true;
+
+    const wrapper = mountModal();
+    useEnchanting().openEnchantingForItem(createWeapon(), 'button', undefined, { dataPackMaker: true });
+    await nextTick();
+
+    await wrapper.find('[data-test="enchant-tab-manage"]').trigger('click');
+    const firstTraitEditor = wrapper.find('.saved-trait-edit');
+    await firstTraitEditor.find('[data-test="edit-trait-name"]').setValue('光暗波动·改');
+    await firstTraitEditor.find('textarea').setValue('新描述会同步到所有选择该词条的物品。');
+    await firstTraitEditor.trigger('change');
+    await flushAsync();
+
+    expect(dataPackStore.activeDraftPack.items?.[0].magic?.customTraits).toHaveLength(1);
+    expect(dataPackStore.activeDraftPack.items?.[0].magic?.customTraits?.[0]).toMatchObject({
+      id: 'custom-light-wave',
+      name: '光暗波动·改',
+      description: '新描述会同步到所有选择该词条的物品。',
+    });
+    expect(dataPackStore.draftDirty).toBe(true);
+  });
+
   it('removing a custom trait from the reusable library keeps item-bound snapshots', async () => {
     const store = useActiveSheetStore();
     const character = createDefaultCharacter('enchant-modal-retained-snapshot');
@@ -272,6 +346,43 @@ describe('EnchantingModal', () => {
       damageDice: '1d4',
     });
     expect(wrapper.text()).toContain('Ice');
+  });
+
+  it('maps item-bound selected trait snapshots into the trait selection list', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('enchant-modal-item-bound-selection');
+    const weapon = createWeapon();
+    weapon.magic = {
+      isMagic: true,
+      selectedTraitIds: ['deleted-custom-spark'],
+      customTraits: [
+        {
+          id: 'deleted-custom-spark',
+          source: 'custom',
+          type: 'plain',
+          name: 'Remembered Spark',
+          description: 'This trait only exists on the item snapshot.',
+          activationMode: 'always',
+          participatesInDamage: false,
+        },
+      ],
+    };
+    character.customMagicTraits = [];
+    character.inventory = [weapon];
+    store.character = character;
+
+    const wrapper = mountModal();
+    useEnchanting().openEnchantingForItem(weapon);
+    await nextTick();
+
+    await wrapper.find('[data-test="enchant-tab-traits"]').trigger('click');
+    await nextTick();
+
+    const matchingBadge = wrapper.findAll('.trait-badge').find(badge => badge.text().includes('Remembered Spark'));
+    expect(matchingBadge).toBeTruthy();
+    expect(matchingBadge?.classes()).toContain('selected');
+    expect(matchingBadge?.find('input[type="checkbox"]').element).toMatchObject({ checked: true });
+    expect(matchingBadge?.text()).toContain('This trait only exists on the item snapshot.');
   });
 
   it('renders selectable magic traits as compact badges with hover detail text', async () => {
