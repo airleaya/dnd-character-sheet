@@ -1,5 +1,29 @@
 # UPDATE_LOG
 
+## [0.14.23] - 2026-05-20
+- Type: Maintenance / Recovery / Frontend Design Audit / Documentation Cross-check / Version Roll
+- Item: Restore the pre-reset bugfix commit and reapply the frontend audit/cross-check work.
+- Owner: snowlitch / Codex
+- Related files:
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `FRONTEND_DESIGN_AUDIT.md`
+  - `tests/itemLibraryAudit.test.ts`
+- Completed changes:
+  - Restored local `main` to commit `b0f4783`, preserving the `0.14.22` wallet migration and character-card group persistence fix that had been reset out locally.
+  - Reapplied the frontend design audit and engineering file cross-check changes on top of that restored commit.
+  - Project version grows from `0.14.22` to `0.14.23` because `0.14.22` is reserved for the restored bugfix release.
+  - Added `FRONTEND_DESIGN_AUDIT.md` covering the current desktop shell, component families, visual languages, interaction inventory, layout risks, accessibility gaps, styling architecture, UI test coverage, and recommended redesign order.
+  - README related documentation now points to the new frontend design audit.
+  - Synchronized the item-library audit test total with the current runtime audit baseline of 499 items, matching the existing adapter audit expectation.
+- Verification:
+  - `npm run typecheck` passed.
+  - `npm run test` first hit Windows `EPERM` while creating `node_modules/.cache/logging-test` inside the sandbox.
+  - `npm run test` passed outside the sandbox: 37 files / 206 tests.
+  - `npm run build` was not run in this recovery/audit round.
+
 ## [0.14.22] - 2026-05-09
 - 类型：Bugfix / 旧存档迁移 / 角色卡分组持久化 / 测试
 - 项目：修复旧存档钱包丢失与角色卡分组重启后丢失问题。

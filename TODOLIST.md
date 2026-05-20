@@ -1,5 +1,12 @@
 # TODOLIST
 
+> 2026-05-20 version iteration update:
+> Current baseline grows from `0.14.22` to `0.14.23`; this round restores the pre-reset bugfix commit and reapplies the frontend design audit plus engineering file cross-check on top of it.
+> 2026-05-20 frontend design audit:
+> Added `FRONTEND_DESIGN_AUDIT.md` to map the current desktop shell, component families, visual systems, interaction patterns, layout risks, accessibility gaps, styling debt, UI test coverage, and recommended redesign order.
+> 2026-05-20 engineering file cross-check:
+> Cross-checked `package.json`, `package-lock.json`, `README.md`, `UPDATE_LOG.md`, `FRONTEND_DESIGN_AUDIT.md`, `PROJECT_INDEX.md`, `CODE_HEALTH_PLAN.md`, release notes, CI workflow, and item-library audit tests. Version metadata is aligned at `0.14.23`; stale documentation/index cleanup items are recorded under P0.
+
 > 2026-05-09 bugfix 更新：
 > 已修复旧存档钱包字段迁移丢失问题，并为角色卡分组保存加入 localStorage 同步备份；Electron 分组文件为空、写入失败或关闭过快时，重启后仍可恢复最近一次分组状态。
 > 验证：`npm run test -- tests/characterMigration.test.ts`、`npm run test -- tests/characterStore.test.ts`、`npm run typecheck` 均已通过；版本号已从 `0.14.21` 滚动到 `0.14.22`，`npm run build` 已通过并产出 `0.14.22` 安装包与便携 exe。
@@ -252,12 +259,14 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.14.19`
+当前基线版本：`0.14.23`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
 
 - `0.14.N`：数据包系统；`N` 为自增长补丁版本号。
+- `0.14.23`：已恢复回滚前 `0.14.22` bugfix 提交，并在其上套回前端设计摸底与工程文件互检。
+- `0.14.22`：已完成旧存档钱包迁移兼容与角色卡分组 localStorage 备份恢复。
 - `0.14.19`：已完成附魔物品魔法属性与魔法视觉在行囊、数据包制作器和物品库中的同步展示。
 - `0.14.18`：已完成附魔界面词条编辑入口、词条徽章化与悬停详情。
 - `0.14.17`：已完成数据包口令进度持久化、全局口令、公开/总数信息与导出重置控制。
@@ -285,8 +294,29 @@
 
 ## P0 / 当前迭代
 
+### 0. 工程文件互检与文档同步
+- [ ] 状态：已完成互检，待逐项清理差异
+- 目标版本：`0.14.N`
+- 类型：工程文档 / 索引 / 验收口径 / 版本维护
+- 已核对文件：
+  - `package.json` 与 `package-lock.json` 均为 `0.14.23`。
+  - `README.md` 当前版本号为 `0.14.23`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
+  - `UPDATE_LOG.md` 已有 `0.14.23` 条目，记录恢复回滚前提交、前端设计摸底、测试基线修正和工程文件互检结果。
+  - `FRONTEND_DESIGN_AUDIT.md` 已以 `0.14.23` 为前端设计摸底基线。
+  - `.github/workflows/ci.yml` 当前实际链路为 `npm ci -> npm run typecheck -> npm run lint -> npm run test -> npm run build`。
+  - `tests/itemLibraryAudit.test.ts` 与 `tests/itemLibraryAdapter.test.ts` 的运行时物品库总数口径已统一为 `499`。
+- 发现的待清理差异：
+  - [ ] `README.md` 的“当前脚本定义 / 开发前建议 / 提交前建议 / CI 工作流”段落仍未完整写入 `npm run test`，与 `package.json` 和 GitHub Actions 实际链路不完全一致。
+  - [ ] `PROJECT_INDEX.md` 生成时间停留在 `2026/4/3`，缺少数据包、附魔、全局反馈、测试与新前端审计文档等近期结构，需要重新生成或标注为历史索引。
+  - [ ] `CODE_HEALTH_PLAN.md` 已归档，但其中“当前测试基线 10 组 / 30 条用例”等历史数字容易与当前 `37 files / 203 tests` 混淆，需要补一段当前状态说明或明确全篇历史属性。
+  - [ ] `RELEASE_NOTES_v0.14.21.md` 仍停在 `v0.14.21` 且存在乱码文本；若继续维护发布说明，需要重新生成 `v0.14.23` 发布说明或将旧文件标注为历史损坏稿。
+  - [ ] `TODOLIST.md` 中 `0.12.1` 物品库收口验收仍写 `ITEM_LIBRARY_AUDIT_REPORT.total === 489`，这代表非模板结构化基础物品数量；当前运行时审计总数含空白模板为 `499`，需要在该条验收中拆清“基础物品 489 / 运行时总数 499”的双口径。
+- 后续建议：
+  - 先做文档口径修复，不碰运行时代码。
+  - 每次更新版本时同步核对 README、UPDATE_LOG、TODOLIST、package/lock、测试基线和发布说明。
+
 ### 0. 数据包系统四阶段工作栈
-- [ ] 状态：阶段三已完成第一版，阶段四待开始，作为 `0.14.N` 主线
+- [ ] 状态：阶段四应用内口令可见性已完成第一版；真加密与解锁状态持久化仍按需评估，作为 `0.14.N` 主线
 - 目标版本：`0.14.N`
 - 类型：架构 / 数据包 / 物品库 / 法术库 / 加密
 - 阶段一：数据包读取与目录改造
@@ -547,10 +577,10 @@
 ## P2 / 中期增强
 
 ### 6. 自定义物品模板
-- [ ] 状态：未开始
-- 目标版本：`0.13.N`
+- [x] 状态：已完成，作为 `0.13.9` / `0.13.10` 收口
+- 目标版本：`0.13.9`
 - 类型：功能增强
-- 描述：为 DIY / Forge 系统提供预设模板，降低用户创建成本。
+- 描述：物品库已新增 9 个空白模板，并在 Forge 模板下拉中作为自定义物品起点；空白模板菜单排序已在 `0.13.10` 调整到真实物品分类之后。
 
 ### 7. 角色特性词条化
 - [ ] 状态：未开始
@@ -581,10 +611,10 @@
 - 描述：建立用于记录制作团队资源、分工、素材来源、参考链接与维护说明的轻量功能或数据区。
 
 ### 11. 自建信息数据包
-- [ ] 状态：未开始
-- 目标版本：`Backlog`
+- [x] 状态：已完成，作为 `0.14.1` - `0.14.3` 数据包系统与 GM 制作器收口
+- 目标版本：`0.14.3`
 - 类型：低优先级 / 数据扩展 / 自定义内容
-- 描述：支持用户建立自建信息数据包，用于收纳自定义规则、物品、职业、法术、世界观资料等可迁移内容。
+- 描述：数据包系统已支持第三方数据包导入、导出、启用、排序、删除与 GM 制作器新建/编辑数据包，可用于收纳和迁移自定义物品、法术占位、词条占位及相关元数据。
 
 ---
 
@@ -595,4 +625,5 @@
 3. 完成或确认合并后，将结果写入 `UPDATE_LOG.md`。
 4. `TODOLIST.md` 只保留未完成、待验证、待澄清事项。
 5. 工程进度记录必须使用中文。
+6. 当用户要求“提交这些工作”“提交我们的工作”或类似提交指令时，默认执行“提交并推送”。
 

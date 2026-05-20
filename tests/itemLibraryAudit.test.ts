@@ -12,7 +12,7 @@ import {
 describe('item library deep audit', () => {
   it('keeps the structured runtime library fully auditable', () => {
     expect(() => assertItemLibraryDeepAudit()).not.toThrow();
-    expect(ITEM_LIBRARY_AUDIT_REPORT.total).toBe(498);
+    expect(ITEM_LIBRARY_AUDIT_REPORT.total).toBe(499);
     expect(ITEM_LIBRARY_DEEP_AUDIT_REPORT.issues).toEqual([]);
   });
 
