@@ -63,4 +63,34 @@ describe('characterMigration', () => {
       custom: ['异界文献'],
     });
   });
+
+  it('migrates wallet values from legacy currency aliases', () => {
+    const migrated = normalizeCharacterData({
+      id: 'legacy-wallet-1',
+      currency: {
+        cp: 7,
+        sp: 8,
+        gp: 34,
+      },
+      money: {
+        ep: 2,
+        pp: 1,
+      },
+    } as LegacyCharacterData);
+
+    expect(migrated.wallet).toEqual({ cp: 7, sp: 8, ep: 2, gp: 34, pp: 1 });
+  });
+
+  it('migrates flat legacy coin fields without replacing explicit zeroes', () => {
+    const migrated = normalizeCharacterData({
+      id: 'legacy-wallet-2',
+      cp: 3,
+      sp: 0,
+      ep: 1,
+      gp: 0,
+      pp: 2,
+    } as LegacyCharacterData);
+
+    expect(migrated.wallet).toEqual({ cp: 3, sp: 0, ep: 1, gp: 0, pp: 2 });
+  });
 });

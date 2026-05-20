@@ -1,5 +1,13 @@
 # TODOLIST
 
+> 2026-05-09 bugfix 更新：
+> 已修复旧存档钱包字段迁移丢失问题，并为角色卡分组保存加入 localStorage 同步备份；Electron 分组文件为空、写入失败或关闭过快时，重启后仍可恢复最近一次分组状态。
+> 验证：`npm run test -- tests/characterMigration.test.ts`、`npm run test -- tests/characterStore.test.ts`、`npm run typecheck` 均已通过；版本号已从 `0.14.21` 滚动到 `0.14.22`，`npm run build` 已通过并产出 `0.14.22` 安装包与便携 exe。
+
+> 2026-05-06 pending work:
+> - ??????????
+> - ?????????????
+
 > 2026-05-06 version iteration update:
 > Current baseline grows from `0.14.20` to `0.14.21`; this round adds data-pack maker shop catalog generation and removes the behavior monitor panel.
 > 2026-05-06 data-pack maker shop catalog update:
@@ -587,7 +595,4 @@
 3. 完成或确认合并后，将结果写入 `UPDATE_LOG.md`。
 4. `TODOLIST.md` 只保留未完成、待验证、待澄清事项。
 5. 工程进度记录必须使用中文。
-
-
-
 

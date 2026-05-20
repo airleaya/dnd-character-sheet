@@ -1,5 +1,27 @@
 # UPDATE_LOG
 
+## [0.14.22] - 2026-05-09
+- 类型：Bugfix / 旧存档迁移 / 角色卡分组持久化 / 测试
+- 项目：修复旧存档钱包丢失与角色卡分组重启后丢失问题。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `src/utils/characterMigration.ts`
+  - `src/stores/characterStore.ts`
+  - `tests/characterMigration.test.ts`
+  - `tests/characterStore.test.ts`
+  - `TODOLIST.md`
+- 完成内容：
+  - 角色迁移器新增钱包兼容读取，除新版 `wallet` 外，也兼容旧式 `currency`、`money`、`coins` 以及顶层 `cp/sp/ep/gp/pp` 字段，避免读取旧存档时把已有钱币归零。
+  - 钱包迁移只接受有限数字，并保留显式 `0`，避免脏数据或空值覆盖有效旧数据。
+  - 角色卡分组保存现在始终先同步写入 localStorage 备份，再异步写入 Electron 分组文件；Electron 写入失败、延迟或关闭过快时，本地备份仍可用于下次启动恢复。
+  - 分组加载在 Electron 分组文件为空而 localStorage 存在备份时，会恢复备份并重新写回正式分组文件，不再清除兜底数据。
+- 验证：
+  - `npm run test -- tests/characterMigration.test.ts` 通过：1 个文件 / 5 个测试。
+  - `npm run test -- tests/characterStore.test.ts` 通过：1 个文件 / 6 个测试。
+  - `npm run typecheck` 通过。
+  - `npm run build` 首次在沙箱内写入 `dist-electron/main.js` 时遇到 Windows `EPERM`，沙箱外重跑通过，并产出 `release/DnD5e角色卡管理器 Setup 0.14.22.exe` 与 `release/DnD5e角色卡管理器 0.14.22.exe`。
+  - 项目版本从 `0.14.21` 滚动到 `0.14.22`，用于发布本轮旧存档钱包与角色卡分组持久化修复。
+
 ## [0.14.21] - 2026-05-06
 - Type: Feature / Data Pack Maker / Shop Catalog / UI Cleanup / Tests
 - Item: Add data-pack maker shop catalog generation and remove the maker behavior monitor panel.

@@ -30,6 +30,14 @@ export type LegacyCharacterData = Partial<Character> & {
   };
   bio?: Partial<CharacterBio>;
   wallet?: Partial<Wallet>;
+  currency?: Partial<Record<keyof Wallet, unknown>>;
+  money?: Partial<Record<keyof Wallet, unknown>>;
+  coins?: Partial<Record<keyof Wallet, unknown>>;
+  cp?: unknown;
+  sp?: unknown;
+  ep?: unknown;
+  gp?: unknown;
+  pp?: unknown;
   skillProficiencies?: Record<string, boolean>;
   savingThrows?: Partial<Character['savingThrows']>;
   proficiencies?: Partial<CharacterProficiencies>;
@@ -122,6 +130,8 @@ const UNARMED_TAGS: UnarmedStrikeTagKey[] = [
   'astral_arms',
   'custom',
 ];
+
+const WALLET_KEYS = ['cp', 'sp', 'ep', 'gp', 'pp'] as const;
 
 const DEFAULT_SAVING_THROWS: Character['savingThrows'] = {
   str: false,
@@ -291,6 +301,21 @@ const normalizeExpertise = (expertise?: LegacyCharacterData['expertise']): Chara
   tools: cloneArray(expertise?.tools, DEFAULT_EXPERTISE.tools),
   custom: cloneArray(expertise?.custom, DEFAULT_EXPERTISE.custom),
 });
+
+const coerceWalletValue = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+
+const normalizeWallet = (raw: LegacyCharacterData): Wallet => {
+  const legacyWallets = [raw.wallet, raw.currency, raw.money, raw.coins];
+  const wallet = { ...DEFAULT_WALLET };
+
+  WALLET_KEYS.forEach((key) => {
+    const sourceValue = legacyWallets.find(source => source?.[key] !== undefined)?.[key] ?? raw[key];
+    wallet[key] = coerceWalletValue(sourceValue, DEFAULT_WALLET[key]);
+  });
+
+  return wallet;
+};
 
 const isAbilityKey = (value: unknown): value is AbilityKey =>
   typeof value === 'string' && ABILITY_KEYS.includes(value as AbilityKey);
@@ -468,13 +493,7 @@ export const normalizeCharacterData = (raw: LegacyCharacterData): Character => (
   },
   inventory: normalizeInventory(raw.inventory),
   equippedIds: cloneArray(raw.equippedIds, []),
-  wallet: {
-    cp: raw.wallet?.cp ?? DEFAULT_WALLET.cp,
-    sp: raw.wallet?.sp ?? DEFAULT_WALLET.sp,
-    ep: raw.wallet?.ep ?? DEFAULT_WALLET.ep,
-    gp: raw.wallet?.gp ?? DEFAULT_WALLET.gp,
-    pp: raw.wallet?.pp ?? DEFAULT_WALLET.pp,
-  },
+  wallet: normalizeWallet(raw),
   skillProficiencies: { ...(raw.skillProficiencies ?? {}) },
   savingThrows: {
     str: raw.savingThrows?.str ?? DEFAULT_SAVING_THROWS.str,

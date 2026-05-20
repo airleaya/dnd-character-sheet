@@ -28,6 +28,17 @@ const logger = createRendererLogger('stores/characterStore');
 const GROUPS_STORAGE_KEY = 'dnd_app_groups';
 const UNGROUPED_STORAGE_KEY = 'dnd_app_ungrouped_expanded';
 
+const cloneGroupsForPersistence = (groups: CharacterGroup[]): CharacterGroup[] =>
+  groups.map(group => ({
+    ...group,
+    characterIds: [...group.characterIds],
+  }));
+
+const writeGroupsBackup = (groups: CharacterGroup[], ungroupedExpanded: boolean) => {
+  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(cloneGroupsForPersistence(groups)));
+  localStorage.setItem(UNGROUPED_STORAGE_KEY, String(ungroupedExpanded));
+};
+
 // 🔧 辅助函数：生成标准化的文件名
 const getFilename = (char: Character): string => {
   // const safeName = (char.profile.name || '未命名').replace(/[\\/:*?"<>|]/g, '_');
@@ -268,8 +279,6 @@ export const useCharacterStore = defineStore('characterStore', {
 
           if (localState && (!persistedState || persistedState.groups.length === 0)) {
             await this.saveGroups();
-            localStorage.removeItem(GROUPS_STORAGE_KEY);
-            localStorage.removeItem(UNGROUPED_STORAGE_KEY);
           }
         }
       } catch (e) {
@@ -280,22 +289,20 @@ export const useCharacterStore = defineStore('characterStore', {
     // 保存分组数据到本地
     saveGroups() {
       const state = {
-        groups: this.groups,
+        groups: cloneGroupsForPersistence(this.groups),
         ungroupedExpanded: this.ungroupedExpanded,
       };
+      writeGroupsBackup(state.groups, state.ungroupedExpanded);
+
       if (window.electronAPI?.saveCharacterGroups) {
         void window.electronAPI.saveCharacterGroups(state).then(result => {
           if (!result.success) {
             logger.warn('Failed to persist character groups via Electron API', { error: result.error });
           }
+        }).catch(error => {
+          logger.warn('Failed to persist character groups via Electron API', undefined, error);
         });
-        localStorage.removeItem(GROUPS_STORAGE_KEY);
-        localStorage.removeItem(UNGROUPED_STORAGE_KEY);
-        return;
       }
-
-      localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(this.groups));
-      localStorage.setItem(UNGROUPED_STORAGE_KEY, String(this.ungroupedExpanded));
     },
 
     // 切换未分组区域状态

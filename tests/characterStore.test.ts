@@ -171,6 +171,48 @@ describe('characterStore persistence flows', () => {
 
     store.toggleGroup('group-1');
     expect(groupState.groups[0]?.isExpanded).toBe(true);
+    expect(localStorage.getItem('dnd_app_groups')).toContain('Saved Group');
+  });
+
+  it('keeps a local group backup when Electron persistence fails and restores it on reload', async () => {
+    const character = createDefaultCharacter('grouped-backup-1');
+    character.profile.name = 'Backup Hero';
+    persistedFiles.set('grouped-backup-1.json', character);
+    electronApi.readCharacterGroups = async () => ({
+      success: true,
+      data: { groups: [], ungroupedExpanded: true },
+    });
+    electronApi.saveCharacterGroups = async () => ({
+      success: false,
+      error: 'disk busy',
+    });
+
+    const store = useCharacterStore();
+    await store.init();
+    store.groups = [
+      {
+        id: 'group-backup',
+        name: '本地备份分组',
+        characterIds: ['grouped-backup-1'],
+        isExpanded: false,
+      },
+    ];
+    store.ungroupedExpanded = false;
+    store.saveGroups();
+
+    setActivePinia(createPinia());
+    const reloadedStore = useCharacterStore();
+    await reloadedStore.init();
+
+    expect(reloadedStore.groups).toEqual([
+      {
+        id: 'group-backup',
+        name: '本地备份分组',
+        characterIds: ['grouped-backup-1'],
+        isExpanded: false,
+      },
+    ]);
+    expect(reloadedStore.ungroupedExpanded).toBe(false);
   });
 
   it('exports characters with a sanitized human-readable filename', async () => {
