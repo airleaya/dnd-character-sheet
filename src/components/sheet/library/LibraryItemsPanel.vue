@@ -360,19 +360,19 @@ const getBadges = (item: LibraryItem) => {
 
 .main-group-header {
   position: sticky; top: 0; z-index: 20; min-height: var(--main-group-sticky-height);
-  padding: 14px 12px; margin-top: 1px; background-color: #252525; border-bottom: 1px solid #333; border-left: 4px solid #555;
-  font-size: 0.95rem; font-weight: 800; color: #ddd; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none; transition: all 0.2s;
+  padding: 14px 12px; margin-top: 1px; background-color: var(--color-library-main-header-bg); border-bottom: 1px solid var(--color-library-border); border-left: 4px solid var(--color-library-main-header-accent);
+  font-size: 0.95rem; font-weight: 800; color: var(--color-library-main-header-text); text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none; transition: all 0.2s;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  &:hover { background-color: #2d2d2d; color: #fff; }
+  &:hover { background-color: var(--color-library-main-header-hover-bg); color: var(--color-library-text-strong); }
   .header-content { display: flex; align-items: center; gap: 8px; }
-  .arrow-icon { font-size: 0.75rem; color: #888; transition: transform 0.2s ease; display: inline-block; }
-  &.is-open { background-color: #2c2c2c; border-left-color: #42b983; border-bottom-color: #42b983; color: #42b983; .arrow-icon { transform: rotate(90deg); color: #42b983; } }
+  .arrow-icon { font-size: 0.75rem; color: var(--color-library-main-header-arrow); transition: transform 0.2s ease; display: inline-block; }
+  &.is-open { background-color: var(--color-library-main-header-open-bg); border-left-color: var(--color-library-accent); border-bottom-color: var(--color-library-accent); color: var(--color-library-accent); .arrow-icon { transform: rotate(90deg); color: var(--color-library-accent); } }
 }
 
 .passphrase-toggle {
-  border: 1px solid rgba(215, 193, 255, 0.28);
-  background: rgba(215, 193, 255, 0.08);
-  color: #d7c1ff;
+  border: 1px solid var(--color-library-magic-border);
+  background: var(--color-library-magic-bg);
+  color: var(--color-library-magic-text);
   border-radius: 999px;
   padding: 3px 8px;
   font-size: 0.68rem;
@@ -380,57 +380,57 @@ const getBadges = (item: LibraryItem) => {
   letter-spacing: 0;
   text-transform: none;
   cursor: pointer;
-  &:hover { border-color: rgba(215, 193, 255, 0.6); background: rgba(215, 193, 255, 0.16); color: #fff; }
-  &.active { border-color: #d7c1ff; background: #3a175f; color: #fff; }
+  &:hover { border-color: var(--color-library-magic-border-strong); background: var(--color-library-magic-bg-hover); color: var(--color-library-text-strong); }
+  &.active { border-color: var(--color-library-magic-text); background: var(--color-library-magic-bg-active); color: var(--color-library-text-strong); }
 }
 
 .sticky-sub-header {
-  position: sticky; top: calc(var(--main-group-sticky-height) + 34px); z-index: 15; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 34px;
-  font-size: 0.85rem; font-weight: bold; color: #aaa; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background-color 0.2s;
-  &:hover { background-color: #2a2a2a; color: #fff; }
+  position: sticky; top: calc(var(--main-group-sticky-height) + 34px); z-index: 15; background-color: var(--color-library-sub-header-bg); border-left: 4px solid var(--color-library-sub-header-bg); padding: 8px 12px 8px 34px;
+  font-size: 0.85rem; font-weight: bold; color: var(--color-library-sub-header-text); border-bottom: 1px solid var(--color-library-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background-color 0.2s;
+  &:hover { background-color: var(--color-library-sub-header-hover-bg); color: var(--color-library-text-strong); }
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
-  &.is-open { color: #eee; background-color: #282828; .arrow-icon { transform: rotate(90deg); } }
-  .count { font-size: 0.7rem; color: #666; background: #1a1a1a; padding: 1px 6px; border-radius: 8px; }
+  &.is-open { color: var(--color-library-sub-header-open-text); background-color: var(--color-library-sub-header-open-bg); .arrow-icon { transform: rotate(90deg); } }
+  .count { font-size: 0.7rem; color: var(--color-library-count-text); background: var(--color-library-count-bg); padding: 1px 6px; border-radius: 8px; }
 }
 
 .category-header {
-  position: sticky; top: var(--main-group-sticky-height); z-index: 17; background-color: #242424; border-left: 4px solid #3d3d3d; padding: 9px 12px 9px 22px;
-  font-size: 0.88rem; font-weight: 800; color: #c8c8c8; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;
-  &:hover { background-color: #2c2c2c; color: #fff; }
+  position: sticky; top: var(--main-group-sticky-height); z-index: 17; background-color: var(--color-library-category-bg); border-left: 4px solid var(--color-library-category-accent); padding: 9px 12px 9px 22px;
+  font-size: 0.88rem; font-weight: 800; color: var(--color-library-category-text); border-bottom: 1px solid var(--color-library-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;
+  &:hover { background-color: var(--color-library-category-hover-bg); color: var(--color-library-text-strong); }
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
-  &.is-open { color: #d8c36a; border-left-color: #d8c36a; .arrow-icon { transform: rotate(90deg); } }
+  &.is-open { color: var(--color-library-category-open); border-left-color: var(--color-library-category-open); .arrow-icon { transform: rotate(90deg); } }
 }
 
 .category-header.passphrase-header {
-  color: #d7c1ff;
-  border-left-color: rgba(215, 193, 255, 0.5);
-  .count { font-size: 0.7rem; color: #cdb8ff; background: rgba(215, 193, 255, 0.1); padding: 1px 6px; border-radius: 8px; }
-  &.is-open { color: #f0e7ff; border-left-color: #d7c1ff; }
+  color: var(--color-library-magic-text);
+  border-left-color: var(--color-library-magic-border);
+  .count { font-size: 0.7rem; color: var(--color-library-magic-count); background: var(--color-library-magic-count-bg); padding: 1px 6px; border-radius: 8px; }
+  &.is-open { color: var(--color-library-magic-text-strong); border-left-color: var(--color-library-magic-text); }
 }
 
 .weapon-filter { display: flex; gap: 4px; margin-left: auto; margin-right: 8px; }
 .weapon-filter-button {
-  border: 1px solid #333; background: #1b1b1b; color: #888; font-size: 0.68rem; line-height: 1; padding: 4px 6px; border-radius: 4px; cursor: pointer;
-  &:hover { color: #ddd; border-color: #555; background: #242424; }
-  &.active { color: #82e0aa; border-color: rgba(130, 224, 170, 0.55); background: rgba(130, 224, 170, 0.12); }
+  border: 1px solid var(--color-library-border); background: var(--color-library-filter-bg); color: var(--color-library-text-muted); font-size: 0.68rem; line-height: 1; padding: 4px 6px; border-radius: 4px; cursor: pointer;
+  &:hover { color: var(--color-library-main-header-text); border-color: var(--color-library-text-empty); background: var(--color-library-filter-hover-bg); }
+  &.active { color: var(--color-library-filter-active-text); border-color: var(--color-library-filter-active-border); background: var(--color-library-filter-active-bg); }
 }
 
-.library-item { background-color: #1e1e1e; border-bottom: 1px solid #282828; padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: #2d2d2d; } }
-.library-item.magic { border-left: 3px solid rgba(215, 193, 255, 0.75); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.library-item { background-color: var(--color-library-item-bg); border-bottom: 1px solid var(--color-library-item-border); padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: var(--color-library-item-hover-bg); } }
+.library-item.magic { border-left: 3px solid var(--color-library-magic-border-strong); box-shadow: inset 0 0 0 1px var(--color-library-item-magic-shadow); }
 .item-row { display: flex; justify-content: space-between; gap: 8px; }
-.item-name { color: #ccc; font-size: 0.9rem; font-weight: 500; min-width: 0; }
+.item-name { color: var(--color-library-item-name); font-size: 0.9rem; font-weight: 500; min-width: 0; }
 .item-name small { display: block; color: currentColor; opacity: 0.62; font-size: 0.7rem; margin-top: 2px; }
-.item-cost { color: #d4ac0d; font-size: 0.8rem; font-family: monospace; white-space: nowrap; }
+.item-cost { color: var(--color-library-item-cost); font-size: 0.8rem; font-family: monospace; white-space: nowrap; }
 
 .badges-row { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
-.badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: #333; color: #aaa; }
-.badge.blue { color: #5dade2; background: rgba(93, 173, 226, 0.1); }
-.badge.orange { color: #eb984e; background: rgba(235, 152, 78, 0.1); }
-.badge.cyan { color: #48c9b0; background: rgba(72, 201, 176, 0.1); }
-.badge.red { color: #ec7063; background: rgba(236, 112, 99, 0.1); }
-.badge.green { color: #82e0aa; background: rgba(130, 224, 170, 0.1); }
-.badge.purple { color: #d7c1ff; background: rgba(215, 193, 255, 0.12); }
-.empty-state { padding: 40px; text-align: center; color: #555; }
+.badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: var(--color-library-badge-bg); color: var(--color-library-badge-text); }
+.badge.blue { color: var(--color-library-badge-blue-text); background: var(--color-library-badge-blue-bg); }
+.badge.orange { color: var(--color-library-badge-orange-text); background: var(--color-library-badge-orange-bg); }
+.badge.cyan { color: var(--color-library-badge-cyan-text); background: var(--color-library-badge-cyan-bg); }
+.badge.red { color: var(--color-library-badge-red-text); background: var(--color-library-badge-red-bg); }
+.badge.green { color: var(--color-library-badge-green-text); background: var(--color-library-badge-green-bg); }
+.badge.purple { color: var(--color-library-badge-purple-text); background: var(--color-library-badge-purple-bg); }
+.empty-state { padding: 40px; text-align: center; color: var(--color-library-text-empty); }
 </style>

@@ -132,24 +132,24 @@ onBeforeUnmount(() => {
   border: 1px dashed transparent;
   border-radius: 4px;
   transition: all 0.2s;
-  color: #2c3e50;
+  color: var(--color-text-strong);
   line-height: 1.5;
 }
 
 .display-text:hover {
-  background-color: #f8f9fa;
-  border-color: #bdc3c7;
+  background-color: var(--color-bg-inset);
+  border-color: var(--color-border-editable);
 }
 
 .display-text.empty {
-  color: #95a5a6;
+  color: var(--color-text-disabled);
   font-style: italic;
 }
 
 .edit-textarea {
   width: 100%;
   padding: 8px;
-  border: 1px solid #3498db;
+  border: 1px solid var(--color-border-focus);
   border-radius: 4px;
   font-family: inherit;
   font-size: inherit;
@@ -157,7 +157,7 @@ onBeforeUnmount(() => {
   resize: none; 
   overflow: hidden;
   outline: none;
-  background: white;
+  background: var(--color-bg-card);
   line-height: 1.5;
   display: block;
 }

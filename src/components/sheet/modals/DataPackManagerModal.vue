@@ -218,7 +218,7 @@ const createPack = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--color-data-pack-backdrop-bg);
   padding: 24px;
 }
 
@@ -227,11 +227,11 @@ const createPack = async () => {
   max-height: 86vh;
   display: flex;
   flex-direction: column;
-  background: #191d22;
-  color: #e8edf2;
-  border: 1px solid rgba(100, 124, 148, 0.45);
+  background: var(--color-data-pack-modal-bg);
+  color: var(--color-data-pack-modal-text);
+  border: 1px solid var(--color-data-pack-modal-border);
   border-radius: 16px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 24px 70px var(--color-data-pack-modal-shadow);
   overflow: hidden;
 }
 
@@ -240,11 +240,11 @@ const createPack = async () => {
   justify-content: space-between;
   gap: 16px;
   padding: 20px 22px;
-  background: linear-gradient(135deg, #26313b, #16191f);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-data-pack-header-bg);
+  border-bottom: 1px solid var(--color-data-pack-header-border);
 
   h2 { margin: 0 0 6px; font-size: 1.2rem; }
-  p { margin: 0; color: #aab5c0; font-size: 0.86rem; }
+  p { margin: 0; color: var(--color-data-pack-header-muted); font-size: 0.86rem; }
 }
 
 .close-btn {
@@ -252,8 +252,8 @@ const createPack = async () => {
   height: 34px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-data-pack-close-bg);
+  color: var(--color-data-pack-close-text);
   font-size: 1.4rem;
   cursor: pointer;
 }
@@ -263,15 +263,15 @@ const createPack = async () => {
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  background: #15191e;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-data-pack-toolbar-bg);
+  border-bottom: 1px solid var(--color-data-pack-toolbar-border);
 }
 
 .primary-btn,
 .pack-actions button {
-  border: 1px solid rgba(98, 180, 135, 0.4);
-  background: rgba(66, 185, 131, 0.14);
-  color: #bdf0d5;
+  border: 1px solid var(--color-data-pack-primary-border);
+  background: var(--color-data-pack-primary-bg);
+  color: var(--color-data-pack-primary-text);
   border-radius: 8px;
   padding: 7px 10px;
   cursor: pointer;
@@ -282,24 +282,24 @@ const createPack = async () => {
   }
 }
 
-.hint { color: #7f8b96; font-size: 0.78rem; }
+.hint { color: var(--color-data-pack-hint); font-size: 0.78rem; }
 
 .create-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding: 14px 20px;
-  background: #11151a;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-data-pack-form-bg);
+  border-bottom: 1px solid var(--color-data-pack-toolbar-border);
 
   h3 { grid-column: 1 / -1; margin: 0; }
-  label { display: flex; flex-direction: column; gap: 4px; color: #b9c4ce; font-size: 0.82rem; }
+  label { display: flex; flex-direction: column; gap: 4px; color: var(--color-data-pack-field-label); font-size: 0.82rem; }
   label.check { flex-direction: row; align-items: center; }
   input, textarea {
-    border: 1px solid #39424c;
+    border: 1px solid var(--color-data-pack-field-border);
     border-radius: 7px;
-    background: #1c2229;
-    color: #fff;
+    background: var(--color-data-pack-field-bg);
+    color: var(--color-data-pack-field-text);
     padding: 7px 9px;
   }
   textarea { min-height: 68px; resize: vertical; }
@@ -317,11 +317,11 @@ const createPack = async () => {
   gap: 16px;
   padding: 16px;
   margin-bottom: 12px;
-  background: #20262d;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--color-data-pack-card-bg);
+  border: 1px solid var(--color-data-pack-card-border);
   border-radius: 12px;
 
-  &.builtin { border-color: rgba(216, 195, 106, 0.34); }
+  &.builtin { border-color: var(--color-data-pack-card-builtin-border); }
 }
 
 .pack-title-row { display: flex; align-items: center; gap: 8px; }
@@ -330,19 +330,19 @@ const createPack = async () => {
   font-size: 0.7rem;
   padding: 2px 7px;
   border-radius: 999px;
-  color: #9ed0ff;
-  background: rgba(85, 162, 232, 0.14);
+  color: var(--color-data-pack-tag-text);
+  background: var(--color-data-pack-tag-bg);
 
   &.builtin {
-    color: #f3db82;
-    background: rgba(216, 195, 106, 0.13);
+    color: var(--color-data-pack-tag-builtin-text);
+    background: var(--color-data-pack-tag-builtin-bg);
   }
 }
 
 .pack-meta,
 .description {
   margin: 6px 0 0;
-  color: #98a5b1;
+  color: var(--color-data-pack-meta);
   font-size: 0.8rem;
   overflow-wrap: anywhere;
 }
@@ -354,8 +354,8 @@ const createPack = async () => {
   margin-top: 10px;
 
   span {
-    background: #15191e;
-    color: #c6d0da;
+    background: var(--color-data-pack-count-bg);
+    color: var(--color-data-pack-count-text);
     border-radius: 999px;
     padding: 3px 8px;
     font-size: 0.76rem;
@@ -370,64 +370,64 @@ const createPack = async () => {
   gap: 8px;
   align-items: center;
   margin-top: 9px;
-  color: #aab7c4;
+  color: var(--color-data-pack-inline-text);
   font-size: 0.78rem;
 }
 
 .visibility-line span {
-  border: 1px solid rgba(93, 173, 226, 0.18);
-  background: rgba(93, 173, 226, 0.08);
+  border: 1px solid var(--color-data-pack-visibility-border);
+  background: var(--color-data-pack-visibility-bg);
   border-radius: 999px;
   padding: 3px 8px;
 }
 
 .visibility-line.subtle span {
-  border-color: rgba(180, 151, 93, 0.22);
-  background: rgba(180, 151, 93, 0.08);
-  color: #d9c49e;
+  border-color: var(--color-data-pack-visibility-subtle-border);
+  background: var(--color-data-pack-visibility-subtle-bg);
+  color: var(--color-data-pack-visibility-subtle-text);
 }
 
 .visibility-warning {
   display: grid;
   gap: 4px;
   margin-top: 9px;
-  border: 1px solid rgba(235, 152, 78, 0.26);
-  background: rgba(235, 152, 78, 0.08);
+  border: 1px solid var(--color-data-pack-warning-border);
+  background: var(--color-data-pack-warning-bg);
   border-radius: 10px;
   padding: 8px 10px;
-  color: #f0cfaa;
+  color: var(--color-data-pack-warning-text);
   font-size: 0.78rem;
 }
 
 .unlock-inline input {
   min-width: 170px;
-  border: 1px solid #39424c;
+  border: 1px solid var(--color-data-pack-field-border);
   border-radius: 7px;
-  background: #151a20;
-  color: #fff;
+  background: var(--color-data-pack-inline-field-bg);
+  color: var(--color-data-pack-field-text);
   padding: 7px 9px;
 }
 
 .unlock-inline button {
-  border: 1px solid rgba(93, 173, 226, 0.38);
-  background: rgba(93, 173, 226, 0.12);
-  color: #c8e6ff;
+  border: 1px solid var(--color-data-pack-action-border);
+  background: var(--color-data-pack-action-bg);
+  color: var(--color-data-pack-action-text);
   border-radius: 8px;
   padding: 7px 10px;
 }
 
 .unlock-inline button.secondary {
-  border-color: rgba(236, 112, 99, 0.35);
-  background: rgba(236, 112, 99, 0.1);
-  color: #ffc5be;
+  border-color: var(--color-data-pack-danger-border);
+  background: var(--color-data-pack-danger-bg);
+  color: var(--color-data-pack-danger-text);
 }
 
 .unlock-result-bar {
   margin: 0 20px 16px;
   padding: 10px 12px;
-  border: 1px solid rgba(130, 224, 170, 0.22);
+  border: 1px solid var(--color-data-pack-result-border);
   border-radius: 10px;
-  background: rgba(130, 224, 170, 0.08);
+  background: var(--color-data-pack-result-bg);
 }
 
 .pack-actions {
@@ -441,28 +441,28 @@ const createPack = async () => {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #aeb9c5;
+  color: var(--color-data-pack-export-text);
   font-size: 0.74rem;
 }
 
 .pack-actions .danger {
-  border-color: rgba(236, 112, 99, 0.45);
-  background: rgba(236, 112, 99, 0.13);
-  color: #ffc3bc;
+  border-color: var(--color-data-pack-danger-strong-border);
+  background: var(--color-data-pack-danger-strong-bg);
+  color: var(--color-data-pack-danger-strong-text);
 }
 
 .switch {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #d7e1eb;
+  color: var(--color-data-pack-switch-text);
   font-size: 0.82rem;
 }
 
 .empty {
   padding: 32px;
   text-align: center;
-  color: #75808b;
+  color: var(--color-data-pack-empty);
 }
 
 .modal-fade-enter-active,

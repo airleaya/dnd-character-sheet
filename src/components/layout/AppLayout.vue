@@ -30,7 +30,7 @@ import EnchantingModal from '../sheet/modals/EnchantingModal.vue';
   .main-sheet {
     flex: 1;
     min-width: 0;
-    background-color: #f5f6fa;
+    background-color: var(--color-surface-shell);
     overflow-y: auto;
     padding: 1.25rem;
   }

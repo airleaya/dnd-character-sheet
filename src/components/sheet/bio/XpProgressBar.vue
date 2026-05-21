@@ -87,25 +87,25 @@ const handleResetXp = async () => {
   .xp-text {
     min-width: 0;
     font-size: 0.9rem;
-    color: #2c3e50;
+    color: var(--color-character-xp-text);
     font-weight: 600;
     overflow-wrap: anywhere;
 
     .label {
       margin-right: 6px;
-      color: #95a5a6;
+      color: var(--color-character-label);
       text-transform: uppercase;
       font-size: 0.75rem;
     }
 
     .divider {
       margin: 0 4px;
-      color: #bdc3c7;
+      color: var(--color-character-xp-divider);
       font-weight: normal;
     }
 
     .next {
-      color: #7f8c8d;
+      color: var(--color-character-xp-next);
       font-weight: normal;
     }
   }
@@ -121,7 +121,7 @@ const handleResetXp = async () => {
       -webkit-app-region: no-drag;
       pointer-events: auto;
       width: 96px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--color-character-xp-field-border);
       border-radius: 4px;
       padding: 4px 6px;
       font-size: 0.85rem;
@@ -129,7 +129,7 @@ const handleResetXp = async () => {
       transition: border-color 0.2s;
 
       &:focus {
-        border-color: #3498db;
+        border-color: var(--color-character-xp-field-focus);
       }
     }
 
@@ -141,7 +141,7 @@ const handleResetXp = async () => {
       width: 28px;
       height: 28px;
       cursor: pointer;
-      color: white;
+      color: var(--color-character-xp-button-text);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -154,11 +154,11 @@ const handleResetXp = async () => {
     }
 
     .btn-add {
-      background: #2ecc71;
+      background: var(--color-character-xp-add-bg);
     }
 
     .btn-reset {
-      background: #e74c3c;
+      background: var(--color-character-xp-reset-bg);
     }
   }
 }
@@ -166,14 +166,14 @@ const handleResetXp = async () => {
 .progress-track {
   width: 100%;
   height: 8px;
-  background-color: #ecf0f1;
+  background-color: var(--color-character-xp-track-bg);
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 1px 2px var(--color-character-xp-track-shadow);
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #3498db, #2ecc71);
+    background: var(--color-character-xp-fill-bg);
     border-radius: 4px;
     transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }

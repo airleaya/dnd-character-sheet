@@ -198,10 +198,10 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  background: #f8f9fa; 
-  border: 1px solid #e9ecef;
+  background: var(--color-character-chip-bg);
+  border: 1px solid var(--color-character-chip-border);
   border-radius: 4px; 
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03); 
+  box-shadow: 0 1px 2px var(--color-character-chip-shadow);
   position: relative;
   overflow: hidden; 
   min-width: 60px; 
@@ -211,7 +211,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 .is-multiclass .class-badge {
   transform: scale(0.9); /* 整体缩小以区分主次 */
   transform-origin: left center;
-  background: #f1f2f6; /* 背景稍微再深一点点以区分主职 */
+  background: var(--color-character-chip-secondary-bg); /* 背景稍微再深一点点以区分主职 */
   margin-right: -8px; 
 }
 
@@ -225,10 +225,10 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   padding: 0;
   margin: 0;
   
-  background: transparent; /* 常态与气泡底色融为一体 */
-  color: #bdc3c7; /* 常态低调淡灰色 */
+  background: var(--color-character-remove-bg); /* 常态与气泡底色融为一体 */
+  color: var(--color-character-remove-text); /* 常态低调淡灰色 */
   border: none;
-  border-right: 1px solid rgba(0,0,0,0.05); /* 右侧极细的内部分割线 */
+  border-right: 1px solid var(--color-character-remove-border); /* 右侧极细的内部分割线 */
   
   cursor: pointer;
   font-size: 0.8rem;
@@ -237,9 +237,9 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   transition: all 0.2s ease; /* 添加平滑动画效果 */
 
   &:hover {
-    background: #e74c3c; /* 悬浮时突变为警示红 */
-    color: #ffffff;      /* 悬浮时突变为亮白色 */
-    border-right-color: #e74c3c;
+    background: var(--color-character-remove-hover-bg); /* 悬浮时突变为警示红 */
+    color: var(--color-character-remove-hover-text);      /* 悬浮时突变为亮白色 */
+    border-right-color: var(--color-character-remove-hover-bg);
   }
 }
 
@@ -256,15 +256,15 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: #eef2f5;
-  border-left: 1px solid #e9ecef;
+  background: var(--color-character-level-control-bg);
+  border-left: 1px solid var(--color-character-level-control-border);
   padding: 0; /* 严格去除上下左右所有 padding */
   width: 16px; /* 固定极窄宽度 */
   
   .level-btn {
-    background: transparent;
+    background: var(--color-character-remove-bg);
     border: none;
-    color: #7f8c8d;
+    color: var(--color-character-level-control-text);
     font-size: 0.5rem; /* 极限缩小的箭头 */
     cursor: pointer;
     padding: 0; 
@@ -277,8 +277,8 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
     line-height: 0; /* 消除行高干扰 */
     
     &:hover:not(:disabled) {
-      color: #2c3e50;
-      background: rgba(0,0,0,0.05);
+      color: var(--color-character-title);
+      background: var(--color-character-level-control-hover-bg);
     }
     &:disabled {
       opacity: 0.2;
@@ -289,7 +289,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   .level-text {
     font-size: 0.75rem; /* 紧凑的数字 */
     font-weight: bold;
-    color: #2c3e50;
+    color: var(--color-character-title);
     margin: 0;
     padding: 0;
     height: 40%; /* 数字区域精确占据 40% 空间 */
@@ -306,13 +306,13 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 .badge-btn {
   width: 100%;
   border: none;
-  background: transparent;
+  background: var(--color-character-remove-bg);
   cursor: pointer;
   text-align: center;
   transition: background-color 0.2s;
   margin: 0;
   outline: none;
-  &:hover { background-color: rgba(0,0,0,0.03); }
+  &:hover { background-color: var(--color-character-subtle-hover-bg); }
 }
 
 /* 气泡上半部分 (职业) */
@@ -324,14 +324,14 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
     padding: 0 10px; 
     font-size: 0.9rem; 
     font-weight: 700;
-    color: #2c3e50;
+    color: var(--color-character-title);
     line-height: 1.2;
   }
 }
 
 /* 气泡下半部分 (子职) */
 .badge-bottom {
-  border-top: 1px solid rgba(0,0,0,0.05); 
+  border-top: 1px solid var(--color-character-remove-border);
   
   display: flex;
   align-items: center;
@@ -340,7 +340,7 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   .subclass-name-btn {
     padding: 0 10px; 
     font-size: 0.7rem; 
-    color: #7f8c8d;
+    color: var(--color-text-muted);
     line-height: 1.2;
   }
   
@@ -349,9 +349,9 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
     .subclass-name-btn {
       padding: 0 10px;
       font-size: 0.6rem; /* 极致缩小字号 */
-      color: #bdc3c7;
-      background: rgba(0,0,0,0.015); 
-      &:hover { background: rgba(0,0,0,0.05); color: #95a5a6; }
+      color: var(--color-character-remove-text);
+      background: var(--color-character-subtle-hover-bg-soft);
+      &:hover { background: var(--color-character-subtle-hover-bg-strong); color: var(--color-character-muted); }
     }
   }
 }
@@ -359,22 +359,22 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 /* 空状态按钮 (未选择主职时) */
 .empty-state {
   .empty-btn {
-    border: 1px dashed #bdc3c7;
+    border: 1px dashed var(--color-character-empty-border);
     border-radius: 4px;
     padding: 2px 10px; /* 缩小空状态按钮 */
     font-size: 0.8rem;
-    color: #7f8c8d;
+    color: var(--color-text-muted);
     font-weight: bold;
-    &:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
+    &:hover { border-color: var(--color-character-empty-hover-border); color: var(--color-character-empty-hover-border); background: var(--color-character-empty-hover-bg); }
   }
 }
 
 /* 添加兼职按钮 */
 .btn-multiclass-add {
-  background: none; border: 1px dashed #bdc3c7; border-radius: 6px;
-  font-size: 0.8rem; color: #7f8c8d; padding: 4px 10px; cursor: pointer;
+  background: var(--color-character-settings-close-bg); border: 1px dashed var(--color-character-empty-border); border-radius: 6px;
+  font-size: 0.8rem; color: var(--color-text-muted); padding: 4px 10px; cursor: pointer;
   transition: all 0.2s; height: max-content;
-  &:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
+  &:hover { border-color: var(--color-character-empty-hover-border); color: var(--color-character-empty-hover-border); background: var(--color-character-empty-hover-bg); }
 }
 
 /* 下拉菜单样式保持原样，微调位置 */
@@ -386,12 +386,12 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   right: calc(100% + 4px); 
   left: auto; 
   
-  background: #ffffff;
-  border: 1px solid #e9ecef; 
-  border-right: 3px solid #2c3e50; 
+  background: var(--color-character-menu-bg);
+  border: 1px solid var(--color-character-menu-border);
+  border-right: 3px solid var(--color-character-menu-accent);
   border-radius: 8px 4px 4px 8px;
   
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+  box-shadow: 0 4px 12px var(--color-character-menu-shadow);
   
   z-index: 100;
   width: 120px; 
@@ -403,10 +403,10 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 
 /* 动态匹配气泡内字体的样式 */
 .menu-class .options-list li {
-  font-size: 0.9rem; font-weight: 700; color: #2c3e50; 
+  font-size: 0.9rem; font-weight: 700; color: var(--color-character-title);
 }
 .menu-subclass .options-list li {
-  font-size: 0.7rem; color: #7f8c8d; 
+  font-size: 0.7rem; color: var(--color-text-muted);
 }
 .menu-multiclass {
   transform: scale(0.9); 
@@ -414,14 +414,14 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
 
 .search-input {
   border: none; 
-  border-bottom: 1px solid #eee;     
+  border-bottom: 1px solid var(--color-character-menu-search-border);
   padding: 6px 12px; 
   outline: none; 
   font-size: 0.85rem; 
   width: 100%; 
   box-sizing: border-box;
   
-  background: transparent;
+  background: var(--color-character-remove-bg);
   text-align: right; 
 }
 
@@ -437,11 +437,11 @@ const selectOption = (index: number, type: 'class' | 'subclass', id: string) => 
   }
   
   li:hover { 
-    background: #f0f4f8;
+    background: var(--color-character-menu-hover-bg);
   }
   
   .empty-text { 
-    color: #999; 
+    color: var(--color-character-menu-empty);
     cursor: default; 
     font-size: 0.8rem; 
     padding: 8px 12px; 

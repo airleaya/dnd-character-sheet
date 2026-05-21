@@ -86,8 +86,8 @@ onUnmounted(() => {
 .alignment-trigger {
   height: 26px; /* 比右侧按钮的 34px 更小 */
   padding: 0 10px;
-  background: #ecf0f1;
-  color: #2c3e50;
+  background: var(--color-character-alignment-trigger-bg);
+  color: var(--color-character-alignment-trigger-text);
   border: none;
   border-radius: 6px;
   font-size: 0.75rem; /* 更小的字号 */
@@ -95,7 +95,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px var(--color-character-tool-shadow);
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -103,7 +103,7 @@ onUnmounted(() => {
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 5px var(--color-character-tool-hover-shadow);
     filter: brightness(0.98); /* 稍微变暗一点点反馈悬停 */
   }
 }
@@ -113,13 +113,13 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 8px); /* 位于按钮正下方，向下偏移 8px */
   left: 0;
-  background: #ffffff;
+  background: var(--color-character-alignment-popover-bg);
   padding: 10px;
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 16px var(--color-character-alignment-shadow);
   z-index: 100;
   width: 260px; /* 固定宽度确保 3x3 布局完美呈现 */
-  border: 1px solid #ecf0f1;
+  border: 1px solid var(--color-character-alignment-popover-border);
 }
 
 /* 3x3 网格布局 */
@@ -133,27 +133,27 @@ onUnmounted(() => {
 .grid-item {
   padding: 8px 4px;
   text-align: center;
-  background-color: #f8f9fa;
-  border: 1px solid transparent;
+  background-color: var(--color-character-alignment-option-bg);
+  border: 1px solid var(--color-character-alignment-option-border);
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.75rem; /* 统一小字号 */
-  color: #7f8c8d;
+  color: var(--color-character-alignment-option-text);
   transition: all 0.2s ease;
   user-select: none;
 
   &:hover {
-    background-color: #ecf0f1;
-    color: #2c3e50;
+    background-color: var(--color-character-alignment-option-hover-bg);
+    color: var(--color-character-alignment-option-hover-text);
   }
 
   /* 选中状态：使用主色调高亮 */
   &.active {
-    background-color: #e8f4fd;
-    border-color: #3498db;
-    color: #2980b9;
+    background-color: var(--color-character-alignment-active-bg);
+    border-color: var(--color-character-alignment-active-border);
+    color: var(--color-character-alignment-active-text);
     font-weight: bold;
-    box-shadow: inset 0 0 0 1px rgba(52, 152, 219, 0.2);
+    box-shadow: inset 0 0 0 1px var(--color-character-alignment-active-shadow);
   }
 }
 

@@ -39,7 +39,7 @@ defineProps<{
 
 <style scoped>
 .item-description {
-  color: #bbb;
+  color: var(--color-library-text-muted);
   font-size: 0.82rem;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -64,7 +64,7 @@ defineProps<{
 }
 
 .desc-table-caption {
-  color: #ddd;
+  color: var(--color-library-text);
   font-size: 0.78rem;
   font-weight: 700;
   margin-bottom: 4px;
@@ -78,15 +78,15 @@ defineProps<{
 
 .desc-table th,
 .desc-table td {
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--color-library-border);
   padding: 5px 6px;
   text-align: left;
   vertical-align: top;
 }
 
 .desc-table th {
-  background: #282828;
-  color: #ddd;
+  background: var(--color-library-bg-hover);
+  color: var(--color-library-text);
   white-space: nowrap;
 }
 </style>

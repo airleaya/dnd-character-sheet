@@ -1,5 +1,41 @@
 # TODOLIST
 
+> 2026-05-22 version iteration update:
+> Current baseline grows from `0.15.0` to `0.15.1`; this round lands the frontend color structure and theme tokenization work as the first `0.15` patch release.
+> 2026-05-22 frontend color tokenization release:
+> UI component colors now read from `src/styles/theme.css`, direct color literal scanning for `src/components/**` and `src/style.css` is clean, and magic item DIY colors remain item-instance content overrides rather than global theme mutations.
+
+> 2026-05-21 version iteration update:
+> Current baseline grows from `0.14.23` to `0.15.0`; this round clears the temporary recovery stash and opens the `0.15` project stage for the next set of feature and design adjustments.
+> 2026-05-21 color system foundation:
+> Added `src/styles/theme.css` with Palette / Semantic Theme / Domain Theme / Content Color fallback layers, generated `CSS_COLOR_USAGE_AUDIT.md`, and moved the first magic-item fallback styles to theme variables. Magic-item visuals now use a default preset sequence; user DIY `magic.visuals` colors are item-instance overrides only and do not change other magic items or global UI theme colors.
+> 2026-05-21 inventory color migration:
+> Inventory, equipment, and trash panel colors now read from the shared theme file. `InventoryPanel.vue`, `InventoryItemRow.vue`, `EquipmentSlots.vue`, and `TrashPanel.vue` no longer keep component-level color literals in their active styles.
+> 2026-05-21 combat summary color migration:
+> `CombatPanel.vue` now reads panel, stat-card, HP, death-save, hit-dice, inspiration, and exhaustion colors from `src/styles/theme.css`; its active style block no longer keeps component-level color literals.
+> 2026-05-21 action panel color migration:
+> `ActionsPanel.vue` now reads attack-list, attack-picker, unarmed-editor, battle-spell, and equipment-charge colors from `src/styles/theme.css`; combat directory active styles no longer keep hardcoded color literals.
+> 2026-05-21 spellbook color migration:
+> `SpellbookPanel.vue`, `SpellbookLeftPanel.vue`, `SpellbookRightPanel.vue`, and `LibrarySpellsPanel.vue` now read spellbook and dark spell-library colors from `src/styles/theme.css`; these spell surfaces no longer keep hardcoded color literals.
+> 2026-05-21 enchanting modal color migration:
+> `EnchantingModal.vue` now reads modal chrome, tab, form, trait badge, tooltip, scrollbar, and action colors from `src/styles/theme.css`. Magic visual presets and manual DIY colors remain item-instance content colors, so editing one magic item does not alter global UI theme colors or other magic items.
+> 2026-05-21 item library color migration:
+> `LibraryItemsPanel.vue`, `LibraryTooltip.vue`, `ForgeDropZone.vue`, and `EnchantDropZone.vue` now read right-sidebar item-library, tooltip, and workbench drop-zone colors from `src/styles/theme.css`. Damage-type colors and magic-item visuals remain content colors.
+> 2026-05-21 data-pack modal color migration:
+> `DataPackManagerModal.vue` and `DataPackUnlockModal.vue` now read their dark modal shell, forms, cards, status chips, unlock results, and danger actions from shared data-pack theme variables.
+> 2026-05-21 forge modal color migration:
+> `ForgeModal.vue` now reads its modal shell, header, enchant entry, form sections, type-specific panels, fields, check options, tags, footer, and action buttons from shared forge theme variables.
+> 2026-05-21 character settings modal color migration:
+> `ProficiencySettingsModal.vue` and `ExpertiseSettingsModal.vue` now read their shared light modal shell, headers, toggles, tags, fields, and add/remove controls from character settings theme variables while keeping proficiency and expertise accents distinct.
+> 2026-05-21 character header color migration:
+> `HeaderInfo.vue`, `ClassSelector.vue`, `AlignmentPicker.vue`, and `XpProgressBar.vue` now read character identity, class badge, alignment picker, action toolbar, and XP progress colors from shared character header theme variables.
+> 2026-05-21 character bio/stats color migration:
+> `BioPanel.vue` and `StatsAndSkills.vue` now read biography modal, ability cards, saving throws, skill rows, expertise, jack-of-all-trades, and passive perception colors from shared character theme variables; `src/components/sheet/bio/**` active styles no longer keep hardcoded color literals except scanner false positives such as `white-space`.
+> 2026-05-22 data-pack maker color migration:
+> `DataPackMakerPanel.vue` now reads its maker shell, import strip, workbench drop cards, forms, groups, shop-catalog editor, content lists, and drag feedback colors from shared data-pack maker theme variables; its active style block no longer keeps hardcoded color literals.
+> 2026-05-22 palette consolidation:
+> Repeated domain literals for dark library tiers, badge accents, jack-of-all-trades chips, rejected equipment, and shared tooltip text were lifted into Palette tokens. Current theme surface has 118 Palette variables, 1009 UI role variables, and 34 Content fallback variables; direct color literal scanning for `src/components/**` and `src/style.css` is now clean.
+
 > 2026-05-20 version iteration update:
 > Current baseline grows from `0.14.22` to `0.14.23`; this round restores the pre-reset bugfix commit and reapplies the frontend design audit plus engineering file cross-check on top of it.
 > 2026-05-20 frontend design audit:
@@ -259,11 +295,14 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.14.23`
+当前基线版本：`0.15.1`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
 
+- `0.15.N`：下一阶段功能与前端设计调整；`N` 为自增长补丁版本号。
+- `0.15.1`：已完成前端颜色结构与主题令牌化阶段收口，主要 UI 颜色集中到 `src/styles/theme.css`。
+- `0.15.0`：已清理恢复用临时 stash，正式切入 `0.15` 版本线，并建立第一版前端颜色结构。
 - `0.14.N`：数据包系统；`N` 为自增长补丁版本号。
 - `0.14.23`：已恢复回滚前 `0.14.22` bugfix 提交，并在其上套回前端设计摸底与工程文件互检。
 - `0.14.22`：已完成旧存档钱包迁移兼容与角色卡分组 localStorage 备份恢复。
@@ -296,24 +335,64 @@
 
 ### 0. 工程文件互检与文档同步
 - [ ] 状态：已完成互检，待逐项清理差异
-- 目标版本：`0.14.N`
+- 目标版本：`0.15.N`
 - 类型：工程文档 / 索引 / 验收口径 / 版本维护
 - 已核对文件：
-  - `package.json` 与 `package-lock.json` 均为 `0.14.23`。
-  - `README.md` 当前版本号为 `0.14.23`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
+  - `package.json` 与 `package-lock.json` 均为 `0.15.1`。
+  - `README.md` 当前版本号为 `0.15.1`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
+  - `README.md` 已加入 `CSS_COLOR_USAGE_AUDIT.md` 相关文档入口。
   - `UPDATE_LOG.md` 已有 `0.14.23` 条目，记录恢复回滚前提交、前端设计摸底、测试基线修正和工程文件互检结果。
-  - `FRONTEND_DESIGN_AUDIT.md` 已以 `0.14.23` 为前端设计摸底基线。
+  - `UPDATE_LOG.md` 已有 `0.15.1` 条目，记录前端颜色结构与主题令牌化阶段收口。
+  - `UPDATE_LOG.md` 已有 `0.15.0` 条目，记录清理临时 stash 与进入 `0.15` 阶段。
+  - `FRONTEND_DESIGN_AUDIT.md` 已以 `0.15.0` 为前端设计摸底基线。
+  - `src/styles/theme.css` 已建立第一版颜色结构，`CSS_COLOR_USAGE_AUDIT.md` 已记录现有 CSS 颜色分布。
   - `.github/workflows/ci.yml` 当前实际链路为 `npm ci -> npm run typecheck -> npm run lint -> npm run test -> npm run build`。
   - `tests/itemLibraryAudit.test.ts` 与 `tests/itemLibraryAdapter.test.ts` 的运行时物品库总数口径已统一为 `499`。
 - 发现的待清理差异：
   - [ ] `README.md` 的“当前脚本定义 / 开发前建议 / 提交前建议 / CI 工作流”段落仍未完整写入 `npm run test`，与 `package.json` 和 GitHub Actions 实际链路不完全一致。
   - [ ] `PROJECT_INDEX.md` 生成时间停留在 `2026/4/3`，缺少数据包、附魔、全局反馈、测试与新前端审计文档等近期结构，需要重新生成或标注为历史索引。
   - [ ] `CODE_HEALTH_PLAN.md` 已归档，但其中“当前测试基线 10 组 / 30 条用例”等历史数字容易与当前 `37 files / 203 tests` 混淆，需要补一段当前状态说明或明确全篇历史属性。
-  - [ ] `RELEASE_NOTES_v0.14.21.md` 仍停在 `v0.14.21` 且存在乱码文本；若继续维护发布说明，需要重新生成 `v0.14.23` 发布说明或将旧文件标注为历史损坏稿。
+  - [ ] `RELEASE_NOTES_v0.14.21.md` 仍停在 `v0.14.21` 且存在乱码文本；若继续维护发布说明，需要重新生成 `v0.15.0` 发布说明或将旧文件标注为历史损坏稿。
   - [ ] `TODOLIST.md` 中 `0.12.1` 物品库收口验收仍写 `ITEM_LIBRARY_AUDIT_REPORT.total === 489`，这代表非模板结构化基础物品数量；当前运行时审计总数含空白模板为 `499`，需要在该条验收中拆清“基础物品 489 / 运行时总数 499”的双口径。
 - 后续建议：
   - 先做文档口径修复，不碰运行时代码。
   - 每次更新版本时同步核对 README、UPDATE_LOG、TODOLIST、package/lock、测试基线和发布说明。
+
+### 0. 前端颜色结构与主题令牌化
+- [x] 状态：主要 UI 组件颜色迁移、Palette 收敛与内容色覆盖规则已完成第一阶段收口；后续透明/渐变层级和视觉回归验证进入下一轮设计系统任务
+- 目标版本：`0.15.1`
+- 类型：前端设计 / CSS 架构 / 主题系统
+- 已完成：
+  - 新增 `src/styles/theme.css`，分为 Palette、Semantic Theme、Domain Theme、Content Color fallback 四层。
+  - `src/style.css` 已导入主题文件，并让全局背景与主文本色读取语义变量。
+  - 附魔物品相关的静态 fallback 样式已开始读取 `--content-magic-*` 变量。
+  - `src/data/rules/magicTraits.ts` 已建立默认魔法视觉预设序列；没有实例级 DIY 的魔法物品会读取默认预设，而不是把默认颜色复制进物品数据。
+  - `getMagicInventoryStyle` 与 `getMagicAttackStyle` 已输出 `--magic-item-bg` / `--magic-item-text`，让用户 DIY 附魔物品颜色保持高于主题默认值。
+  - 附魔界面的预设选择和手动调色只写入当前物品的 `magic.visuals`；其他魔法物品继续读取默认魔法颜色组。
+  - 已补充壳层、暗色侧栏、全局 tooltip、全局 feedback、通用可编辑控件等语义色，并迁移 `App.vue`、`AppLayout.vue`、`SidebarLeft.vue`、`SidebarRight.vue`、`GlobalTooltip.vue`、`GlobalFeedback.vue` 与 `components/common` 基础颜色。
+  - 已补充库存、装备与废弃区领域色，并迁移 `InventoryPanel.vue`、`InventoryItemRow.vue`、`EquipmentSlots.vue` 与 `TrashPanel.vue`；这些文件的运行样式已不再保留组件级颜色字面量。
+  - 已补充战斗摘要面板领域色，并迁移 `CombatPanel.vue` 的属性卡、HP 条、死亡豁免、生命骰、激励与力竭样式。
+  - 已补充动作/战斗法术面板领域色，并迁移 `ActionsPanel.vue` 的攻击列表、攻击选择器、徒手攻击编辑器、战斗法术卡与装备充能样式。
+  - 已补充法术书与暗色法术库领域色，并迁移 `SpellbookPanel.vue`、`SpellbookLeftPanel.vue`、`SpellbookRightPanel.vue` 与 `LibrarySpellsPanel.vue`。
+  - 已补充附魔弹窗、右侧物品库、数据包弹窗、锻造弹窗、角色设置弹窗与角色基础信息领域色，并迁移对应组件。
+  - 已补充角色生平与属性/技能领域色，并迁移 `BioPanel.vue` 与 `StatsAndSkills.vue`；技能专精与万事通标记保留独立语义变量。
+  - 已补充数据包制作器领域色，并迁移 `DataPackMakerPanel.vue` 的制作器外壳、拖放卡片、表单、分组、商品清单编辑器、内容列表与拖拽反馈样式。
+  - 已将暗色库层级、徽章强调色、万事通金色、装备拒绝红色、共享 tooltip 正文等重复业务色提升为 Palette token，领域变量改为引用基础色板。
+  - 当前 `src/styles/theme.css` 统计：118 个 Palette 变量、1009 个 UI 角色变量、34 个 Content fallback 变量。若按具体字面量计数，Palette 层为 116 个唯一基础色值，Semantic/Domain 层为 340 个唯一具体值（主要是透明度、渐变和少量待归并局部色），Content fallback 层为 23 个唯一内容色值。
+  - `src/components/**` 与 `src/style.css` 直接颜色字面量扫描已归零，运行样式颜色集中到 `src/styles/theme.css`。
+  - 新增 `CSS_COLOR_USAGE_AUDIT.md`，作为后续迁移颜色字面量的索引。
+- 后续迁移顺序：
+  - [x] 先迁移全局布局、三栏外壳、按钮、输入框、边框和文本颜色。
+  - [x] 再迁移库存、装备、废弃区等行囊领域色。
+  - [x] 迁移战斗摘要面板 `CombatPanel.vue`。
+  - [x] 迁移攻击动作面板 `ActionsPanel.vue`。
+  - [x] 迁移法术书弹窗与暗色法术库。
+  - [x] 迁移附魔、锻造、数据包管理/解锁、熟练/专精设置等模态框颜色。
+  - [x] 迁移角色基础信息、角色生平、属性与技能面板颜色。
+  - [x] 迁移数据包制作器局部领域色。
+  - [x] 收敛重复业务色，将可复用的深色层级、徽章色和状态色提升到 Palette。
+  - [x] 明确内容色归类：魔法物品默认视觉走 Content fallback，用户 DIY 的 `magic.visuals` 只覆盖当前物品实例。
+  - [ ] 后续另开任务处理透明/渐变层级、历史文档审计口径与视觉回归验证。
 
 ### 0. 数据包系统四阶段工作栈
 - [ ] 状态：阶段四应用内口令可见性已完成第一版；真加密与解锁状态持久化仍按需评估，作为 `0.14.N` 主线

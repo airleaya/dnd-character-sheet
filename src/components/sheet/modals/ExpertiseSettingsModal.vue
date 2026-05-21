@@ -101,7 +101,7 @@ const addCustom = () => {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-character-settings-backdrop-bg);
   z-index: 1000;
   display: flex;
   justify-content: center;
@@ -109,12 +109,12 @@ const addCustom = () => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-character-settings-panel-bg);
   width: 520px;
   max-width: 92vw;
   max-height: 86vh;
   border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px var(--color-character-settings-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -123,8 +123,8 @@ const addCustom = () => {
 
 .modal-header {
   padding: 15px 20px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #eee;
+  background: var(--color-character-settings-header-bg);
+  border-bottom: 1px solid var(--color-character-settings-header-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -132,18 +132,18 @@ const addCustom = () => {
   h3 {
     margin: 0;
     font-size: 1.1rem;
-    color: #2c3e50;
+    color: var(--color-character-settings-title);
   }
 
   .btn-close {
-    border: none;
-    background: none;
+    border: var(--color-character-settings-close-border);
+    background: var(--color-character-settings-close-bg);
     font-size: 1.5rem;
     cursor: pointer;
-    color: #999;
+    color: var(--color-character-settings-close-text);
 
     &:hover {
-      color: #333;
+      color: var(--color-character-settings-close-hover-text);
     }
   }
 }
@@ -159,7 +159,7 @@ const addCustom = () => {
 .section h4 {
   margin: 0 0 10px;
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: var(--color-character-settings-section-title);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -171,9 +171,9 @@ const addCustom = () => {
 }
 
 .btn-toggle {
-  border: 1px solid #d7dde3;
-  background: #fff;
-  color: #566573;
+  border: 1px solid var(--color-character-settings-expertise-border);
+  background: var(--color-character-settings-toggle-bg);
+  color: var(--color-character-settings-field-text);
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
@@ -184,33 +184,33 @@ const addCustom = () => {
   transition: all 0.18s;
 
   &:hover {
-    border-color: #8e44ad;
-    color: #4a235a;
+    border-color: var(--color-character-settings-expertise-accent);
+    color: var(--color-character-settings-expertise-hover);
   }
 
   &.active {
-    background: #f4ecf7;
-    color: #6c3483;
-    border-color: #8e44ad;
-    box-shadow: 0 2px 5px rgba(142, 68, 173, 0.18);
+    background: var(--color-character-settings-expertise-bg);
+    color: var(--color-character-settings-expertise-text);
+    border-color: var(--color-character-settings-expertise-accent);
+    box-shadow: 0 2px 5px var(--color-character-settings-expertise-shadow);
   }
 }
 
 .mark {
   font-size: 0.68rem;
   font-weight: 800;
-  color: #8e44ad;
+  color: var(--color-character-settings-expertise-mark);
 }
 
 .empty-note {
-  color: #95a5a6;
+  color: var(--color-character-settings-empty);
   font-size: 0.86rem;
   font-style: italic;
 }
 
 .divider {
   border: 0;
-  border-top: 1px dashed #eee;
+  border-top: 1px dashed var(--color-character-settings-divider);
   margin: 0;
 }
 
@@ -222,8 +222,8 @@ const addCustom = () => {
 }
 
 .tag {
-  background: #f4ecf7;
-  color: #6c3483;
+  background: var(--color-character-settings-expertise-bg);
+  color: var(--color-character-settings-expertise-text);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 0.88rem;
@@ -235,10 +235,10 @@ const addCustom = () => {
 .tag-remove {
   cursor: pointer;
   font-weight: bold;
-  color: #af7ac5;
+  color: var(--color-character-settings-tag-remove-expertise);
 
   &:hover {
-    color: #e74c3c;
+    color: var(--color-character-settings-tag-remove-hover);
   }
 }
 
@@ -249,25 +249,25 @@ const addCustom = () => {
   input {
     flex: 1;
     padding: 7px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-character-settings-field-border);
     border-radius: 4px;
     outline: none;
 
     &:focus {
-      border-color: #8e44ad;
+      border-color: var(--color-character-settings-expertise-accent);
     }
   }
 }
 
 .btn-add {
-  background: #f1f3f5;
-  border: 1px solid #ddd;
+  background: var(--color-character-settings-add-bg);
+  border: 1px solid var(--color-character-settings-field-border);
   border-radius: 4px;
   width: 34px;
   cursor: pointer;
 
   &:hover {
-    background: #e9ecef;
+    background: var(--color-character-settings-add-hover-bg);
   }
 }
 

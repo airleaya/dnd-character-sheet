@@ -192,7 +192,7 @@ const moveTooltip = (event: MouseEvent) => {
 
 <style scoped lang="scss">
 .char-header {
-  display: flex; gap: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #ecf0f1; margin-bottom: 1.5rem;
+  display: flex; gap: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--color-character-header-divider); margin-bottom: 1.5rem;
   align-items: stretch;
 
   /* 1. 左侧头像区：放大并撑满高度 */
@@ -206,9 +206,9 @@ const moveTooltip = (event: MouseEvent) => {
       height: 0; /* 高度设为 0，靠 padding 撑开 */
       padding-top: 133.33%; /* 3 / 4 = 75%, 实现 4:3 的比例 */
       position: relative; /* 为内部元素提供定位基准 */
-      background: #eee; border-radius: 8px;
+      background: var(--color-character-avatar-bg); border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      overflow: hidden; box-shadow: 0 2px 8px var(--color-character-avatar-shadow);
       .avatar-text, .avatar-img {
         position: absolute;
         top: 0; left: 0;
@@ -234,7 +234,7 @@ const moveTooltip = (event: MouseEvent) => {
       .main-name { 
         font-size: 1.8rem; /* 放大主角名突出核心 */
         font-weight: 900; 
-        color: #2c3e50; 
+        color: var(--color-character-title);
         line-height: 1.1; 
       }
       
@@ -246,7 +246,7 @@ const moveTooltip = (event: MouseEvent) => {
       align-items: center; 
       gap: 4px; 
       font-size: 0.85rem; 
-      color: #95a5a6; /* 使用灰阶弱化 */
+      color: var(--color-character-muted); /* 使用灰阶弱化 */
       margin-top: -6px; /* 负边距拉近与角色名的距离，形成附属感 */
       margin-bottom: 0.8rem; /* 与下方设定拉开一点距离 */
       
@@ -261,7 +261,7 @@ const moveTooltip = (event: MouseEvent) => {
       
       .field {
         display: flex; flex-direction: column; gap: 0.2rem;
-        label { font-weight: bold; text-transform: uppercase; font-size: 0.7rem; color: #95a5a6; }
+        label { font-weight: bold; text-transform: uppercase; font-size: 0.7rem; color: var(--color-character-label); }
       }
       .class-span { flex: 1; } /* 职业占据剩余空间，避免折行 */
     }
@@ -275,9 +275,9 @@ const moveTooltip = (event: MouseEvent) => {
       
       .field {
         display: flex; flex-direction: column; gap: 0.2rem;
-        label { font-weight: bold; text-transform: uppercase; font-size: 0.7rem; color: #95a5a6; }
+        label { font-weight: bold; text-transform: uppercase; font-size: 0.7rem; color: var(--color-character-label); }
       }
-      .level-value { font-weight: bold; font-size: 1.5rem; color: #2c3e50; line-height: 1; }
+      .level-value { font-weight: bold; font-size: 1.5rem; color: var(--color-character-title); line-height: 1; }
       .xp-field { flex: 1; width: 100%; padding-bottom: 2px; } /* XP条撑满剩余宽度 */
     }
   }
@@ -290,8 +290,8 @@ const moveTooltip = (event: MouseEvent) => {
 
     .pb-badge {
       display: flex; justify-content: center; align-items: center; gap: 6px;
-      background: #34495e; color: #fff; height: 34px; border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+      background: var(--color-character-tool-bg); color: var(--color-character-tool-text); height: 34px; border-radius: 6px;
+      box-shadow: 0 1px 3px var(--color-character-tool-shadow);
       .label { font-size: 0.7rem; text-transform: uppercase; opacity: 0.8; }
       .val { font-size: 1.1rem; font-weight: bold; }
     }
@@ -301,16 +301,16 @@ const moveTooltip = (event: MouseEvent) => {
       display: flex; justify-content: center; align-items: center;
       border: none; border-radius: 6px; 
       font-weight: bold; cursor: pointer; font-size: 0.85rem;
-      transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.2s; box-shadow: 0 1px 3px var(--color-character-tool-shadow);
       
-      &:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.15); filter: brightness(1.05); }
+      &:hover { transform: translateY(-1px); box-shadow: 0 2px 5px var(--color-character-tool-hover-shadow); filter: brightness(1.05); }
     }
 
     /* 调整配色，使其和谐且不刺眼 */
-    .btn-bio { background: #e67e22; color: white; }
-    .btn-settings { background: #ecf0f1; color: #2c3e50; }
-    .btn-expertise { background: #8e44ad; color: white; }
-    .btn-spellbook { background: #9b59b6; color: white; }
+    .btn-bio { background: var(--color-character-button-bio-bg); color: var(--color-character-button-text); }
+    .btn-settings { background: var(--color-character-button-settings-bg); color: var(--color-character-button-settings-text); }
+    .btn-expertise { background: var(--color-character-button-expertise-bg); color: var(--color-character-button-text); }
+    .btn-spellbook { background: var(--color-character-button-spellbook-bg); color: var(--color-character-button-text); }
   }
 }
 </style>

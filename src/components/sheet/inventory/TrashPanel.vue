@@ -64,17 +64,17 @@ const handleTrashChange = (evt: TrashChangeEvent) => {
 <style scoped lang="scss">
 .trash-panel {
   margin-top: 1rem;
-  background: #fff0f0; /* 浅红背景 */
-  border: 2px dashed #ffcdd2;
+  background: var(--color-trash-bg); /* 浅红背景 */
+  border: 2px dashed var(--color-trash-border);
   border-radius: 6px;
 
   .panel-header {
     display: flex;
     justify-content: space-between;
     padding: 0.5rem;
-    background: #ffcdd2;
+    background: var(--color-trash-header-bg);
     border-radius: 4px 4px 0 0;
-    color: #c0392b;
+    color: var(--color-trash-text);
     h3 { margin: 0; font-size: 1rem; }
     .tip { font-size: 0.75rem; opacity: 0.8; }
   }
@@ -87,7 +87,7 @@ const handleTrashChange = (evt: TrashChangeEvent) => {
 
   .empty-tip {
     text-align: center;
-    color: #e57373;
+    color: var(--color-trash-empty-text);
     font-size: 0.8rem;
     padding: 1rem;
     font-style: italic;
@@ -96,31 +96,31 @@ const handleTrashChange = (evt: TrashChangeEvent) => {
   .trash-item {
     display: flex;
     align-items: center;
-    background: #fff;
-    border: 1px solid #ffcdd2;
+    background: var(--color-trash-item-bg);
+    border: 1px solid var(--color-trash-border);
     margin-bottom: 4px;
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.85rem;
-    color: #c62828;
+    color: var(--color-trash-item-text);
     text-decoration: line-through; /* 删除线 */
     opacity: 0.8;
     cursor: grab;
 
     .icon { margin-right: 6px; }
     .name { flex: 1; font-weight: bold; }
-    .qty { font-size: 0.75rem; color: #999; }
+    .qty { font-size: 0.75rem; color: var(--color-trash-qty-text); }
     
     &:hover {
       opacity: 1;
-      background: #ffebee;
+      background: var(--color-trash-item-hover-bg);
       text-decoration: none; /* 悬停时取消删除线 */
     }
   }
 
   .ghost {
     opacity: 0.5;
-    background: #ef9a9a;
+    background: var(--color-trash-ghost-bg);
   }
 }
 </style>

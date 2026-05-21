@@ -203,15 +203,15 @@ const updatePactLevel = (delta: number) => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 2px solid #dcd6cb;
+  border-bottom: 2px solid var(--color-spellbook-border);
   padding-bottom: 12px;
   
-  .title { margin: 0; font-size: 1.6rem; color: #4e342e; }
-  .subtitle { margin: 4px 0 0 0; font-size: 0.9rem; color: #7f8c8d; font-style: italic; }
+  .title { margin: 0; font-size: 1.6rem; color: var(--color-spellbook-title); }
+  .subtitle { margin: 4px 0 0 0; font-size: 0.9rem; color: var(--color-spellbook-subtitle); font-style: italic; }
   
   .btn-close {
-    background: none; border: none; font-size: 1.2rem; color: #95a5a6; cursor: pointer;
-    &:hover { color: #e74c3c; }
+    background: none; border: none; font-size: 1.2rem; color: var(--color-spellbook-helper); cursor: pointer;
+    &:hover { color: var(--color-action-danger-bg); }
   }
 }
 
@@ -225,38 +225,28 @@ const updatePactLevel = (delta: number) => {
 .section-title {
   margin: 0;
   font-size: 1.1rem;
-  color: #2c3e50;
-  border-bottom: 1px solid #e0e0e0;
+  color: var(--color-spellbook-section-title);
+  border-bottom: 1px solid var(--color-spellbook-border-subtle);
   padding-bottom: 4px;
 }
 
 /* 施法属性卡片 */
 .ability-card {
-  background: #fff;
-  border: 1px solid #dcd6cb;
+  background: var(--color-spellbook-card-bg);
+  border: 1px solid var(--color-spellbook-border);
   border-radius: 6px;
   padding: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 4px var(--color-spellbook-card-shadow);
 
-  &.secondary { background: #faf9f7; border-style: dashed; }
+  &.secondary { background: var(--color-spellbook-card-secondary-bg); border-style: dashed; }
 }
-/*
-.ability-row {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
-  label { font-weight: bold; font-size: 0.9rem; color: #555; }
-  .select-ability {
-    padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; background: #fff; font-family: inherit;
-    &:focus { outline: 2px solid #9b59b6; border-color: transparent; }
-  }
-}*/
-
 .ability-title {
   font-weight: bold;
   font-size: 0.95rem;
-  color: #555;
+  color: var(--color-spellbook-label);
   padding-bottom: 8px; /* 标题与分割线的间距 */
   margin-bottom: 12px; /* 分割线与下方内容的间距 */
-  border-bottom: 1px solid #e0e0e0; /* 作为优雅的分割线 */
+  border-bottom: 1px solid var(--color-spellbook-border-subtle); /* 作为优雅的分割线 */
 }
 
 .ability-body {
@@ -268,12 +258,12 @@ const updatePactLevel = (delta: number) => {
 .select-ability {
   width: 100%; /* 独占一行，充满容器宽度 */
   padding: 6px 8px; /* 增加一点内边距，提升点击手感 */
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-spellbook-input-border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-spellbook-input-bg);
   font-family: inherit;
-  color: #333;
-  &:focus { outline: 2px solid #9b59b6; border-color: transparent; }
+  color: var(--color-spellbook-input-text);
+  &:focus { outline: 2px solid var(--color-spellbook-focus); border-color: var(--color-spellbook-drop-border); }
 }
 
 .stats-row {
@@ -281,30 +271,30 @@ const updatePactLevel = (delta: number) => {
 }
 
 .stat-box {
-  flex: 1; background: #f4f1ea; padding: 8px; border-radius: 4px; text-align: center; display: flex; flex-direction: column; gap: 4px; border: 1px solid #e8e4db;
-  .stat-label { font-size: 0.75rem; color: #7f8c8d; font-weight: bold; }
-  .stat-value { font-size: 1.2rem; font-weight: bold; color: #8e44ad; }
+  flex: 1; background: var(--color-spellbook-stat-bg); padding: 8px; border-radius: 4px; text-align: center; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--color-spellbook-stat-border);
+  .stat-label { font-size: 0.75rem; color: var(--color-spellbook-subtitle); font-weight: bold; }
+  .stat-value { font-size: 1.2rem; font-weight: bold; color: var(--color-spellbook-stat-value); }
 }
 
 /* 契约魔法区 */
 .warlock-block {
-  background: rgba(142, 68, 173, 0.05); padding: 12px; border-radius: 6px; border: 1px solid rgba(142, 68, 173, 0.2);
-  .pact-title { color: #8e44ad; border-bottom-color: rgba(142, 68, 173, 0.2); }
+  background: var(--color-spellbook-arcane-bg); padding: 12px; border-radius: 6px; border: 1px solid var(--color-spellbook-arcane-border);
+  .pact-title { color: var(--color-spellbook-stat-value); border-bottom-color: var(--color-spellbook-arcane-border); }
 }
 
 .slot-rows { display: flex; flex-direction: column; gap: 10px; }
 .slot-row { display: flex; justify-content: space-between; align-items: center; }
-.slot-label { font-size: 0.9rem; font-weight: bold; color: #555; }
+.slot-label { font-size: 0.9rem; font-weight: bold; color: var(--color-spellbook-label); }
 
 /* 步进器 (复用之前面板的样式) */
 .stepper {
-  display: flex; align-items: center; background: #eee; border-radius: 4px; overflow: hidden; border: 1px solid #ddd;
+  display: flex; align-items: center; background: var(--color-spellbook-stepper-bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--color-spellbook-stepper-border);
   .btn-step {
-    border: none; background: #fff; width: 28px; height: 28px; cursor: pointer; font-weight: bold; color: #555; transition: background 0.1s;
-    &:hover:not(:disabled) { background: #e0e0e0; color: #000; }
-    &:disabled { color: #ccc; cursor: not-allowed; }
+    border: none; background: var(--color-spellbook-card-bg); width: 28px; height: 28px; cursor: pointer; font-weight: bold; color: var(--color-spellbook-label); transition: background 0.1s;
+    &:hover:not(:disabled) { background: var(--color-spellbook-stepper-hover-bg); color: var(--color-spellbook-stepper-hover-text); }
+    &:disabled { color: var(--color-spellbook-stepper-disabled); cursor: not-allowed; }
   }
-  .slot-val { min-width: 28px; text-align: center; font-weight: bold; color: #2c3e50; background: #fdfbf7; line-height: 28px; }
+  .slot-val { min-width: 28px; text-align: center; font-weight: bold; color: var(--color-spellbook-section-title); background: var(--color-spellbook-page-bg); line-height: 28px; }
   
   &.compact {
     .btn-step { width: 22px; height: 22px; line-height: 22px; }
@@ -313,10 +303,10 @@ const updatePactLevel = (delta: number) => {
 }
 
 /* 法术位网格 */
-.helper-text { margin: 0; font-size: 0.8rem; color: #95a5a6; }
+.helper-text { margin: 0; font-size: 0.8rem; color: var(--color-spellbook-helper); }
 .slots-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .slot-item {
-  display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 8px; border: 1px solid #dcd6cb; border-radius: 4px;
-  .level-badge { font-size: 0.85rem; font-weight: bold; color: #34495e; }
+  display: flex; justify-content: space-between; align-items: center; background: var(--color-spellbook-card-bg); padding: 6px 8px; border: 1px solid var(--color-spellbook-border); border-radius: 4px;
+  .level-badge { font-size: 0.85rem; font-weight: bold; color: var(--color-actions-card-subtext); }
 }
 </style>

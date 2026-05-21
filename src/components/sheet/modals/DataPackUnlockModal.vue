@@ -90,16 +90,16 @@ const clearAll = () => {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(5, 8, 12, 0.62);
+  background: var(--color-data-pack-unlock-backdrop-bg);
 }
 
 .unlock-modal {
   width: min(460px, 94vw);
-  color: #eaf0f6;
-  background: #171b21;
-  border: 1px solid rgba(126, 160, 196, 0.34);
+  color: var(--color-data-pack-unlock-modal-text);
+  background: var(--color-data-pack-unlock-modal-bg);
+  border: 1px solid var(--color-data-pack-unlock-modal-border);
   border-radius: 18px;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+  box-shadow: 0 28px 80px var(--color-data-pack-unlock-modal-shadow);
   overflow: hidden;
 }
 
@@ -108,11 +108,11 @@ const clearAll = () => {
   justify-content: space-between;
   gap: 14px;
   padding: 18px 20px;
-  background: linear-gradient(135deg, #223044, #171b21 68%);
+  background: var(--color-data-pack-unlock-header-bg);
 
   h2 { margin: 0 0 6px; }
-  p { margin: 0; color: #aab7c4; font-size: 0.86rem; line-height: 1.45; }
-  .eyebrow { color: #92c7ff; font-weight: 900; letter-spacing: 0.16em; font-size: 0.72rem; }
+  p { margin: 0; color: var(--color-data-pack-unlock-header-muted); font-size: 0.86rem; line-height: 1.45; }
+  .eyebrow { color: var(--color-data-pack-unlock-eyebrow); font-weight: 900; letter-spacing: 0.16em; font-size: 0.72rem; }
 }
 
 .close-btn {
@@ -120,8 +120,8 @@ const clearAll = () => {
   height: 32px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-data-pack-close-bg);
+  color: var(--color-data-pack-close-text);
   font-size: 1.35rem;
   cursor: pointer;
 }
@@ -133,27 +133,27 @@ const clearAll = () => {
   align-items: end;
   padding: 18px 20px;
 
-  label { display: flex; flex-direction: column; gap: 6px; color: #c6d1dc; font-weight: 800; }
+  label { display: flex; flex-direction: column; gap: 6px; color: var(--color-data-pack-unlock-label); font-weight: 800; }
   input {
-    border: 1px solid #3a4653;
+    border: 1px solid var(--color-data-pack-unlock-field-border);
     border-radius: 9px;
-    background: #222934;
-    color: #fff;
+    background: var(--color-data-pack-unlock-field-bg);
+    color: var(--color-data-pack-field-text);
     padding: 9px 10px;
   }
   button {
-    border: 1px solid rgba(93, 173, 226, 0.5);
+    border: 1px solid var(--color-data-pack-unlock-action-border);
     border-radius: 9px;
-    background: rgba(93, 173, 226, 0.16);
-    color: #cdeaff;
+    background: var(--color-data-pack-unlock-action-bg);
+    color: var(--color-data-pack-unlock-action-text);
     padding: 9px 13px;
     cursor: pointer;
   }
   button:disabled { opacity: 0.42; cursor: not-allowed; }
   .clear-btn {
-    border-color: rgba(236, 112, 99, 0.4);
-    background: rgba(236, 112, 99, 0.11);
-    color: #ffc5be;
+    border-color: var(--color-data-pack-unlock-danger-border);
+    background: var(--color-data-pack-unlock-danger-bg);
+    color: var(--color-data-pack-unlock-danger-text);
   }
 }
 
@@ -162,29 +162,29 @@ const clearAll = () => {
   gap: 8px;
   padding: 0 20px 20px;
 
-  h3 { margin: 0 0 2px; font-size: 0.95rem; color: #dbe8f5; }
+  h3 { margin: 0 0 2px; font-size: 0.95rem; color: var(--color-data-pack-unlock-result-title); }
 }
 
 .result-card {
   display: grid;
   gap: 4px;
   padding: 10px;
-  border: 1px solid rgba(130, 224, 170, 0.24);
+  border: 1px solid var(--color-data-pack-unlock-result-border);
   border-radius: 10px;
-  background: rgba(130, 224, 170, 0.08);
+  background: var(--color-data-pack-unlock-result-bg);
 
-  span { color: #b7c4ce; font-size: 0.82rem; }
+  span { color: var(--color-data-pack-unlock-result-text); font-size: 0.82rem; }
 }
 
 .result-card.warning {
-  border-color: rgba(236, 112, 99, 0.25);
-  background: rgba(236, 112, 99, 0.08);
+  border-color: var(--color-data-pack-unlock-warning-border);
+  background: var(--color-data-pack-unlock-warning-bg);
 }
 
 .hint {
   margin: 0;
   padding: 0 20px 18px;
-  color: #7f8d9b;
+  color: var(--color-data-pack-unlock-hint);
   font-size: 0.8rem;
 }
 

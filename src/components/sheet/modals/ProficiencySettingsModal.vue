@@ -220,54 +220,54 @@ const onWeaponPresetChange = (e: Event) => {
 <style scoped lang="scss">
 .modal-backdrop {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.6); /* 纯色半透明，修复卡顿 */
+  background: var(--color-character-settings-backdrop-bg); /* 纯色半透明，修复卡顿 */
   z-index: 1000;
   display: flex; justify-content: center; align-items: center;
 }
 
 .modal-content {
-  background: white; width: 450px;
-  max-width: 90vw; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  background: var(--color-character-settings-panel-bg); width: 450px;
+  max-width: 90vw; border-radius: 8px; box-shadow: 0 10px 25px var(--color-character-settings-shadow);
   display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.3s ease-out;
 }
 
 .modal-header {
-  padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #eee;
+  padding: 15px 20px; background: var(--color-character-settings-header-bg); border-bottom: 1px solid var(--color-character-settings-header-border);
   display: flex; justify-content: space-between; align-items: center;
-  h3 { margin: 0; font-size: 1.1rem; color: #2c3e50; }
-  .btn-close { border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; &:hover{ color: #333; } }
+  h3 { margin: 0; font-size: 1.1rem; color: var(--color-character-settings-title); }
+  .btn-close { border: var(--color-character-settings-close-border); background: var(--color-character-settings-close-bg); font-size: 1.5rem; cursor: pointer; color: var(--color-character-settings-close-text); &:hover{ color: var(--color-character-settings-close-hover-text); } }
 }
 
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
-.section { h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; } }
+.section { h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: var(--color-character-settings-section-title); text-transform: uppercase; letter-spacing: 0.5px; } }
 
 .toggle-group {
   display: flex; gap: 8px; flex-wrap: wrap;
   .btn-toggle {
-    border: 1px solid #ddd; background: #fff; color: #666;
+    border: 1px solid var(--color-character-settings-toggle-border); background: var(--color-character-settings-toggle-bg); color: var(--color-character-settings-toggle-text);
     padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;
-    &:hover { border-color: #bbb; }
-    &.active { background: #3498db; color: white; border-color: #2980b9; box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3); }
+    &:hover { border-color: var(--color-character-settings-toggle-hover-border); }
+    &.active { background: var(--color-character-settings-primary-active-bg); color: var(--color-character-settings-primary-active-text); border-color: var(--color-character-settings-primary-active-border); box-shadow: 0 2px 5px var(--color-character-settings-primary-shadow); }
   }
 }
 
-.divider { border: 0; border-top: 1px dashed #eee; margin: 0; }
+.divider { border: 0; border-top: 1px dashed var(--color-character-settings-divider); margin: 0; }
 
 .tag-list {
   display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
   .tag {
-    background: #f1f3f5; color: #333; padding: 4px 10px; border-radius: 4px; font-size: 0.9rem;
+    background: var(--color-character-settings-tag-bg); color: var(--color-character-settings-tag-text); padding: 4px 10px; border-radius: 4px; font-size: 0.9rem;
     display: flex; align-items: center; gap: 6px;
-    &.lang { background: #e8f5e9; color: #2e7d32; }
+    &.lang { background: var(--color-character-settings-lang-bg); color: var(--color-character-settings-lang-text); }
     &.expertise {
-      background: #f4ecf7;
-      color: #6c3483;
-      border: 1px solid #d7bde2;
+      background: var(--color-character-settings-expertise-bg);
+      color: var(--color-character-settings-expertise-text);
+      border: 1px solid var(--color-character-settings-expertise-border);
       font-weight: 700;
     }
-    .expertise-mark { font-size: 0.68rem; color: #8e44ad; font-weight: 900; }
-    .tag-remove { cursor: pointer; font-weight: bold; color: #adb5bd; &:hover{ color: #e74c3c; } }
+    .expertise-mark { font-size: 0.68rem; color: var(--color-character-settings-expertise-mark); font-weight: 900; }
+    .tag-remove { cursor: pointer; font-weight: bold; color: var(--color-character-settings-tag-remove); &:hover{ color: var(--color-character-settings-tag-remove-hover); } }
   }
 }
 
@@ -275,7 +275,7 @@ const onWeaponPresetChange = (e: Event) => {
   display: flex; gap: 6px;
   .select-preset {
     max-width: 140px;
-    border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; color: #555;
+    border: 1px solid var(--color-character-settings-field-border); border-radius: 4px; font-size: 0.85rem; color: var(--color-character-settings-field-text);
     outline: none;
     cursor: pointer;
     //支持全宽模式
@@ -284,8 +284,8 @@ const onWeaponPresetChange = (e: Event) => {
       max-width: none;
     }
   }
-  input { flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; outline: none; &:focus { border-color: #3498db; } }
-  .btn-add { background: #f1f3f5; border: 1px solid #ddd; border-radius: 4px; width: 32px; cursor: pointer; &:hover { background: #e9ecef; } }
+  input { flex: 1; padding: 6px 10px; border: 1px solid var(--color-character-settings-field-border); border-radius: 4px; outline: none; &:focus { border-color: var(--color-character-settings-field-focus); } }
+  .btn-add { background: var(--color-character-settings-add-bg); border: 1px solid var(--color-character-settings-field-border); border-radius: 4px; width: 32px; cursor: pointer; &:hover { background: var(--color-character-settings-add-hover-bg); } }
 }
 
 @keyframes slideUp {

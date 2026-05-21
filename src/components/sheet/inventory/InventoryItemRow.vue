@@ -366,7 +366,7 @@ const handleDelete = () => {
    --------------------------------- */
 
 .inventory-row-wrapper {
-  border-bottom: 1px solid #e0e0e0; /* 浅灰分隔线 */
+  border-bottom: 1px solid var(--color-inventory-row-divider); /* 浅灰分隔线 */
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -374,28 +374,28 @@ const handleDelete = () => {
   display: flex;
   align-items: center;
   padding: 6px 4px;
-  background: #ffffff; /* 纯白背景 */
-  color: #333333;      /* 深灰文字 */
+  background: var(--color-inventory-row-bg); /* 纯白背景 */
+  color: var(--color-inventory-row-text);      /* 深灰文字 */
   transition: background 0.1s;
   cursor: default;
   height: 36px; /* 固定高度，更整齐 */
 
   &:hover {
-    background: #f1f3f5; /* 悬停微灰 */
+    background: var(--color-inventory-row-hover); /* 悬停微灰 */
   }
 
   /* 容器背景微调，区分层级 */
   &.is-container {
-    background: #f8f9fa; 
-    border-left: 3px solid #ced4da; /* 左侧加个条展示它是容器 */
+    background: var(--color-inventory-container-bg);
+    border-left: 3px solid var(--color-inventory-container-border); /* 左侧加个条展示它是容器 */
     padding-left: 1px; /* 补偿 border 宽度 */
     
-    &:hover { background: #e9ecef; }
+    &:hover { background: var(--color-inventory-container-hover); }
   }
 
   /* 代理模式 (箭袋) 高亮 */
   &.is-proxy .qty-val {
-    color: #2980b9; /* 蓝色数字提示这是内部数量 */
+    color: var(--color-inventory-proxy-text); /* 蓝色数字提示这是内部数量 */
     font-weight: bold;
   }
 }
@@ -409,8 +409,8 @@ const handleDelete = () => {
   align-items: center;
 }
 .btn-expand { 
-  background: none; border: none; cursor: pointer; color: #adb5bd; padding: 4px; display: flex;
-  &:hover { color: #495057; }
+  background: none; border: none; cursor: pointer; color: var(--color-inventory-icon-muted); padding: 4px; display: flex;
+  &:hover { color: var(--color-inventory-icon-hover); }
   .icon-arrow { font-size: 0.7rem; transition: transform 0.2s; display: inline-block; }
   .icon-arrow.open { transform: rotate(90deg); }
 }
@@ -442,7 +442,7 @@ const handleDelete = () => {
 
   .template-name {
     flex-shrink: 0;
-    color: #adb5bd;
+    color: var(--color-inventory-icon-muted);
     font-size: 0.72rem;
     font-weight: 500;
   }
@@ -456,14 +456,14 @@ const handleDelete = () => {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 0.75rem;
-    color: #868e96;
+    color: var(--color-inventory-meta-text);
     margin-left: 6px;
     font-style: italic;
   }
 
   .container-capacity {
     flex-shrink: 0;
-    color: #5f6c7b;
+    color: var(--color-inventory-meta-strong);
     font-style: normal;
     font-weight: 600;
   }
@@ -480,18 +480,18 @@ const handleDelete = () => {
   .enchant-tag,
   .enchant-more {
     flex-shrink: 0;
-    border: 1px solid rgba(79, 11, 34, 0.2);
+    border: 1px solid var(--content-magic-item-badge-border-default);
     border-radius: 999px;
     padding: 1px 6px;
-    background: rgba(220, 194, 255, 0.8);
-    color: #4f0b22;
+    background: var(--content-magic-item-badge-bg-default);
+    color: var(--content-magic-item-badge-text-default);
     font-size: 0.68rem;
     font-weight: 700;
     line-height: 1.3;
   }
 
   .enchant-more {
-    color: #6c4a7f;
+    color: var(--content-magic-item-muted-default);
   }
 }
 
@@ -499,7 +499,7 @@ const handleDelete = () => {
   width: 112px; 
   text-align: right; 
   font-family: monospace; 
-  color: #868e96; 
+  color: var(--color-inventory-meta-text);
   font-size: 0.85rem;
   margin-right: 12px;
 }
@@ -515,29 +515,29 @@ const handleDelete = () => {
 .qty-controls {
   display: flex;
   align-items: center;
-  background: #fff;
-  border: 1px solid #dee2e6;
+  background: var(--color-inventory-qty-bg);
+  border: 1px solid var(--color-inventory-qty-border);
   border-radius: 4px;
   overflow: hidden; /* 让子元素贴合圆角 */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px var(--color-inventory-qty-shadow);
 
   .btn-mini {
     width: 22px;
     height: 22px;
     border: none;
-    background: #f8f9fa;
-    color: #495057;
+    background: var(--color-inventory-qty-button-bg);
+    color: var(--color-inventory-qty-button-text);
     cursor: pointer;
     font-size: 1rem;
     line-height: 1;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.1s;
 
-    &:hover { background: #e9ecef; color: #212529; }
-    &:active { background: #dee2e6; }
+    &:hover { background: var(--color-inventory-qty-button-hover); color: var(--color-inventory-qty-button-hover-text); }
+    &:active { background: var(--color-inventory-qty-button-active); }
     
-    &.minus { border-right: 1px solid #f1f3f5; }
-    &.plus { border-left: 1px solid #f1f3f5; }
+    &.minus { border-right: 1px solid var(--color-inventory-qty-divider); }
+    &.plus { border-left: 1px solid var(--color-inventory-qty-divider); }
   }
 
   .qty-val {
@@ -545,13 +545,13 @@ const handleDelete = () => {
     text-align: center;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #343a40;
+    color: var(--color-inventory-qty-text);
     padding: 0 4px;
   }
 }
 
 .qty-static {
-  color: #868e96;
+  color: var(--color-inventory-meta-text);
   font-size: 0.85rem;
   padding-right: 6px;
 }
@@ -563,19 +563,19 @@ const handleDelete = () => {
 }
 
 .btn-attune {
-  border: 1px solid #b58cff;
+  border: 1px solid var(--content-magic-item-border-default);
   border-radius: 999px;
-  background: #dcc2ff;
-  color: #4f0b22;
+  background: var(--magic-item-bg, var(--content-magic-item-bg-default));
+  color: var(--magic-item-text, var(--content-magic-item-text-default));
   font-size: 0.76rem;
   font-weight: 800;
   padding: 4px 9px;
   cursor: pointer;
 
   &.active {
-    background: #4f0b22;
-    border-color: #4f0b22;
-    color: #fff7fb;
+    background: var(--magic-item-text, var(--content-magic-item-text-default));
+    border-color: var(--magic-item-text, var(--content-magic-item-text-default));
+    color: var(--color-inventory-magic-active-text);
   }
 }
 
@@ -586,27 +586,27 @@ const handleDelete = () => {
   justify-content: center; 
 }
 .btn-del { 
-  border: none; background: none; color: #adb5bd; cursor: pointer; 
+  border: none; background: none; color: var(--color-inventory-icon-muted); cursor: pointer;
   padding: 4px; display: flex; align-items: center;
-  &:hover { color: #e74c3c; background: rgba(231, 76, 60, 0.1); border-radius: 4px; }
+  &:hover { color: var(--color-action-danger-bg); background: var(--color-inventory-delete-hover-bg); border-radius: 4px; }
 }
 
 /* --- 嵌套区域 --- */
 .container-contents {
   padding-left: 24px; /* 缩进 */
-  background: #fcfcfc; /* 内部稍微区分 */
-  border-top: 1px solid #f1f3f5;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+  background: var(--color-inventory-nested-bg); /* 内部稍微区分 */
+  border-top: 1px solid var(--color-inventory-qty-divider);
+  box-shadow: inset 0 2px 4px var(--color-inventory-nested-shadow);
 }
 
 .nested-drag-area { min-height: 10px; }
 
 .hanging-slot-shell {
   margin: 6px 8px 8px 30px;
-  border: 1px dashed #b8c2cc;
-  border-left: 3px solid #8e9aaf;
+  border: 1px dashed var(--color-inventory-hanging-border);
+  border-left: 3px solid var(--color-inventory-hanging-accent);
   border-radius: 6px;
-  background: linear-gradient(90deg, rgba(142, 154, 175, 0.08), rgba(255,255,255,0.9));
+  background: var(--color-inventory-hanging-bg);
   overflow: hidden;
 }
 
@@ -615,14 +615,14 @@ const handleDelete = () => {
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
-  color: #5f6c7b;
+  color: var(--color-inventory-hanging-text);
   font-size: 0.75rem;
   font-weight: 700;
-  background: rgba(142, 154, 175, 0.08);
+  background: var(--color-inventory-hanging-label-bg);
 
   small {
     margin-left: auto;
-    color: #9aa5b1;
+    color: var(--color-inventory-hanging-muted);
     font-weight: 500;
   }
 }
@@ -631,8 +631,8 @@ const handleDelete = () => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #8e9aaf;
-  box-shadow: 0 0 0 3px rgba(142, 154, 175, 0.14);
+  background: var(--color-inventory-hanging-accent);
+  box-shadow: 0 0 0 3px var(--color-inventory-hanging-dot-shadow);
 }
 
 .hanging-drag-area { min-height: 30px; }
@@ -640,30 +640,30 @@ const handleDelete = () => {
 .hanging-empty-slot {
   margin: 6px;
   padding: 8px;
-  color: #98a2ad;
+  color: var(--color-inventory-hanging-empty-text);
   font-size: 0.78rem;
   text-align: center;
   border-radius: 4px;
-  background: rgba(255,255,255,0.65);
+  background: var(--color-inventory-hanging-empty-bg);
 }
 
 .hanging-badge {
   margin-left: 5px;
-  color: #5f6c7b;
+  color: var(--color-inventory-hanging-text);
   font-style: normal;
   font-weight: 600;
 }
 
 .empty-slot {
   padding: 12px;
-  color: #adb5bd;
+  color: var(--color-inventory-empty-text);
   font-size: 0.8rem;
   text-align: center;
-  border: 1px dashed #dee2e6;
+  border: 1px dashed var(--color-inventory-qty-border);
   margin: 6px;
   border-radius: 4px;
-  background: rgba(0,0,0,0.01);
+  background: var(--color-inventory-empty-bg);
 }
 
-.ghost { opacity: 0.6; background: #e8f5e9; border: 1px dashed #42b983; }
+.ghost { opacity: 0.6; background: var(--color-inventory-row-ghost-bg); border: 1px dashed var(--color-inventory-row-ghost-border); }
 </style>

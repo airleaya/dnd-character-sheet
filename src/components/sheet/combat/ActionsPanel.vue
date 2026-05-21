@@ -53,14 +53,14 @@ const HAND_MODE_LABELS: Record<AttackCatalogEntry['handMode'], string> = {
 };
 
 const schoolColors: Record<string, string> = {
-  evocation: '#e74c3c',
-  necromancy: '#2c3e50',
-  divination: '#95a5a6',
-  abjuration: '#3498db',
-  transmutation: '#27ae60',
-  enchantment: '#9b59b6',
-  illusion: '#8e44ad',
-  conjuration: '#e67e22',
+  evocation: 'var(--color-actions-school-evocation)',
+  necromancy: 'var(--color-actions-school-necromancy)',
+  divination: 'var(--color-actions-school-divination)',
+  abjuration: 'var(--color-actions-school-abjuration)',
+  transmutation: 'var(--color-actions-school-transmutation)',
+  enchantment: 'var(--color-actions-school-enchantment)',
+  illusion: 'var(--color-actions-school-illusion)',
+  conjuration: 'var(--color-actions-school-conjuration)',
 };
 
 const selectedAttacks = computed<AttackCatalogEntry[]>(() => store.selectedAttacks);
@@ -588,7 +588,7 @@ const handleLongRest = async () => {
                       type="button"
                       class="slot-dot equipment-dot"
                       :class="{ filled: value <= action.charges.current }"
-                      :style="{ backgroundColor: value <= action.charges.current ? action.style?.backgroundColor : '#fff' }"
+                      :style="{ backgroundColor: value <= action.charges.current ? action.style?.backgroundColor : 'var(--color-actions-equipment-dot-empty)' }"
                       :title="`设置为 ${value <= action.charges.current ? value - 1 : value}/${action.charges.max} 充能`"
                       @click="handleEquipmentChargeClick(action, value)"
                     ></button>
@@ -636,7 +636,7 @@ const handleLongRest = async () => {
                 v-for="spell in group.spells"
                 :key="spell.id"
                 class="spell-card"
-                :style="{ borderLeftColor: schoolColors[spell.school] || '#ccc' }"
+                :style="{ borderLeftColor: schoolColors[spell.school] || 'var(--color-actions-school-default)' }"
                 @click="toggleSpellExpand(spell.id)"
               >
                 <div class="card-top">
@@ -1014,7 +1014,7 @@ const handleLongRest = async () => {
 }
 
 .sec-header {
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-actions-header-border);
   padding-bottom: 4px;
   height: 28px;
   display: flex;
@@ -1024,7 +1024,7 @@ const handleLongRest = async () => {
   h3 {
     margin: 0;
     font-size: 0.95rem;
-    color: #2c3e50;
+    color: var(--color-actions-title);
     font-weight: bold;
   }
 }
@@ -1034,9 +1034,9 @@ const handleLongRest = async () => {
   gap: 4px;
 
   .btn-toggle {
-    border: 1px solid #dcdcdc;
-    background: #fdfdfd;
-    color: #95a5a6;
+    border: 1px solid var(--color-actions-toggle-border);
+    background: var(--color-actions-toggle-bg);
+    color: var(--color-actions-toggle-text);
     border-radius: 3px;
     font-size: 0.7rem;
     padding: 1px 6px;
@@ -1045,14 +1045,14 @@ const handleLongRest = async () => {
     font-weight: bold;
 
     &:hover {
-      background: #ecf0f1;
-      color: #7f8c8d;
+      background: var(--color-actions-toggle-hover-bg);
+      color: var(--color-actions-toggle-hover-text);
     }
 
     &.active {
-      background: #34495e;
-      color: #fff;
-      border-color: #2c3e50;
+      background: var(--color-actions-toggle-active-bg);
+      color: var(--color-actions-toggle-active-text);
+      border-color: var(--color-actions-toggle-active-border);
     }
   }
 }
@@ -1070,12 +1070,12 @@ const handleLongRest = async () => {
 }
 
 .attack-card {
-  background: #fff;
-  border: 1px solid #dcdcdc;
-  border-left: 3px solid #c0392b;
+  background: var(--color-actions-card-bg);
+  border: 1px solid var(--color-actions-card-border);
+  border-left: 3px solid var(--color-actions-card-accent);
   border-radius: 3px;
   padding: 4px 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px var(--color-actions-card-shadow);
   transition: all 0.2s;
 
   .row-main {
@@ -1090,13 +1090,13 @@ const handleLongRest = async () => {
     justify-content: space-between;
     gap: 8px;
     font-size: 0.75rem;
-    color: #34495e;
+    color: var(--color-actions-card-subtext);
   }
 
   .atk-name {
     font-weight: bold;
     font-size: 0.9rem;
-    color: #2c3e50;
+    color: var(--color-actions-title);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1111,7 +1111,7 @@ const handleLongRest = async () => {
   }
 
   .attack-drag-handle {
-    color: #95a5a6;
+    color: var(--color-actions-toggle-text);
     cursor: grab;
     font-size: 0.9rem;
     font-weight: 900;
@@ -1133,8 +1133,8 @@ const handleLongRest = async () => {
   .atk-hit {
     font-weight: bold;
     font-size: 0.9rem;
-    color: #fff;
-    background: #c0392b;
+    color: var(--color-actions-hit-text);
+    background: var(--color-actions-hit-bg);
     padding: 0 5px;
     border-radius: 3px;
     min-width: 24px;
@@ -1146,11 +1146,11 @@ const handleLongRest = async () => {
   }
 
   .atk-range {
-    color: #7f8c8d;
+    color: var(--color-actions-card-muted);
   }
 
   .divider {
-    color: #dcdcdc;
+    color: var(--color-actions-card-divider);
     margin: 0 4px;
   }
 
@@ -1179,8 +1179,8 @@ const handleLongRest = async () => {
 }
 
 .tag {
-  background: #ecf0f1;
-  color: #7f8c8d;
+  background: var(--color-actions-tag-bg);
+  color: var(--color-actions-tag-text);
   padding: 0 3px;
   border-radius: 2px;
   font-size: 0.65rem;
@@ -1190,17 +1190,17 @@ const handleLongRest = async () => {
   width: 100%;
   text-align: left;
   cursor: pointer;
-  border-left-color: #34495e;
-  background: linear-gradient(135deg, #f9fbfc 0%, #eef3f6 100%);
+  border-left-color: var(--color-actions-add-accent);
+  background: var(--color-actions-add-bg);
 
   .add-hit {
-    background: #34495e;
+    background: var(--color-actions-add-accent);
   }
 }
 
 .empty-tip {
   font-size: 0.75rem;
-  color: #bdc3c7;
+  color: var(--color-actions-empty-text);
   text-align: center;
   padding: 10px;
 }
@@ -1213,17 +1213,17 @@ const handleLongRest = async () => {
   justify-content: center;
   align-items: center;
   padding: 24px;
-  background: rgba(17, 24, 39, 0.58);
+  background: var(--color-actions-picker-overlay-bg);
   backdrop-filter: blur(4px);
 }
 
 .attack-picker-modal {
   width: min(860px, 100%);
   max-height: min(78vh, 920px);
-  background: #f8fbfd;
-  border: 1px solid rgba(52, 73, 94, 0.16);
+  background: var(--color-actions-picker-modal-bg);
+  border: 1px solid var(--color-actions-picker-modal-border);
   border-radius: 14px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 16px 40px var(--color-actions-picker-modal-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1235,28 +1235,28 @@ const handleLongRest = async () => {
   align-items: center;
   gap: 16px;
   padding: 18px 20px 14px;
-  background: linear-gradient(135deg, #f5f8fb 0%, #e8eef4 100%);
-  border-bottom: 1px solid rgba(52, 73, 94, 0.12);
+  background: var(--color-actions-picker-header-bg);
+  border-bottom: 1px solid var(--color-actions-picker-header-border);
 }
 
 .attack-picker-title-group {
   h3 {
     margin: 0;
     font-size: 1.02rem;
-    color: #22313f;
+    color: var(--color-actions-picker-title);
   }
 
   p {
     margin: 4px 0 0;
     font-size: 0.8rem;
-    color: #5d6d7e;
+    color: var(--color-actions-picker-subtitle);
   }
 }
 
 .picker-close {
   border: none;
-  background: rgba(255, 255, 255, 0.85);
-  color: #34495e;
+  background: var(--color-actions-picker-close-bg);
+  color: var(--color-actions-card-subtext);
   width: 32px;
   height: 32px;
   border-radius: 999px;
@@ -1265,19 +1265,19 @@ const handleLongRest = async () => {
   line-height: 1;
 
   &:hover {
-    background: #fff;
+    background: var(--color-actions-picker-close-hover-bg);
   }
 }
 
 .attack-picker-subtitle {
   padding: 12px 20px 0;
   font-size: 0.8rem;
-  color: #66788a;
+  color: var(--color-actions-picker-note);
 }
 
 .attack-ghost {
   opacity: 0.45;
-  background: #eef3f6;
+  background: var(--color-actions-ghost-bg);
 }
 
 .attack-dragging {
@@ -1290,9 +1290,9 @@ const handleLongRest = async () => {
 
 .unarmed-editor-link,
 .add-unarmed-btn {
-  border: 1px solid #c9b458;
-  background: #fff8dc;
-  color: #6f4e00;
+  border: 1px solid var(--color-actions-gold-border);
+  background: var(--color-actions-gold-bg);
+  color: var(--color-actions-gold-text);
   border-radius: 4px;
   font-size: 0.76rem;
   font-weight: 800;
@@ -1300,7 +1300,7 @@ const handleLongRest = async () => {
   cursor: pointer;
 
   &:hover {
-    background: #fff1b8;
+    background: var(--color-actions-gold-hover-bg);
   }
 }
 
@@ -1312,9 +1312,9 @@ const handleLongRest = async () => {
 }
 
 .filter-chip {
-  border: 1px solid #d0d7de;
-  background: #fff;
-  color: #34495e;
+  border: 1px solid var(--color-actions-chip-border);
+  background: var(--color-actions-chip-bg);
+  color: var(--color-actions-chip-text);
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1323,13 +1323,13 @@ const handleLongRest = async () => {
   transition: all 0.2s ease;
 
   &:hover {
-    background: #f3f6f8;
+    background: var(--color-actions-chip-hover-bg);
   }
 
   &.active {
-    background: #34495e;
-    border-color: #34495e;
-    color: #fff;
+    background: var(--color-actions-chip-active-bg);
+    border-color: var(--color-actions-chip-active-bg);
+    color: var(--color-actions-toggle-active-text);
   }
 }
 
@@ -1349,19 +1349,19 @@ const handleLongRest = async () => {
 }
 
 .picker-card {
-  border-left-color: #7f8c8d;
+  border-left-color: var(--color-actions-card-muted);
   cursor: pointer;
 
   &.selected {
-    border-left-color: #34495e;
-    background: linear-gradient(135deg, #ffffff 0%, #eef4f8 100%);
+    border-left-color: var(--color-actions-add-accent);
+    background: var(--color-actions-picker-selected-bg);
   }
 }
 
 .picker-action {
-  border: 1px solid #d0d7de;
-  background: #fff;
-  color: #34495e;
+  border: 1px solid var(--color-actions-chip-border);
+  background: var(--color-actions-chip-bg);
+  color: var(--color-actions-chip-text);
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 700;
@@ -1369,30 +1369,30 @@ const handleLongRest = async () => {
   cursor: pointer;
 
   &.active {
-    background: #34495e;
-    border-color: #34495e;
-    color: #fff;
+    background: var(--color-actions-chip-active-bg);
+    border-color: var(--color-actions-chip-active-bg);
+    color: var(--color-actions-toggle-active-text);
   }
 }
 
 .unarmed-config-btn {
-  color: #7f8c8d !important;
-  border-color: #dcdcdc !important;
-  background: #fdfdfd !important;
+  color: var(--color-actions-card-muted) !important;
+  border-color: var(--color-actions-toggle-border) !important;
+  background: var(--color-actions-toggle-bg) !important;
 
   &:hover {
-    background: #ecf0f1 !important;
-    color: #7f8c8d !important;
+    background: var(--color-actions-toggle-hover-bg) !important;
+    color: var(--color-actions-card-muted) !important;
   }
 }
 
 .unarmed-editor-modal {
   width: min(760px, 100%);
   max-height: min(84vh, 920px);
-  background: #f8fbfd;
-  border: 1px solid rgba(52, 73, 94, 0.16);
+  background: var(--color-actions-picker-modal-bg);
+  border: 1px solid var(--color-actions-picker-modal-border);
   border-radius: 14px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 16px 40px var(--color-actions-picker-modal-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1407,9 +1407,9 @@ const handleLongRest = async () => {
 }
 
 .unarmed-error {
-  border: 1px solid rgba(192, 57, 43, 0.25);
-  background: rgba(192, 57, 43, 0.08);
-  color: #922b21;
+  border: 1px solid var(--color-actions-unarmed-error-border);
+  background: var(--color-actions-unarmed-error-bg);
+  color: var(--color-actions-unarmed-error-text);
   border-radius: 5px;
   padding: 8px 10px;
   font-size: 0.78rem;
@@ -1417,9 +1417,9 @@ const handleLongRest = async () => {
 }
 
 .unarmed-row {
-  border: 1px solid #dfe6ee;
-  border-left: 3px solid #c9b458;
-  background: #fff;
+  border: 1px solid var(--color-actions-unarmed-row-border);
+  border-left: 3px solid var(--color-actions-gold-border);
+  background: var(--color-actions-card-bg);
   border-radius: 6px;
   padding: 12px;
   display: flex;
@@ -1443,14 +1443,14 @@ const handleLongRest = async () => {
   span {
     font-size: 0.68rem;
     font-weight: 800;
-    color: #607080;
+    color: var(--color-actions-field-label);
   }
 
   input,
   select {
-    border: 1px solid #d0d7de;
-    background: #fff;
-    color: #2c3e50;
+    border: 1px solid var(--color-actions-field-border);
+    background: var(--color-actions-field-bg);
+    color: var(--color-actions-field-text);
     border-radius: 4px;
     min-height: 30px;
     padding: 4px 7px;
@@ -1464,8 +1464,8 @@ const handleLongRest = async () => {
 
 .danger-link {
   border: none;
-  background: transparent;
-  color: #c0392b;
+  background: var(--color-actions-link-bg);
+  color: var(--color-actions-card-accent);
   font-size: 0.76rem;
   font-weight: 800;
   cursor: pointer;
@@ -1479,9 +1479,9 @@ const handleLongRest = async () => {
 }
 
 .tag-choice {
-  border: 1px solid #d0d7de;
-  background: #f8fafc;
-  color: #34495e;
+  border: 1px solid var(--color-actions-field-border);
+  background: var(--color-actions-tag-choice-bg);
+  color: var(--color-actions-card-subtext);
   border-radius: 4px;
   font-size: 0.72rem;
   font-weight: 800;
@@ -1489,9 +1489,9 @@ const handleLongRest = async () => {
   cursor: pointer;
 
   &.active {
-    background: #4b2d73;
-    border-color: #c9b458;
-    color: #f4d06f;
+    background: var(--color-actions-tag-choice-active-bg);
+    border-color: var(--color-actions-gold-border);
+    color: var(--color-actions-tag-choice-active-text);
   }
 }
 
@@ -1507,7 +1507,7 @@ const handleLongRest = async () => {
   gap: 6px;
   font-size: 0.78rem;
   font-weight: 800;
-  color: #34495e;
+  color: var(--color-actions-card-subtext);
 }
 
 .add-unarmed-btn {
@@ -1521,31 +1521,31 @@ const handleLongRest = async () => {
   gap: 12px;
   height: 28px;
   padding: 0 8px;
-  background: #f1f3f5;
+  background: var(--color-actions-spell-dashboard-bg);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-actions-spell-dashboard-border);
 
   .mini-stat {
     font-size: 0.8rem;
-    color: #555;
+    color: var(--color-actions-spell-stat);
 
     strong {
-      color: #2c3e50;
+      color: var(--color-actions-spell-stat-strong);
       font-size: 0.9rem;
     }
   }
 
   .btn-rest-mini {
     border: none;
-    background: #34495e;
-    color: white;
+    background: var(--color-actions-chip-active-bg);
+    color: var(--color-actions-toggle-active-text);
     border-radius: 3px;
     cursor: pointer;
     padding: 2px 6px;
     font-size: 0.8rem;
 
     &:hover {
-      background: #2c3e50;
+      background: var(--color-actions-toggle-active-border);
     }
   }
 }
@@ -1561,14 +1561,14 @@ const handleLongRest = async () => {
 }
 
 .equipment-group {
-  border: 1px solid rgba(155, 89, 182, 0.18);
+  border: 1px solid var(--color-actions-equipment-group-border);
   border-radius: 4px;
-  background: rgba(155, 89, 182, 0.04);
+  background: var(--color-actions-equipment-group-bg);
 }
 
 .equipment-count {
   margin-left: auto;
-  color: #8e44ad;
+  color: var(--color-actions-equipment-accent);
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -1577,8 +1577,8 @@ const handleLongRest = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fdfdfd;
-  border-bottom: 1px solid #eee;
+  background: var(--color-actions-group-bg);
+  border-bottom: 1px solid var(--color-actions-group-border);
   padding: 6px 8px;
   margin-bottom: 4px;
   cursor: pointer;
@@ -1586,12 +1586,12 @@ const handleLongRest = async () => {
   transition: background 0.2s;
 
   &:hover {
-    background: #f1f3f5;
+    background: var(--color-actions-group-hover-bg);
   }
 
   .fold-arrow {
     font-size: 0.7rem;
-    color: #bdc3c7;
+    color: var(--color-actions-group-fold);
     width: 12px;
     display: inline-block;
     text-align: center;
@@ -1600,7 +1600,7 @@ const handleLongRest = async () => {
   .group-label {
     font-weight: bold;
     font-size: 0.8rem;
-    color: #7f8c8d;
+    color: var(--color-actions-card-muted);
   }
 
   .slot-tracker {
@@ -1612,12 +1612,12 @@ const handleLongRest = async () => {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    border: 1px solid #9b59b6;
+    border: 1px solid var(--color-actions-slot-border);
     cursor: pointer;
-    background: #fff;
+    background: var(--color-actions-slot-bg);
 
     &.filled {
-      background: #9b59b6;
+      background: var(--color-actions-slot-filled);
     }
 
     &:hover {
@@ -1627,8 +1627,8 @@ const handleLongRest = async () => {
 }
 
 .spell-card {
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--color-actions-card-bg);
+  border: 1px solid var(--color-actions-spell-border);
   border-left-width: 3px;
   border-radius: 3px;
   margin-bottom: 4px;
@@ -1636,7 +1636,7 @@ const handleLongRest = async () => {
   transition: all 0.2s;
 
   &:hover {
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 5px var(--color-actions-spell-hover-shadow);
   }
 
   .card-top {
@@ -1649,14 +1649,14 @@ const handleLongRest = async () => {
   .spell-name {
     font-weight: 600;
     font-size: 0.9rem;
-    color: #34495e;
+    color: var(--color-actions-card-subtext);
     display: flex;
     align-items: center;
     gap: 4px;
 
     .conc-badge {
-      background: #34495e;
-      color: #fff;
+      background: var(--color-actions-chip-active-bg);
+      color: var(--color-actions-toggle-active-text);
       font-size: 0.6rem;
       padding: 0 3px;
       border-radius: 2px;
@@ -1665,9 +1665,9 @@ const handleLongRest = async () => {
     }
 
     .ritual-badge {
-      background: rgba(22, 160, 133, 0.12);
-      border: 1px solid rgba(22, 160, 133, 0.35);
-      color: #117864;
+      background: var(--color-actions-badge-ritual-bg);
+      border: 1px solid var(--color-actions-badge-ritual-border);
+      color: var(--color-actions-badge-ritual-text);
       font-size: 0.6rem;
       font-weight: 800;
       padding: 0 4px;
@@ -1684,19 +1684,19 @@ const handleLongRest = async () => {
     border-radius: 3px;
 
     &.atk {
-      color: #c0392b;
-      background: rgba(192, 57, 43, 0.1);
+      color: var(--color-actions-card-accent);
+      background: var(--color-status-danger-bg);
     }
 
     &.save {
-      color: #fff;
-      background: #95a5a6;
+      color: var(--color-actions-toggle-active-text);
+      background: var(--color-actions-badge-save-bg);
     }
   }
 }
 
 .equipment-action-card {
-  border-left-color: #8e44ad;
+  border-left-color: var(--color-actions-equipment-accent);
 }
 
 .equipment-name {
@@ -1704,11 +1704,11 @@ const handleLongRest = async () => {
 }
 
 .equipment-badge {
-  border: 1px solid rgba(52, 73, 94, 0.18);
+  border: 1px solid var(--color-actions-equipment-badge-border);
   border-radius: 999px;
   padding: 0 5px;
-  background: rgba(255, 255, 255, 0.62);
-  color: #5d6d7e;
+  background: var(--color-actions-equipment-badge-bg);
+  color: var(--color-actions-equipment-badge-text);
   font-size: 0.62rem;
   font-weight: 800;
 }
@@ -1723,9 +1723,9 @@ const handleLongRest = async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid #111;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-actions-equipment-dot-border);
+  background: var(--color-actions-equipment-dot-empty);
+  box-shadow: 0 0 0 1px var(--color-actions-equipment-dot-shadow);
   cursor: pointer;
   padding: 0;
 
@@ -1743,10 +1743,10 @@ const handleLongRest = async () => {
 
 .card-detail {
   padding: 10px;
-  border-top: 1px dashed #eee;
-  background: #fdfdfd;
+  border-top: 1px dashed var(--color-actions-detail-border);
+  background: var(--color-actions-detail-bg);
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-actions-detail-text);
   cursor: default;
 
   .spell-meta-header {
@@ -1755,7 +1755,7 @@ const handleLongRest = async () => {
     align-items: center;
     margin-bottom: 8px;
     font-style: italic;
-    color: #999;
+    color: var(--color-actions-detail-muted);
     font-size: 0.8rem;
   }
 
@@ -1771,14 +1771,14 @@ const handleLongRest = async () => {
       font-weight: bold;
 
       &.ritual {
-        background: rgba(22, 160, 133, 0.12);
-        color: #117864;
-        border: 1px solid rgba(22, 160, 133, 0.35);
+        background: var(--color-actions-badge-ritual-bg);
+        color: var(--color-actions-badge-ritual-text);
+        border: 1px solid var(--color-actions-badge-ritual-border);
       }
 
       &.conc {
-        background: #e67e22;
-        color: #fff;
+        background: var(--color-combat-edit-active);
+        color: var(--color-actions-toggle-active-text);
       }
     }
   }
@@ -1787,11 +1787,11 @@ const handleLongRest = async () => {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px 12px;
-    background: #f8f9fa;
+    background: var(--color-actions-stat-grid-bg);
     padding: 8px;
     border-radius: 4px;
     margin-bottom: 10px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-actions-detail-border);
 
     .stat-cell {
       display: flex;
@@ -1800,14 +1800,14 @@ const handleLongRest = async () => {
 
     .label {
       font-size: 0.65rem;
-      color: #95a5a6;
+      color: var(--color-actions-toggle-text);
       font-weight: bold;
       text-transform: uppercase;
     }
 
     .val {
       font-size: 0.8rem;
-      color: #2c3e50;
+      color: var(--color-actions-title);
       font-weight: 600;
     }
   }
@@ -1826,46 +1826,46 @@ const handleLongRest = async () => {
     font-weight: bold;
 
     &.type {
-      background: #34495e;
-      color: #fff;
+      background: var(--color-actions-chip-active-bg);
+      color: var(--color-actions-toggle-active-text);
     }
 
     &.dmg {
-      background: #c0392b;
-      color: #fff;
+      background: var(--color-actions-hit-bg);
+      color: var(--color-actions-hit-text);
     }
   }
 
   .desc-divider {
     height: 1px;
-    background: #eee;
+    background: var(--color-actions-detail-border);
     margin-bottom: 8px;
   }
 
   .desc-text {
     line-height: 1.5;
-    color: #555;
+    color: var(--color-actions-detail-text);
     margin-bottom: 8px;
     overflow-wrap: anywhere;
   }
 
   .scaling {
     padding-top: 8px;
-    border-top: 1px dashed #eee;
+    border-top: 1px dashed var(--color-actions-detail-border);
     font-size: 0.8rem;
-    color: #7f8c8d;
+    color: var(--color-actions-card-muted);
 
     strong {
-      color: #555;
+      color: var(--color-actions-detail-text);
     }
   }
 }
 
 .empty-battle-spells {
   text-align: center;
-  color: #bdc3c7;
+  color: var(--color-actions-empty-text);
   padding: 40px 20px;
-  border: 2px dashed #eee;
+  border: 2px dashed var(--color-actions-empty-border);
   border-radius: 6px;
   margin-top: 20px;
 

@@ -110,25 +110,25 @@ const update = <K extends keyof CharacterBio>(field: K, val: CharacterBio[K]) =>
 /* 复用 ProficiencySettingsModal 的大部分样式，稍作调整 */
 .modal-backdrop {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.6); z-index: 1000;
+  background: var(--color-character-settings-backdrop-bg); z-index: 1000;
   display: flex; justify-content: center; align-items: center;
 }
 
 .modal-content.bio-modal {
-  background: white; 
+  background: var(--color-character-settings-panel-bg);
   width: 800px; /* 比熟练项面板宽 */
   max-width: 95vw; 
   max-height: 90vh; /* 防止过高 */
   border-radius: 8px; 
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 25px var(--color-character-settings-shadow);
   display: flex; flex-direction: column;
 }
 
 .modal-header {
-  padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #eee;
+  padding: 15px 20px; background: var(--color-character-settings-header-bg); border-bottom: 1px solid var(--color-character-settings-header-border);
   display: flex; justify-content: space-between; align-items: center;
-  h3 { margin: 0; font-size: 1.1rem; color: #2c3e50; }
-  .btn-close { border: none; background: none; font-size: 1.5rem; cursor: pointer; color: #999; &:hover{ color: #333; } }
+  h3 { margin: 0; font-size: 1.1rem; color: var(--color-character-settings-title); }
+  .btn-close { border: var(--color-character-settings-close-border); background: var(--color-character-settings-close-bg); font-size: 1.5rem; cursor: pointer; color: var(--color-character-settings-close-text); &:hover{ color: var(--color-character-settings-close-hover-text); } }
 }
 
 .modal-body { 
@@ -139,10 +139,10 @@ const update = <K extends keyof CharacterBio>(field: K, val: CharacterBio[K]) =>
 }
 
 /* 布局样式 */
-.divider { border: 0; border-top: 1px dashed #eee; margin: 0; }
+.divider { border: 0; border-top: 1px dashed var(--color-character-bio-divider); margin: 0; }
 
 .section h4 { 
-  margin: 0 0 8px 0; font-size: 0.85rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; border-left: 3px solid #3498db; padding-left: 6px;
+  margin: 0 0 8px 0; font-size: 0.85rem; color: var(--color-character-bio-section-title); text-transform: uppercase; letter-spacing: 0.5px; border-left: 3px solid var(--color-character-bio-section-accent); padding-left: 6px;
 }
 
 /* Appearance Grid */
@@ -152,8 +152,8 @@ const update = <K extends keyof CharacterBio>(field: K, val: CharacterBio[K]) =>
   
   .field-box {
     display: flex; flex-direction: column; align-items: center;
-    background: #fdfdfd; padding: 6px; border-radius: 4px; border: 1px solid #f1f3f5;
-    label { font-size: 0.7rem; color: #999; margin-bottom: 4px; }
+    background: var(--color-character-bio-field-bg); padding: 6px; border-radius: 4px; border: 1px solid var(--color-character-bio-field-border);
+    label { font-size: 0.7rem; color: var(--color-character-bio-field-label); margin-bottom: 4px; }
   }
 }
 
@@ -163,8 +163,8 @@ const update = <K extends keyof CharacterBio>(field: K, val: CharacterBio[K]) =>
   @media (max-width: 600px) { grid-template-columns: 1fr; }
 
   .card {
-    background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    background: var(--color-character-bio-card-bg); border: 1px solid var(--color-character-bio-card-border); border-radius: 6px; padding: 10px;
+    box-shadow: 0 2px 4px var(--color-character-bio-card-shadow);
   }
 }
 

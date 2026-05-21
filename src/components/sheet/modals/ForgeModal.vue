@@ -584,7 +584,7 @@ const handleSave = async () => {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--color-forge-backdrop-bg);
   backdrop-filter: blur(4px);
   z-index: 2000;
 
@@ -599,13 +599,13 @@ const handleSave = async () => {
   增加宽度到 600px (原为自适应或挤压)
 */
 .modal-content {
-  background: #fff;
+  background: var(--color-forge-panel-bg);
   width: 900px; /* 增大宽度 */
   max-width: 95vw;
   //max-height: 85vh;
   height: 85vh;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px var(--color-forge-panel-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden; /* 防止圆角被子元素破坏 */
@@ -614,8 +614,8 @@ const handleSave = async () => {
 
 .modal-header {
   padding: 14px 22px;
-  background: #2c3e50;
-  color: #fff;
+  background: var(--color-forge-header-bg);
+  color: var(--color-forge-header-text);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -628,22 +628,22 @@ const handleSave = async () => {
   }
   .btn-enchant {
     margin-left: auto;
-    border: 1px solid rgba(245, 197, 96, 0.55);
+    border: 1px solid var(--color-forge-enchant-border);
     border-radius: 999px;
-    background: rgba(245, 197, 96, 0.12);
-    color: #f5d184;
+    background: var(--color-forge-enchant-bg);
+    color: var(--color-forge-enchant-text);
     padding: 7px 12px;
     font-weight: 700;
     cursor: pointer;
 
     &:hover {
-      background: rgba(245, 197, 96, 0.22);
-      color: #fff1c4;
+      background: var(--color-forge-enchant-hover-bg);
+      color: var(--color-forge-enchant-hover-text);
     }
   }
   .btn-close {
-    background: none; border: none; color: #bdc3c7; font-size: 2rem; line-height: 1; cursor: pointer; padding: 0;
-    &:hover { color: #fff; }
+    background: none; border: none; color: var(--color-forge-close-text); font-size: 2rem; line-height: 1; cursor: pointer; padding: 0;
+    &:hover { color: var(--color-forge-close-hover-text); }
   }
 }
 
@@ -653,7 +653,7 @@ const handleSave = async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: #fdfdfd;
+  background: var(--color-forge-body-bg);
 }
 
 /* 表单区域通用样式 */
@@ -661,35 +661,35 @@ const handleSave = async () => {
   display: flex; flex-direction: column; gap: 8px;
 
   &.highlight {
-    background: #f1f2f6;
+    background: var(--color-forge-section-highlight-bg);
     padding: 14px;
     border-radius: 8px;
-    border: 1px solid #e1e2e6;
+    border: 1px solid var(--color-forge-section-highlight-border);
   }
 
   &.maker-assignment {
-    background: #eef4ef;
+    background: var(--color-forge-maker-bg);
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid #cfe0d1;
+    border: 1px solid var(--color-forge-maker-border);
   }
 
   &.type-specific {
     position: relative;
     padding: 14px;
     border-radius: 8px;
-    background: #fff8f3;
-    border: 1px solid #ffeaa7;
+    background: var(--color-forge-type-bg);
+    border: 1px solid var(--color-forge-type-border);
 
-    &.weapon { border-left: 4px solid #d35400; }
-    &.armor { border-left: 4px solid #2980b9; background: #f0f8ff; border-color: #d6eaf8; }
+    &.weapon { border-left: 4px solid var(--color-forge-type-weapon-accent); }
+    &.armor { border-left: 4px solid var(--color-forge-type-armor-accent); background: var(--color-forge-type-armor-bg); border-color: var(--color-forge-type-armor-border); }
 
-    h4 { margin: 0 0 4px 0; color: #555; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.8px; }
+    h4 { margin: 0 0 4px 0; color: var(--color-forge-type-title); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.8px; }
   }
 
   label {
     font-size: 0.75rem;
-    color: #7f8c8d;
+    color: var(--color-forge-label);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -700,32 +700,32 @@ const handleSave = async () => {
 /* 输入框统一样式 */
 .input-std, .unit-select {
   padding: 7px 9px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--color-forge-field-border);
   border-radius: 6px;
   font-size: 1rem;
   transition: all 0.2s;
-  background: #fff;
+  background: var(--color-forge-field-bg);
 
   &:focus {
-    border-color: #d35400;
+    border-color: var(--color-forge-focus);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(211, 84, 0, 0.1);
+    box-shadow: 0 0 0 3px var(--color-forge-focus-shadow);
   }
 }
 
 .main-name .input-lg {
   font-size: 1.35rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--color-forge-main-name-text);
   border: none;
-  border-bottom: 2px solid #ced4da;
+  border-bottom: 2px solid var(--color-forge-field-border);
   border-radius: 0;
   padding: 5px 0;
-  background: transparent;
+  background: var(--color-forge-tab-idle-bg);
   width: 100%;
 
   &:focus {
-    border-bottom-color: #d35400;
+    border-bottom-color: var(--color-forge-focus);
     box-shadow: none;
   }
 }
@@ -763,7 +763,7 @@ const handleSave = async () => {
     max-width: 80px; /* 特别限制价值输入框的宽度 */
   }
   select {
-    width: 70px; flex-shrink: 0; cursor: pointer; background-color: #f8f9fa;
+    width: 70px; flex-shrink: 0; cursor: pointer; background-color: var(--color-forge-select-bg);
   }
 }
 
@@ -778,7 +778,7 @@ const handleSave = async () => {
 }
 
 .template-current {
-  color: #95a5a6;
+  color: var(--color-forge-muted);
   font-size: 0.72rem;
   line-height: 1.2;
 }
@@ -818,10 +818,10 @@ const handleSave = async () => {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border: 1px solid #e1e2e6;
+  border: 1px solid var(--color-forge-check-border);
   border-radius: 8px;
-  background: #fff;
-  color: #2c3e50;
+  background: var(--color-forge-check-bg);
+  color: var(--color-forge-check-text);
   font-size: 0.85rem;
   cursor: pointer;
 
@@ -835,7 +835,7 @@ const handleSave = async () => {
   }
 
   em {
-    color: #95a5a6;
+    color: var(--color-forge-muted);
     font-size: 0.75rem;
     font-style: normal;
   }
@@ -845,18 +845,18 @@ const handleSave = async () => {
   display: flex; flex-wrap: wrap; gap: 8px;
   min-height: 34px; align-items: center;
   .tag {
-    background: #e9ecef; color: #2c3e50; padding: 4px 10px;
+    background: var(--color-forge-tag-bg); color: var(--color-forge-tag-text); padding: 4px 10px;
     border-radius: 15px; font-size: 0.85rem; font-weight: 500;
   }
-  .hint { color: #bdc3c7; font-style: italic; font-size: 0.9rem; }
+  .hint { color: var(--color-forge-hint); font-style: italic; font-size: 0.9rem; }
 }
 
-.divider { border: 0; border-top: 1px dashed #dcdde1; margin: 10px 0; }
+.divider { border: 0; border-top: 1px dashed var(--color-forge-divider); margin: 10px 0; }
 
 .modal-footer {
   padding: 14px 22px;
-  background: #f8f9fa;
-  border-top: 1px solid #eee;
+  background: var(--color-forge-footer-bg);
+  border-top: 1px solid var(--color-forge-footer-border);
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -875,13 +875,13 @@ const handleSave = async () => {
   }
 
   .btn-cancel {
-    background: #fff; border: 1px solid #ced4da; color: #495057;
-    &:hover { background: #f1f3f5; }
+    background: var(--color-forge-cancel-bg); border: 1px solid var(--color-forge-cancel-border); color: var(--color-forge-cancel-text);
+    &:hover { background: var(--color-forge-cancel-hover-bg); }
   }
 
   .btn-save {
-    background: #d35400; color: white; box-shadow: 0 4px 6px rgba(211, 84, 0, 0.2);
-    &:hover { background: #e67e22; box-shadow: 0 6px 8px rgba(211, 84, 0, 0.3); }
+    background: var(--color-forge-save-bg); color: var(--color-forge-save-text); box-shadow: 0 4px 6px var(--color-forge-save-shadow);
+    &:hover { background: var(--color-forge-save-hover-bg); box-shadow: 0 6px 8px var(--color-forge-save-hover-shadow); }
   }
 }
 

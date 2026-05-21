@@ -10,6 +10,7 @@ import { useActiveSheetStore } from '../src/stores/activeSheet';
 import { useCustomMagicTraitStore } from '../src/stores/customMagicTraitStore';
 import { useDataPackStore } from '../src/stores/dataPackStore';
 import { createDefaultCharacter } from '../src/utils/characterMigration';
+import { getMagicInventoryStyle } from '../src/utils/magicItems';
 import type { InventoryItem } from '../src/types/Item';
 import type { ItemMagicTrait, LibraryItem } from '../src/types/Library';
 
@@ -75,7 +76,45 @@ describe('EnchantingModal', () => {
 
     expect(wrapper.text()).toContain('影牙');
     expect(wrapper.text()).toContain('行囊预览');
-    expect(weapon.magic?.visuals?.inventoryBackground).toBe('#dcc2ff');
+    expect(weapon.magic?.visuals).toBeUndefined();
+    expect(getMagicInventoryStyle({ ...weapon, magic: { ...weapon.magic!, isMagic: true } })?.backgroundColor)
+      .toBe('#dcc2ff');
+  });
+
+  it('applies magic visual presets per item without changing other magic items', async () => {
+    const store = useActiveSheetStore();
+    const character = createDefaultCharacter('enchant-modal-visual-presets');
+    const weapon = createWeapon();
+    const otherWeapon: InventoryItem = {
+      ...createWeapon(),
+      instanceId: 'enchant-target-2',
+      name: '晨星',
+      magic: {
+        isMagic: true,
+      },
+    };
+    character.inventory = [weapon, otherWeapon];
+    store.character = character;
+
+    const wrapper = mountModal();
+    useEnchanting().openEnchantingForItem(weapon);
+    await nextTick();
+
+    const presetButtons = wrapper.findAll('.visual-preset-button');
+    expect(presetButtons.length).toBeGreaterThan(1);
+    await presetButtons[1]!.trigger('click');
+
+    expect(weapon.magic?.visuals).toMatchObject({
+      presetId: 'ember-gold',
+      inventoryBackground: '#ffe1a8',
+      attackBackground: '#f7c46c',
+      nameColor: '#5b2b00',
+    });
+    expect(otherWeapon.magic?.visuals).toBeUndefined();
+    expect(getMagicInventoryStyle(otherWeapon)).toMatchObject({
+      backgroundColor: '#dcc2ff',
+      color: '#4f0b22',
+    });
   });
 
   it('creates a reusable custom damage trait and selects it for the current item', async () => {

@@ -1,5 +1,153 @@
 # UPDATE_LOG
 
+## [0.15.1] - 2026-05-22
+- 类型：前端颜色系统 / 主题令牌化 / 版本滚动
+- 项目：完成第一阶段前端颜色结构迁移，将主要 UI 颜色集中到共享主题文件。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `FRONTEND_DESIGN_AUDIT.md`
+  - `CSS_COLOR_USAGE_AUDIT.md`
+  - `src/style.css`
+  - `src/styles/theme.css`
+  - `src/App.vue`
+  - `src/components/**`
+  - `src/data/rules/magicTraits.ts`
+  - `src/types/Library.ts`
+  - `src/utils/magicItems.ts`
+  - `tests/enchantingModal.ui.test.ts`
+- 完成内容：
+  - 项目版本从 `0.15.0` 滚动到 `0.15.1`。
+  - 新增并接入 `src/styles/theme.css`，建立 Palette / Semantic Theme / Domain Theme / Content Color fallback 四层颜色结构。
+  - 全局样式、三栏外壳、通用组件、角色信息、角色生平、属性技能、战斗摘要、攻击动作、法术书、物品库、锻造、附魔、数据包弹窗、数据包制作器、行囊、装备与废弃区的运行样式均改为读取共享主题变量。
+  - 第一轮 Palette 收敛已完成：暗色库层级、徽章强调色、万事通金色、装备拒绝红色与共享 tooltip 正文等重复业务色提升为基础色板变量，领域变量改为引用 Palette / Semantic 变量。
+  - 当前主题结构统计为 118 个 Palette 变量、1009 个 UI 角色变量、34 个 Content fallback 变量；具体字面量口径下，Palette 层有 116 个唯一基础色值，Semantic/Domain 层有 340 个唯一具体值，Content fallback 层有 23 个唯一内容色值。
+  - 默认魔法视觉已从单组 fallback 扩展为预设色组序列；未 DIY 的魔法物品运行时读取默认预设，不会把默认颜色写入自身数据。
+  - 附魔界面的魔法视觉预设与手动调色只覆盖当前物品实例，其他魔法物品继续读取默认魔法颜色组。
+  - `CSS_COLOR_USAGE_AUDIT.md` 记录了迁移前颜色分布，`FRONTEND_DESIGN_AUDIT.md` 同步记录当前颜色工程结构和后续设计系统风险。
+- 验证：
+  - `git diff --check` 通过。
+  - `npm run typecheck` 通过。
+  - `npm run test -- tests/dataPackMakerPanel.ui.test.ts tests/dataPackStoreUnlock.test.ts tests/appRoot.smoke.test.ts` 通过：3 个文件 / 18 个测试。
+  - `src/components/**` 与 `src/style.css` 直接颜色字面量扫描已归零，颜色集中于 `src/styles/theme.css`。
+
+## [0.15.0] - 2026-05-21
+- 类型：版本阶段 / 维护 / 计划切换 / 前端颜色系统
+- 项目：清理恢复用临时 stash，将项目正式切入 `0.15` 版本线，并建立第一版前端颜色结构。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `FRONTEND_DESIGN_AUDIT.md`
+  - `CSS_COLOR_USAGE_AUDIT.md`
+  - `src/style.css`
+  - `src/styles/theme.css`
+  - `src/App.vue`
+  - `src/components/layout/AppLayout.vue`
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/components/layout/SidebarRight.vue`
+  - `src/components/ui/GlobalTooltip.vue`
+  - `src/components/ui/GlobalFeedback.vue`
+  - `src/components/common/EditableText.vue`
+  - `src/components/common/EditableTextarea.vue`
+  - `src/components/common/ItemDescriptionRenderer.vue`
+  - `src/components/sheet/bio/HeaderInfo.vue`
+  - `src/components/sheet/bio/ClassSelector.vue`
+  - `src/components/sheet/bio/AlignmentPicker.vue`
+  - `src/components/sheet/bio/XpProgressBar.vue`
+  - `src/components/sheet/bio/BioPanel.vue`
+  - `src/components/sheet/bio/StatsAndSkills.vue`
+  - `src/components/sheet/combat/ActionsPanel.vue`
+  - `src/components/sheet/combat/CombatPanel.vue`
+  - `src/data/rules/magicTraits.ts`
+  - `src/types/Library.ts`
+  - `src/utils/magicItems.ts`
+  - `src/components/sheet/modals/ForgeModal.vue`
+  - `src/components/sheet/modals/EnchantingModal.vue`
+  - `src/components/sheet/modals/DataPackManagerModal.vue`
+  - `src/components/sheet/modals/DataPackUnlockModal.vue`
+  - `src/components/sheet/modals/ProficiencySettingsModal.vue`
+  - `src/components/sheet/modals/ExpertiseSettingsModal.vue`
+  - `src/components/sheet/inventory/InventoryItemRow.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/components/sheet/inventory/EquipmentSlots.vue`
+  - `src/components/sheet/inventory/TrashPanel.vue`
+  - `src/components/sheet/spellbook/SpellbookPanel.vue`
+  - `src/components/sheet/spellbook/SpellbookLeftPanel.vue`
+  - `src/components/sheet/spellbook/SpellbookRightPanel.vue`
+  - `src/components/sheet/library/LibraryItemsPanel.vue`
+  - `src/components/sheet/library/LibrarySpellsPanel.vue`
+  - `src/components/sidebar/ForgeDropZone.vue`
+  - `src/components/sidebar/EnchantDropZone.vue`
+  - `src/components/sidebar/LibraryTooltip.vue`
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue`
+  - `tests/enchantingModal.ui.test.ts`
+- 完成内容：
+  - 已删除此前恢复 `0.14.22` / `0.14.23` 工作时留下的临时 stash。
+  - 项目版本从 `0.14.23` 滚动到 `0.15.0`。
+  - `TODOLIST.md` 当前基线切换到 `0.15.0`，用于承接下一阶段功能与设计调整。
+  - `FRONTEND_DESIGN_AUDIT.md` 基线同步更新为 `0.15.0`，作为新阶段前端调整参考。
+  - 新增 `CSS_COLOR_USAGE_AUDIT.md`，统计 `src/style.css` 与 Vue `<style>` 块中的颜色字面量、区域归属和代表性选择器。
+  - 新增 `src/styles/theme.css`，建立 Palette / Semantic Theme / Domain Theme / Content Color fallback 四层颜色结构。
+  - `src/style.css` 已接入主题文件，并将全局应用背景与主文本色切换为语义变量。
+  - 第二批颜色迁移已覆盖全局 sheet 容器、三栏外壳、左右侧栏、通用可编辑控件、全局 tooltip 与全局 feedback；这些组件范围内不再保留组件级颜色字面量。
+  - 附魔物品相关的静态 fallback 样式已改用 `--content-magic-*` 变量。
+  - `getMagicInventoryStyle` 与 `getMagicAttackStyle` 现在会同步输出 `--magic-item-bg` / `--magic-item-text`，让用户/数据包/物品实例自定义的 `magic.visuals` 颜色继续高于主题默认值。
+  - 默认魔法视觉已从单组 fallback 扩展为预设色组序列；未 DIY 的魔法物品运行时读取默认预设，不会把默认颜色写入自身数据。
+  - 附魔界面的魔法视觉预设与手动调色只覆盖当前物品实例，其他魔法物品继续读取默认魔法颜色组。
+  - 第三批颜色迁移已覆盖行囊、物品行、装备槽与废弃区；`InventoryPanel.vue`、`InventoryItemRow.vue`、`EquipmentSlots.vue` 与 `TrashPanel.vue` 的运行样式均改为读取 `src/styles/theme.css` 中的库存/装备/废弃区领域变量。
+  - 已移除 `EquipmentSlots.vue` 底部失效的旧注释样式块，避免历史颜色字面量继续污染颜色扫描结果。
+  - 第四批颜色迁移已覆盖战斗摘要面板；`CombatPanel.vue` 的面板、属性卡、HP 条、死亡豁免、生命骰、激励与力竭颜色均改为读取战斗领域主题变量。
+  - 第五批颜色迁移已覆盖攻击动作面板；`ActionsPanel.vue` 的攻击列表、攻击选择器、徒手攻击编辑器、战斗法术卡与装备充能颜色均改为读取动作/战斗法术领域主题变量。
+  - 第六批颜色迁移已覆盖法术书与暗色法术库；`SpellbookPanel.vue`、`SpellbookLeftPanel.vue`、`SpellbookRightPanel.vue` 与 `LibrarySpellsPanel.vue` 的运行样式均改为读取法术书/法术库领域主题变量。
+  - 第七批颜色迁移已覆盖附魔弹窗 UI；`EnchantingModal.vue` 的弹窗外壳、标签、表单、词条徽章、悬浮说明、滚动条与按钮颜色均改为读取附魔领域主题变量。
+  - 附魔弹窗中的魔法视觉预设预览继续通过 `--preset-*` 局部变量读取具体预设色，手动调色继续写入当前物品实例的 `magic.visuals`，不会覆盖全局 UI 或其他魔法物品。
+  - 第八批颜色迁移已覆盖右侧物品库与工作台投放区；`LibraryItemsPanel.vue`、`LibraryTooltip.vue`、`ForgeDropZone.vue` 与 `EnchantDropZone.vue` 的库树、物品悬浮窗、徽章、筛选按钮、锻造/附魔投放反馈均改为读取物品库领域主题变量。
+  - 物品库 tooltip 中的伤害类型颜色继续读取 `DAMAGE_TYPES`，魔法物品视觉和附魔词条继续读取内容色变量或物品实例颜色，避免规则内容色被 UI 主题误覆盖。
+  - 第九批颜色迁移已覆盖数据包管理与口令解锁弹窗；`DataPackManagerModal.vue` 和 `DataPackUnlockModal.vue` 的暗色弹窗外壳、头部、表单、卡片、状态芯片、解锁结果与危险操作均改为读取数据包领域主题变量。
+  - 第十批颜色迁移已覆盖锻造弹窗；`ForgeModal.vue` 的弹窗外壳、头部、附魔入口、表单分区、武器/护甲专属区域、输入框、勾选项、标签、底部栏和动作按钮均改为读取锻造领域主题变量。
+  - 第十一批颜色迁移已覆盖熟练与专精设置弹窗；`ProficiencySettingsModal.vue` 和 `ExpertiseSettingsModal.vue` 的浅色弹窗外壳、头部、切换按钮、标签、输入框、添加/移除控件均改为读取角色设置领域主题变量，并保留熟练蓝色与专精紫色两套强调状态。
+  - 第十二批颜色迁移已覆盖角色基础信息区；`HeaderInfo.vue`、`ClassSelector.vue`、`AlignmentPicker.vue` 与 `XpProgressBar.vue` 的角色名、头像底、职业徽章、阵营浮窗、工具按钮和经验条颜色均改为读取角色信息领域主题变量。
+  - 第十三批颜色迁移已覆盖角色生平弹窗与属性/技能卡片；`BioPanel.vue` 和 `StatsAndSkills.vue` 的生平字段、卡片、属性头、豁免、技能熟练、专精、万事通徽章与被动觉察 footer 均改为读取角色领域主题变量。
+  - 第十四批颜色迁移已覆盖数据包制作器；`DataPackMakerPanel.vue` 的制作器外壳、导入条、工作台拖放卡片、表单、分组卡、口令校验提示、商品清单编辑器、内容分组列表与拖拽反馈均改为读取数据包制作器领域主题变量。
+  - 第一轮 Palette 收敛已完成：暗色库层级、徽章强调色、万事通金色、装备拒绝红色与共享 tooltip 正文等重复业务色提升为基础色板变量，领域变量改为引用 Palette / Semantic 变量。
+  - 当前主题结构统计为 118 个 Palette 变量、1009 个 UI 角色变量、34 个 Content fallback 变量；具体字面量口径下，Palette 层有 116 个唯一基础色值，Semantic/Domain 层有 340 个唯一具体值，Content fallback 层有 23 个唯一内容色值。
+- 验证：
+  - `git stash list` 已确认无剩余 stash。
+  - `npm run typecheck` 通过。
+  - `src/App.vue`、`src/components/layout/**`、`src/components/ui/**` 与 `src/components/common/**` 范围内颜色字面量扫描已归零，剩余颜色集中于 `src/styles/theme.css`。
+  - `src/components/sheet/inventory/**` 范围内颜色字面量扫描已归零；粗扫描中仅剩 `white-space` 属性名命中。
+  - `src/components/sheet/combat/CombatPanel.vue` 范围内颜色字面量扫描已归零。
+  - `src/components/sheet/combat/**` 范围内颜色字面量扫描已归零；粗扫描中仅剩 `white-space` 属性名和变量名中的 `transparent` 命中。
+  - `src/components/sheet/spellbook/**` 与 `src/components/sheet/library/LibrarySpellsPanel.vue` 范围内颜色字面量扫描已归零。
+  - `src/components/sheet/modals/EnchantingModal.vue` 范围内颜色字面量扫描已归零；粗扫描中仅剩 `white-space` 属性名和变量名中的 `transparent` 命中。
+  - `src/components/sheet/library/LibraryItemsPanel.vue`、`src/components/sidebar/LibraryTooltip.vue`、`src/components/sidebar/ForgeDropZone.vue` 与 `src/components/sidebar/EnchantDropZone.vue` 范围内颜色字面量扫描已归零；粗扫描中仅剩 `white-space` 属性名命中。
+  - `src/components/sheet/modals/DataPackManagerModal.vue` 与 `src/components/sheet/modals/DataPackUnlockModal.vue` 范围内颜色字面量扫描已归零。
+  - `src/components/sheet/modals/ForgeModal.vue` 范围内颜色字面量扫描已归零。
+  - `src/components/sheet/modals/ProficiencySettingsModal.vue` 与 `src/components/sheet/modals/ExpertiseSettingsModal.vue` 范围内颜色字面量扫描已归零。
+  - `src/components/sheet/bio/HeaderInfo.vue`、`src/components/sheet/bio/ClassSelector.vue`、`src/components/sheet/bio/AlignmentPicker.vue` 与 `src/components/sheet/bio/XpProgressBar.vue` 范围内颜色字面量扫描已归零；粗扫描中仅剩 `white-space` 属性名命中。
+  - `src/components/sheet/bio/BioPanel.vue` 与 `src/components/sheet/bio/StatsAndSkills.vue` 范围内颜色字面量扫描已归零；`src/components/sheet/bio/**` 粗扫描中仅剩 `white-space` 属性名命中。
+  - `src/components/sheet/dataPackMaker/DataPackMakerPanel.vue` 范围内颜色字面量扫描已归零。
+  - `src/components/**` 与 `src/style.css` 直接颜色字面量扫描已归零，颜色集中于 `src/styles/theme.css`。
+  - `npm run test -- tests/enchantingModal.ui.test.ts` 通过。
+  - `npm run test -- tests/enchantingModal.ui.test.ts tests/inventoryPanelLoadColor.ui.test.ts tests/actionsPanel.ui.test.ts tests/spellRitualBadges.ui.test.ts` 通过。
+  - `npm run test -- tests/libraryItemsPanel.ui.test.ts tests/libraryTooltip.ui.test.ts tests/enchantingModal.ui.test.ts tests/inventoryPanelLoadColor.ui.test.ts` 通过。
+  - `npm run test -- tests/dataPackStoreUnlock.test.ts tests/dataPackMakerPanel.ui.test.ts tests/libraryItemsPanel.ui.test.ts` 通过。
+  - `npm run test -- tests/forgeModal.ui.test.ts tests/useForge.test.ts tests/dataPackMakerPanel.ui.test.ts` 通过。
+  - `npm run test -- tests/expertiseSettingsModal.ui.test.ts tests/useBioLogic.test.ts tests/headerInfoProficiencyTooltip.ui.test.ts` 通过。
+  - `npm run test -- tests/headerInfoProficiencyTooltip.ui.test.ts tests/useBioLogic.test.ts tests/appRoot.smoke.test.ts` 通过。
+  - `npm run test -- tests/useCombatLogic.test.ts tests/inventoryPanelLoadColor.ui.test.ts tests/dataPackMakerPanel.ui.test.ts tests/libraryTooltip.ui.test.ts tests/actionsPanel.ui.test.ts` 通过。
+  - `npm run test -- tests/inventoryItemRow.ui.test.ts tests/inventoryPanelLoadColor.ui.test.ts tests/useInventoryLogic.test.ts` 通过。
+  - `npm run test -- tests/combatPanelJack.ui.test.ts tests/useCombatLogic.test.ts` 通过。
+  - `npm run test -- tests/actionsPanel.ui.test.ts tests/spellRitualBadges.ui.test.ts tests/combatPanelJack.ui.test.ts tests/useCombatLogic.test.ts` 通过。
+  - `npm run test -- tests/spellRitualBadges.ui.test.ts tests/useSpellLogic.test.ts tests/appRoot.smoke.test.ts` 通过。
+  - `git diff --check` 通过。
+
 ## [0.14.23] - 2026-05-20
 - Type: Maintenance / Recovery / Frontend Design Audit / Documentation Cross-check / Version Roll
 - Item: Restore the pre-reset bugfix commit and reapply the frontend audit/cross-check work.

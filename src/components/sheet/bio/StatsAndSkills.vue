@@ -158,19 +158,19 @@ const groupedSkills = computed<GroupedSkills>(() => {
 }
 
 .attr-card {
-  background: white;
-  border: 1px solid #dfe6e9;
+  background: var(--color-character-stats-card-bg);
+  border: 1px solid var(--color-character-stats-card-border);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px var(--color-character-stats-card-shadow);
   min-width: 110px;
 }
 
 .card-header {
-  background-color: #2c3e50;
-  color: white;
+  background-color: var(--color-character-stats-header-bg);
+  color: var(--color-character-stats-header-text);
   padding: 0.5rem;
   text-align: center;
   
@@ -186,11 +186,11 @@ const groupedSkills = computed<GroupedSkills>(() => {
     align-items: center;
     gap: 2px;
   }
-  .attr-label { font-size: 0.75rem; color: #bdc3c7; letter-spacing: 1px; }
+  .attr-label { font-size: 0.75rem; color: var(--color-character-stats-header-muted); letter-spacing: 1px; }
   .val-stepper {
-    display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.2); padding: 2px 4px; border-radius: 12px;
-    .btn-step { background: none; border: none; color: #bdc3c7; font-weight: bold; cursor: pointer; font-size: 1rem; padding: 0 4px; line-height: 1; &:hover { color: white; transform: scale(1.2); } }
-    .attr-val-box { color: white; font-weight: bold; min-width: 20px; text-align: center; }
+    display: flex; align-items: center; gap: 4px; background: var(--color-character-stats-stepper-bg); padding: 2px 4px; border-radius: 12px;
+    .btn-step { background: var(--color-character-stats-stepper-button-bg); border: var(--color-character-stats-stepper-button-border); color: var(--color-character-stats-header-muted); font-weight: bold; cursor: pointer; font-size: 1rem; padding: 0 4px; line-height: 1; &:hover { color: var(--color-character-stats-header-text); transform: scale(1.2); } }
+    .attr-val-box { color: var(--color-character-stats-header-text); font-weight: bold; min-width: 20px; text-align: center; }
   }
 }
 
@@ -198,9 +198,9 @@ const groupedSkills = computed<GroupedSkills>(() => {
 .card-body {
   flex: 1;
   padding: 0; /* 去掉内边距，让行撑满 */
-  background: #fdfdfd;
+  background: var(--color-character-stats-body-bg);
 
-  .divider { height: 1px; background: #e0e0e0; margin: 0 5px; }
+  .divider { height: 1px; background: var(--color-character-stats-divider); margin: 0 5px; }
 
   /* 豁免检定行样式 */
   .saving-throw-row {
@@ -209,18 +209,18 @@ const groupedSkills = computed<GroupedSkills>(() => {
     align-items: center;
     padding: 6px 10px;
     cursor: pointer;
-    background: #f4f6f7; /* 稍微深一点的背景，区分于技能 */
+    background: var(--color-character-stats-save-bg); /* 稍微深一点的背景，区分于技能 */
     font-weight: bold;
-    color: #2c3e50;
-    border-bottom: 1px solid #e0e0e0;
+    color: var(--color-character-stats-save-text);
+    border-bottom: 1px solid var(--color-character-stats-save-border);
     
-    &:hover { background: #e3e8ea; }
+    &:hover { background: var(--color-character-stats-save-hover-bg); }
     
     &.proficient {
-      background: #2c3e50; /* 熟练时变深色背景 */
-      color: white; /* 文字变白 */
+      background: var(--color-character-stats-save-active-bg); /* 熟练时变深色背景 */
+      color: var(--color-character-stats-save-active-text); /* 文字变白 */
       
-      .prof-diamond { border-color: white; background: white; }
+      .prof-diamond { border-color: var(--color-character-stats-prof-marker-inverse); background: var(--color-character-stats-prof-marker-inverse); }
     }
   }
 
@@ -231,54 +231,54 @@ const groupedSkills = computed<GroupedSkills>(() => {
   /* 菱形图标 (区别于技能的圆形) */
   .prof-diamond {
     width: 8px; height: 8px;
-    border: 1px solid #7f8c8d;
+    border: 1px solid var(--color-character-stats-prof-marker-border);
     transform: rotate(45deg);
     transition: all 0.2s;
-    &.filled { background: #2c3e50; border-color: #2c3e50; }
+    &.filled { background: var(--color-character-stats-prof-marker-active-bg); border-color: var(--color-character-stats-prof-marker-active-border); }
   }
 }
 
 /* 技能列表样式 (复用之前的) */
-.empty-skill { text-align: center; color: #bdc3c7; font-size: 0.8rem; padding: 10px 0; font-style: italic; }
+.empty-skill { text-align: center; color: var(--color-character-stats-empty); font-size: 0.8rem; padding: 10px 0; font-style: italic; }
 .skill-row {
-  display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.1s;
+  display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; cursor: pointer; border-bottom: 1px solid var(--color-character-skills-row-border); transition: background 0.1s;
   &:last-child { border-bottom: none; }
-  &:hover { background-color: #ecf0f1; }
-  &.proficient { background-color: #e8f6f3; .skill-mod { font-weight: bold; color: #27ae60; } .skill-name { font-weight: 600; color: #2c3e50; } }
+  &:hover { background-color: var(--color-character-skills-row-hover-bg); }
+  &.proficient { background-color: var(--color-character-skills-row-proficient-bg); .skill-mod { font-weight: bold; color: var(--color-character-skills-row-proficient-accent); } .skill-name { font-weight: 600; color: var(--color-character-skills-row-proficient-text); } }
   &.expertise {
-    background: #5b2a86;
-    border-left: 3px solid #f2c94c;
-    .skill-mod { color: #f2c94c; font-weight: 900; }
-    .skill-name { color: #f2c94c; font-weight: 800; }
+    background: var(--color-character-skills-row-expertise-bg);
+    border-left: 3px solid var(--color-character-skills-row-expertise-accent);
+    .skill-mod { color: var(--color-character-skills-row-expertise-accent); font-weight: 900; }
+    .skill-name { color: var(--color-character-skills-row-expertise-accent); font-weight: 800; }
   }
 }
 .skill-left { display: flex; align-items: center; gap: 8px; }
-.skill-name { font-size: 0.85rem; color: #7f8c8d; }
-.skill-mod { font-size: 0.9rem; color: #95a5a6; font-family: monospace; }
+.skill-name { font-size: 0.85rem; color: var(--color-character-skills-text); }
+.skill-mod { font-size: 0.9rem; color: var(--color-character-skills-mod); font-family: monospace; }
 .prof-dot {
   width: 10px;
   height: 10px;
-  border: 1px solid #bdc3c7;
+  border: 1px solid var(--color-character-skills-prof-dot-border);
   border-radius: 50%;
 
   &.filled {
-    background-color: #2c3e50;
-    border-color: #2c3e50;
+    background-color: var(--color-character-skills-prof-dot-filled-bg);
+    border-color: var(--color-character-skills-prof-dot-filled-border);
   }
 
   &.expertise {
-    background-color: #f2c94c;
-    border-color: transparent;
-    box-shadow: 0 0 0 3px rgba(242, 201, 76, 0.2);
+    background-color: var(--color-character-skills-row-expertise-accent);
+    border-color: var(--color-character-skills-prof-dot-expertise-border);
+    box-shadow: 0 0 0 3px var(--color-character-skills-prof-dot-expertise-shadow);
   }
 }
 
 .expertise-chip {
   font-size: 0.64rem;
   line-height: 1;
-  color: #fff0b8;
-  border: 1px solid #f2c94c;
-  background: #5b2a86;
+  color: var(--color-character-skills-expertise-chip-text);
+  border: 1px solid var(--color-character-skills-row-expertise-accent);
+  background: var(--color-character-skills-row-expertise-bg);
   border-radius: 3px;
   padding: 2px 4px;
   font-weight: 900;
@@ -290,9 +290,9 @@ const groupedSkills = computed<GroupedSkills>(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #8a5a00;
-  background: #fff3cd;
-  border: 1px solid #d6a84f;
+  color: var(--color-character-skills-jack-text);
+  background: var(--color-character-skills-jack-bg);
+  border: 1px solid var(--color-character-skills-jack-border);
   border-radius: 2px;
   padding: 0 3px;
   font-size: 0.68rem;
@@ -300,5 +300,5 @@ const groupedSkills = computed<GroupedSkills>(() => {
   line-height: 1;
 }
 
-.card-footer { background: #ecf0f1; border-top: 1px solid #dfe6e9; padding: 8px; .passive-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; color: #2c3e50; .val { background: white; padding: 1px 6px; border-radius: 4px; border: 1px solid #bdc3c7; } } }
+.card-footer { background: var(--color-character-stats-footer-bg); border-top: 1px solid var(--color-character-stats-footer-border); padding: 8px; .passive-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; color: var(--color-character-stats-footer-text); .val { background: var(--color-character-stats-footer-value-bg); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--color-character-stats-footer-value-border); } } }
 </style>

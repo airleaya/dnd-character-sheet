@@ -609,18 +609,18 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .sidebar-left {
   width: 260px;
-  background-color: #2c3e50;
-  color: #ecf0f1;
+  background-color: var(--color-shell-left-bg);
+  color: var(--color-shell-left-text);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #34495e;
+  border-right: 1px solid var(--color-shell-left-border);
 
   .header {
     padding: 1rem;
-    border-bottom: 1px solid #34495e;
+    border-bottom: 1px solid var(--color-shell-left-border);
     flex-shrink: 0;
     
-    h2 { font-size: 1.2rem; margin-bottom: 0.5rem; color: #ecf0f1; }
+    h2 { font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--color-shell-left-text); }
     
     // [ADD] Header 中的额外操作按钮布局
     .header-actions {
@@ -628,28 +628,28 @@ onUnmounted(() => {
       justify-content: space-between;
       margin-bottom: 0.8rem;
       .btn-text-small {
-        background: none; border: none; color: #3498db; cursor: pointer; font-size: 0.85rem;
-        &:hover { text-decoration: underline; color: #5dade2; }
+        background: none; border: none; color: var(--color-shell-left-link); cursor: pointer; font-size: 0.85rem;
+        &:hover { text-decoration: underline; color: var(--color-shell-left-link-hover); }
       }
       .btn-text {
-        background: none; border: 1px solid transparent; color: #bdc3c7; cursor: pointer; font-size: 0.8rem;
+        background: none; border: 1px solid transparent; color: var(--color-shell-left-text-muted); cursor: pointer; font-size: 0.8rem;
         padding: 2px 8px; border-radius: 4px;
-        &:hover { color: white; background: rgba(255,255,255,0.1); }
-        &.active { color: #f1c40f; border-color: #f1c40f; }
+        &:hover { color: var(--color-shell-left-text); background: var(--color-shell-left-hover-bg); }
+        &.active { color: var(--color-shell-left-accent); border-color: var(--color-shell-left-accent); }
       }
     }
 
     .btn-create {
-      width: 100%; padding: 0.6rem; background-color: #27ae60; color: white;
+      width: 100%; padding: 0.6rem; background-color: var(--color-status-success-solid); color: var(--color-action-primary-text);
       border: none; cursor: pointer; border-radius: 4px; font-weight: bold;
       transition: background 0.2s;
-      &:hover { background-color: #2ecc71; }
+      &:hover { background-color: var(--palette-green-450); }
     }
 
     .bulk-header {
       display: flex; justify-content: space-between; align-items: center; 
-      font-size: 0.9rem; color: #bdc3c7; padding: 0.6rem 0;
-      .btn-text-small { background: none; border: none; color: #3498db; cursor: pointer; font-size: 0.8rem; &:hover { text-decoration: underline; } }
+      font-size: 0.9rem; color: var(--color-shell-left-text-muted); padding: 0.6rem 0;
+      .btn-text-small { background: none; border: none; color: var(--color-shell-left-link); cursor: pointer; font-size: 0.8rem; &:hover { text-decoration: underline; } }
     }
   }
 
@@ -662,35 +662,35 @@ onUnmounted(() => {
 
   // 分组块样式
   .group-block {
-    border-bottom: 1px solid #233140;
+    border-bottom: 1px solid var(--color-shell-left-border-muted);
     transition: background-color 0.2s;
     
     &.drag-over {
-      background-color: rgba(46, 204, 113, 0.2); // 拖拽悬浮时的背景高亮
-      border: 1px dashed #2ecc71;
+      background-color: var(--color-shell-left-drop-bg); // 拖拽悬浮时的背景高亮
+      border: 1px dashed var(--color-shell-left-drop-border);
     }
 
     .group-header {
       display: flex; align-items: center; padding: 0.5rem 1rem;
-      background-color: #1a252f; cursor: pointer; user-select: none;
+      background-color: var(--color-shell-left-bg-deeper); cursor: pointer; user-select: none;
       
-      .group-toggle { font-size: 0.7rem; margin-right: 0.5rem; color: #7f8c8d; width: 12px;}
-      .group-name { font-size: 0.9rem; font-weight: bold; color: #bdc3c7; flex: 1; }
+      .group-toggle { font-size: 0.7rem; margin-right: 0.5rem; color: var(--color-shell-left-text-subtle); width: 12px;}
+      .group-name { font-size: 0.9rem; font-weight: bold; color: var(--color-shell-left-text-muted); flex: 1; }
       .inline-edit-input {
         flex: 1; padding: 2px 4px; margin-right: 4px; border-radius: 2px;
-        border: 1px solid #3498db; background: #2c3e50; color: #fff; outline: none;
+        border: 1px solid var(--color-border-focus); background: var(--color-shell-left-bg); color: var(--color-text-inverse); outline: none;
       }
       .group-tools {
         display: none; // 默认隐藏，hover时显示
-        button { background: none; border: none; color: #7f8c8d; cursor: pointer; padding: 0 4px; }
-        button:hover { color: #ecf0f1; }
+        button { background: none; border: none; color: var(--color-shell-left-text-subtle); cursor: pointer; padding: 0 4px; }
+        button:hover { color: var(--color-shell-left-text); }
       }
       
       &:hover .group-tools { display: flex; }
     }
     
     .empty-group {
-      padding: 0.5rem 1rem 0.5rem 2.2rem; font-size: 0.8rem; color: #7f8c8d; font-style: italic;
+      padding: 0.5rem 1rem 0.5rem 2.2rem; font-size: 0.8rem; color: var(--color-shell-left-text-subtle); font-style: italic;
     }
   }
 
@@ -699,10 +699,10 @@ onUnmounted(() => {
     list-style: none; padding: 0; margin: 0;
 
     li {
-      padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #34495e; transition: background 0.2s;
-      &.selected { background-color: rgba(52, 152, 219, 0.2); }
-      &:hover { background-color: #34495e; .btn-delete { opacity: 1; } }
-      &.active { background-color: #2980b9; border-bottom-color: #3498db; }
+      padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid var(--color-shell-left-border); transition: background 0.2s;
+      &.selected { background-color: var(--color-shell-left-selection-bg); }
+      &:hover { background-color: var(--color-shell-left-border); .btn-delete { opacity: 1; } }
+      &.active { background-color: var(--color-action-primary-hover); border-bottom-color: var(--color-border-focus); }
 
       .checkbox-wrapper {
         margin-right: 10px; display: flex; align-items: center;
@@ -710,23 +710,23 @@ onUnmounted(() => {
       }
 
       .char-row { display: flex; justify-content: space-between; align-items: center; }
-      
-      .char-name { 
-        font-weight: bold; font-size: 1rem; color: #fff; 
+
+      .char-name {
+        font-weight: bold; font-size: 1rem; color: var(--color-text-inverse);
         .player-name {
           font-size: 0.8rem;
-          color: #f39c12; // 玩家名使用不同的显眼颜色
+          color: var(--color-shell-left-player); // 玩家名使用不同的显眼颜色
           font-weight: normal;
           margin-left: 4px;
         }
       }
-      .char-meta { font-size: 0.8rem; color: #bdc3c7; margin-top: 2px; }
+      .char-meta { font-size: 0.8rem; color: var(--color-shell-left-text-muted); margin-top: 2px; }
 
       .btn-delete {
-        opacity: 0; 
-        background: none; border: none; color: #e74c3c; font-size: 1.5rem; cursor: pointer;
+        opacity: 0;
+        background: none; border: none; color: var(--color-shell-left-danger); font-size: 1.5rem; cursor: pointer;
         padding: 0 4px; line-height: 1; transition: opacity 0.2s, transform 0.2s;
-        &:hover { transform: scale(1.2); color: #ff6b6b; }
+        &:hover { transform: scale(1.2); color: var(--color-shell-left-danger-hover); }
       }
     }
   }
@@ -734,8 +734,8 @@ onUnmounted(() => {
   /* 底部容器 */
   .footer-wrapper {
     flex-shrink: 0;
-    border-top: 1px solid #34495e; 
-    background: #233140;
+    border-top: 1px solid var(--color-shell-left-border);
+    background: var(--color-shell-left-bg-deep);
   }
 
   /* 缩放条样式 */
@@ -743,29 +743,29 @@ onUnmounted(() => {
     display: flex; align-items: center; justify-content: center;
     padding: 8px 1rem 0; gap: 8px;
 
-    .zoom-display { font-size: 0.9rem; font-family: monospace; color: #bdc3c7; min-width: 40px; text-align: center; user-select: none; }
+    .zoom-display { font-size: 0.9rem; font-family: monospace; color: var(--color-shell-left-text-muted); min-width: 40px; text-align: center; user-select: none; }
 
     .btn-zoom {
-      background: #34495e; border: 1px solid #455a64; color: #ecf0f1; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      &:hover { background: #3e5871; border-color: #5dade2; }
+      background: var(--color-shell-left-button-bg); border: 1px solid var(--color-shell-left-control-border); color: var(--color-shell-left-text); border-radius: 4px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      &:hover { background: var(--color-shell-left-button-hover); border-color: var(--color-shell-left-link-hover); }
       &.btn-reset { margin-left: auto; font-size: 0.8rem; }
     }
   }
 
   .footer-tools {
-    padding: 1rem; border-top: none; background: #233140; display: flex; gap: 10px; flex-shrink: 0;
+    padding: 1rem; border-top: none; background: var(--color-shell-left-bg-deep); display: flex; gap: 10px; flex-shrink: 0;
 
     .btn-tool {
-      flex: 1; padding: 8px; border: 1px solid #455a64; border-radius: 4px; cursor: pointer; font-size: 0.9rem; color: #ecf0f1; background: #34495e; transition: all 0.2s;
-      &:hover:not(:disabled) { background: #3e5871; border-color: #5dade2; }
+      flex: 1; padding: 8px; border: 1px solid var(--color-shell-left-control-border); border-radius: 4px; cursor: pointer; font-size: 0.9rem; color: var(--color-shell-left-text); background: var(--color-shell-left-button-bg); transition: all 0.2s;
+      &:hover:not(:disabled) { background: var(--color-shell-left-button-hover); border-color: var(--color-shell-left-link-hover); }
       &:disabled { opacity: 0.5; cursor: not-allowed; }
-      &.btn-save:hover:not(:disabled) { border-color: #f1c40f; color: #f1c40f; }
+      &.btn-save:hover:not(:disabled) { border-color: var(--color-shell-left-accent); color: var(--color-shell-left-accent); }
     }
   }
 
   .bulk-tools {
-    .btn-danger { color: #e74c3c; border-color: #c0392b; &:hover:not(:disabled) { background: #c0392b; color: white; } }
-    .btn-primary { color: #3498db; border-color: #2980b9; &:hover:not(:disabled) { background: #2980b9; color: white; } }
+    .btn-danger { color: var(--color-action-danger-bg); border-color: var(--color-action-danger-hover); &:hover:not(:disabled) { background: var(--color-action-danger-hover); color: var(--color-action-primary-text); } }
+    .btn-primary { color: var(--color-action-primary-bg); border-color: var(--color-action-primary-hover); &:hover:not(:disabled) { background: var(--color-action-primary-hover); color: var(--color-action-primary-text); } }
   }
 }
 </style>

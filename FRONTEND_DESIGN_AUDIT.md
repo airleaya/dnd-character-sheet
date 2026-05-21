@@ -1,6 +1,6 @@
 # Frontend Design Audit
 
-> Baseline: `0.14.23`
+> Baseline: `0.15.0`
 > Date: 2026-05-20
 > Scope: Vue renderer UI under `src/App.vue`, `src/style.css`, and `src/components/**`.
 
@@ -58,6 +58,33 @@ Design implication: future redesigns should treat the app as an information-dens
 - Data-pack unlock: `DataPackUnlockModal.vue`
 
 ## 3. Visual Languages In Use
+
+### Color Structure Baseline
+
+- `src/styles/theme.css` defines the first shared color structure:
+  - Palette: raw neutral, slate, primary, arcane, gold, teal, green, red, orange, and brown scales.
+  - Semantic Theme: app backgrounds, text, borders, actions, and status colors.
+  - App Shell Theme: sheet surface, left character sidebar, right library sidebar, global tooltip, and global feedback colors.
+  - Domain Theme: DND defaults for spells, data packs, HP states, rarity, and magic items.
+  - Content Color fallback: user/data-driven colors, especially magic item visuals.
+- Current theme sizing: 118 Palette variables, 1009 UI role variables, and 34 Content fallback variables. Palette owns 116 unique concrete base values; Semantic/Domain still contains 340 unique concrete values, mostly alpha overlays, gradients, and local detail colors that need a later visual pass.
+- Repeated domain literals for dark library tiers, badge accents, jack-of-all-trades chips, rejected equipment, and shared tooltip body text have been lifted into Palette tokens, so those UI roles now reference the base color structure instead of standalone hex values.
+- Global shell and common component colors have been migrated out of `App.vue`, `AppLayout.vue`, `SidebarLeft.vue`, `SidebarRight.vue`, `GlobalTooltip.vue`, `GlobalFeedback.vue`, and `components/common/**`.
+- Inventory, equipment, and trash surfaces have domain tokens in `src/styles/theme.css`; `InventoryPanel.vue`, `InventoryItemRow.vue`, `EquipmentSlots.vue`, and `TrashPanel.vue` read those tokens instead of active component-level color literals.
+- Character identity surfaces have domain tokens for the header divider, avatar placeholder, character name, class badges, alignment picker, action toolbar, and XP progress bar; `HeaderInfo.vue`, `ClassSelector.vue`, `AlignmentPicker.vue`, and `XpProgressBar.vue` now read those tokens from the shared theme file.
+- Character biography and ability/skill surfaces have domain tokens for biography fields, note cards, ability headers, saving throws, skill proficiency, expertise, jack-of-all-trades chips, and passive perception; `BioPanel.vue` and `StatsAndSkills.vue` now read those tokens from the shared theme file.
+- The combat summary panel has domain tokens for stat cards, HP, death saves, hit dice, inspiration, and exhaustion; `CombatPanel.vue` now reads those tokens from the shared theme file.
+- The action/combat-spell panel has domain tokens for attack rows, the attack picker, unarmed editor, battle spell cards, and equipment-charge controls; `ActionsPanel.vue` now reads those tokens from the shared theme file.
+- Spellbook and spell-library surfaces have domain tokens for parchment pages, spell cards, source badges, preparation controls, toasts, and the dark right-sidebar spell tree; `SpellbookPanel.vue`, `SpellbookLeftPanel.vue`, `SpellbookRightPanel.vue`, and `LibrarySpellsPanel.vue` now read those tokens from the shared theme file.
+- Item-library and right-sidebar workbench surfaces have domain tokens for the dark item tree, passphrase grouping controls, item badges, hover tooltips, and forge/enchant drop zones; `LibraryItemsPanel.vue`, `LibraryTooltip.vue`, `ForgeDropZone.vue`, and `EnchantDropZone.vue` now read those tokens from the shared theme file.
+- Forge modal UI has domain tokens for the light editor shell, blue-gray header, enchant entry, form sections, type-specific weapon/armor panels, fields, chips, footer, and save/cancel actions; `ForgeModal.vue` now reads those tokens from the shared theme file.
+- Enchanting modal UI has domain tokens for the dark modal shell, gold accents, tabs, form controls, trait badges, hover cards, scrollbar, and action buttons; `EnchantingModal.vue` now reads those tokens from the shared theme file.
+- Character settings modal UI has domain tokens for the shared light settings shell, headers, toggles, tags, inputs, add/remove controls, and distinct proficiency/expertise accents; `ProficiencySettingsModal.vue` and `ExpertiseSettingsModal.vue` now read those tokens from the shared theme file.
+- Data-pack modal UI has domain tokens for data-pack management, passphrase unlock forms, pack cards, visibility chips, result bars, and danger actions; `DataPackManagerModal.vue` and `DataPackUnlockModal.vue` now read those tokens from the shared theme file.
+- Data-pack maker UI has domain tokens for the warm maker shell, import controls, workbench drop cards, form panels, group management, shop-catalog editor, content grouping, and drag feedback; `DataPackMakerPanel.vue` now reads those tokens from the shared theme file.
+- Magic item visuals use a default preset sequence in `src/data/rules/magicTraits.ts`; items without `magic.visuals` resolve through that default sequence at runtime.
+- Magic item DIY colors are content colors. Values stored in `magic.visuals` are item-instance overrides only: they must keep priority for that one item, but they must not mutate global UI theme colors or the default magic color group used by other magic items.
+- `CSS_COLOR_USAGE_AUDIT.md` is the pre-migration baseline map. Current active scan for `src/components/**` and `src/style.css` is clean; colors are now concentrated in `src/styles/theme.css`.
 
 The app currently has three distinct visual systems.
 

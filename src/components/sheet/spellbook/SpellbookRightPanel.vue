@@ -188,23 +188,23 @@ const getSpellSourceLabel = (id: string) => {
 /* 头部 */
 .panel-header {
   display: flex; justify-content: space-between; align-items: flex-end;
-  border-bottom: 1px solid #dcd6cb; padding-bottom: 12px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-spellbook-border); padding-bottom: 12px; margin-bottom: 20px;
   
-  .title { margin: 0; font-size: 1.5rem; color: #4e342e; }
-  .flavor-text { margin: 4px 0 0 0; font-size: 0.9rem; color: #7f8c8d; }
+  .title { margin: 0; font-size: 1.5rem; color: var(--color-spellbook-title); }
+  .flavor-text { margin: 4px 0 0 0; font-size: 0.9rem; color: var(--color-spellbook-subtitle); }
 }
 
 /* 学习来源切换器 */
 .source-toggle {
   display: flex; align-items: center; gap: 8px; font-size: 0.85rem;
-  .toggle-label { font-weight: bold; color: #555; }
+  .toggle-label { font-weight: bold; color: var(--color-spellbook-label); }
   .radio-group {
-    display: flex; background: #eee; border-radius: 4px; overflow: hidden; border: 1px solid #ccc;
+    display: flex; background: var(--color-spellbook-source-toggle-bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--color-spellbook-input-border);
     .radio-btn {
-      padding: 4px 10px; cursor: pointer; color: #777; transition: all 0.2s;
+      padding: 4px 10px; cursor: pointer; color: var(--color-spellbook-source-toggle-text); transition: all 0.2s;
       input { display: none; }
-      &:hover { background: #e0e0e0; }
-      &.active { background: #9b59b6; color: #fff; font-weight: bold; }
+      &:hover { background: var(--color-spellbook-stepper-hover-bg); }
+      &.active { background: var(--color-spellbook-source-toggle-active-bg); color: var(--color-spellbook-source-toggle-active-text); font-weight: bold; }
     }
   }
 }
@@ -212,24 +212,24 @@ const getSpellSourceLabel = (id: string) => {
 /* 拖拽区与列表 */
 .drag-area {
   flex: 1; min-height: 200px; padding-bottom: 40px;
-  border: 2px dashed transparent; transition: border 0.3s;
+  border: 2px dashed var(--color-spellbook-drop-border); transition: border 0.3s;
   /* 当拖拽物体悬浮时可以通过 ghost-class 给提示，这里提供基础占位 */
 }
 .debug-item { display: none; }
 
 .empty-state {
-  text-align: center; padding: 40px 20px; border: 2px dashed #e74c3c;
-  background-color: rgba(231, 76, 60, 0.05); border-radius: 8px; color: #c0392b;
+  text-align: center; padding: 40px 20px; border: 2px dashed var(--color-spellbook-empty-border);
+  background-color: var(--color-spellbook-empty-bg); border-radius: 8px; color: var(--color-spellbook-empty-text);
   h3 { margin-bottom: 8px; }
-  p { color: #7f8c8d; font-size: 0.9rem; }
+  p { color: var(--color-spellbook-subtitle); font-size: 0.9rem; }
 }
 
 /* 分组样式 */
 .spell-level-section { margin-bottom: 24px; }
 .section-header {
   display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 2px solid #e0e0e0; margin: 0 0 12px 0; padding-bottom: 4px;
-  h3 { margin: 0; border: none; padding: 0; color: #7f8c8d; font-size: 1.1rem; }
+  border-bottom: 2px solid var(--color-spellbook-border-subtle); margin: 0 0 12px 0; padding-bottom: 4px;
+  h3 { margin: 0; border: none; padding: 0; color: var(--color-spellbook-subtitle); font-size: 1.1rem; }
 }
 
 /* 卡片网格 */
@@ -239,24 +239,24 @@ const getSpellSourceLabel = (id: string) => {
 
 /* 法术卡片 (复用原有的漂亮样式) */
 .spell-paper-card {
-  background: #fdfbf7; border: 1px solid #dcd6cb; border-radius: 6px; 
+  background: var(--color-spellbook-paper-card-bg); border: 1px solid var(--color-spellbook-border); border-radius: 6px;
   position: relative; transition: all 0.2s ease-in-out; overflow: hidden;
   opacity: 0.6; filter: grayscale(80%);
   &:hover { opacity: 0.9; }
   &.is-prepared {
-    opacity: 1; filter: grayscale(0%); background: #fff; border-color: #9b59b6; 
-    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.15); transform: translateY(-2px);
-    .prep-indicator { background: #9b59b6; }
+    opacity: 1; filter: grayscale(0%); background: var(--color-spellbook-paper-card-prepared-bg); border-color: var(--color-spellbook-prep-accent);
+    box-shadow: 0 4px 12px var(--color-spellbook-paper-card-prepared-shadow); transform: translateY(-2px);
+    .prep-indicator { background: var(--color-spellbook-prep-accent); }
   }
 }
 .prep-indicator {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #ccc; transition: background 0.2s;
+  position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--color-spellbook-prep-indicator); transition: background 0.2s;
 }
 .card-inner { padding: 12px 12px 12px 18px; }
 .card-top {
   display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; min-height: 40px;
 }
-.spell-name { font-weight: bold; font-size: 0.95rem; color: #2c3e50; line-height: 1.2; padding-right: 8px; }
+.spell-name { font-weight: bold; font-size: 0.95rem; color: var(--color-spellbook-section-title); line-height: 1.2; padding-right: 8px; }
 
 /* 准备开关 */
 .prep-toggle { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
@@ -265,31 +265,31 @@ const getSpellSourceLabel = (id: string) => {
   input { opacity: 0; width: 0; height: 0; }
   .slider-round {
     position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #bdc3c7; transition: .4s; border-radius: 34px;
+    background-color: var(--color-spellbook-switch-bg); transition: .4s; border-radius: 34px;
     &:before {
       position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px;
-      background-color: white; transition: .4s; border-radius: 50%;
+      background-color: var(--color-spellbook-switch-knob); transition: .4s; border-radius: 50%;
     }
   }
-  input:checked + .slider-round { background-color: #9b59b6; }
+  input:checked + .slider-round { background-color: var(--color-spellbook-prep-accent); }
   input:checked + .slider-round:before { transform: translateX(14px); }
 }
-.prep-text { font-size: 0.65rem; color: #7f8c8d; font-weight: bold; }
-.cantrip-tag { font-size: 0.7rem; color: #27ae60; background: #e8f8f5; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.prep-text { font-size: 0.65rem; color: var(--color-spellbook-subtitle); font-weight: bold; }
+.cantrip-tag { font-size: 0.7rem; color: var(--color-spellbook-cantrip-text); background: var(--color-spellbook-cantrip-bg); padding: 2px 6px; border-radius: 4px; font-weight: bold; }
 
 /* 卡片底部 */
 .card-footer {
-  display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #eee;
+  display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--color-actions-detail-border);
 }
 .footer-left { display: flex; align-items: center; gap: 8px; }
-.level-badge { font-size: 0.8rem; font-weight: bold; color: #95a5a6; }
+.level-badge { font-size: 0.8rem; font-weight: bold; color: var(--color-spellbook-helper); }
 
 /* 来源徽章 */
 .source-badge {
   font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold;
-  &.primary { background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; }
-  &.secondary { background: #fce4ec; color: #c2185b; border: 1px solid #f8bbd0; }
+  &.primary { background: var(--color-spellbook-source-primary-bg); color: var(--color-spellbook-source-primary-text); border: 1px solid var(--color-spellbook-source-primary-border); }
+  &.secondary { background: var(--color-spellbook-source-secondary-bg); color: var(--color-spellbook-source-secondary-text); border: 1px solid var(--color-spellbook-source-secondary-border); }
 }
 
-.btn-forget { border: none; background: none; cursor: pointer; opacity: 0.4; &:hover { opacity: 1; color: #e74c3c; } }
+.btn-forget { border: none; background: none; cursor: pointer; opacity: 0.4; &:hover { opacity: 1; color: var(--color-action-danger-bg); } }
 </style>

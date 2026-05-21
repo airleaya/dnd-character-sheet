@@ -91,35 +91,35 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 26, 34, 0.55);
+  background: var(--color-surface-overlay);
   backdrop-filter: blur(6px);
 }
 
 .feedback-dialog {
   width: min(460px, calc(100vw - 32px));
-  background: #f7f3ea;
-  color: #2b241e;
+  background: var(--color-surface-dialog);
+  color: var(--color-text-dialog);
   border-radius: 18px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 24px 60px var(--color-shadow-modal);
   overflow: hidden;
-  border: 1px solid rgba(58, 46, 35, 0.12);
+  border: 1px solid var(--color-border-dialog);
 }
 
 .dialog-accent {
   height: 8px;
-  background: linear-gradient(90deg, #b46a32, #d8a15d);
+  background: var(--color-feedback-accent-info);
 }
 
 .feedback-dialog.tone-danger .dialog-accent {
-  background: linear-gradient(90deg, #8d2f2f, #d75a4a);
+  background: var(--color-feedback-accent-danger);
 }
 
 .feedback-dialog.tone-warning .dialog-accent {
-  background: linear-gradient(90deg, #9b5a17, #d9982c);
+  background: var(--color-feedback-accent-warning);
 }
 
 .feedback-dialog.tone-success .dialog-accent {
-  background: linear-gradient(90deg, #2d7d46, #58a86e);
+  background: var(--color-feedback-accent-success);
 }
 
 .dialog-body {
@@ -131,7 +131,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #8c6f58;
+  color: var(--color-text-dialog-muted);
 }
 
 .dialog-title {
@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
   margin: 0;
   white-space: pre-line;
   line-height: 1.55;
-  color: #56473b;
+  color: var(--color-text-dialog-message);
 }
 
 .dialog-actions {
@@ -172,25 +172,25 @@ onBeforeUnmount(() => {
 }
 
 .btn-secondary {
-  background: rgba(77, 60, 46, 0.08);
-  color: #5b4736;
+  background: var(--color-feedback-secondary-bg);
+  color: var(--palette-brown-700);
 }
 
 .btn-primary {
-  background: #355c7d;
-  color: #fff;
+  background: var(--color-feedback-primary-bg);
+  color: var(--color-feedback-primary-text);
 }
 
 .btn-primary.tone-warning {
-  background: #ad6a21;
+  background: var(--color-feedback-warning-bg);
 }
 
 .btn-primary.tone-danger {
-  background: #b13a37;
+  background: var(--color-feedback-danger-bg);
 }
 
 .btn-primary.tone-success {
-  background: #31724a;
+  background: var(--color-feedback-success-bg);
 }
 
 .feedback-toast {
@@ -204,21 +204,21 @@ onBeforeUnmount(() => {
   max-width: min(360px, calc(100vw - 32px));
   padding: 12px 16px;
   border-radius: 14px;
-  color: #fff;
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
-  background: #355c7d;
+  color: var(--color-feedback-primary-text);
+  box-shadow: 0 18px 36px var(--color-shadow-elevated);
+  background: var(--color-feedback-primary-bg);
 }
 
 .feedback-toast.tone-success {
-  background: #2f7a4b;
+  background: var(--color-feedback-toast-success-bg);
 }
 
 .feedback-toast.tone-warning {
-  background: #a3641f;
+  background: var(--color-feedback-toast-warning-bg);
 }
 
 .feedback-toast.tone-danger {
-  background: #a03b3b;
+  background: var(--color-feedback-toast-danger-bg);
 }
 
 .toast-icon {
@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--color-feedback-toast-icon-bg);
   font-weight: 700;
 }
 

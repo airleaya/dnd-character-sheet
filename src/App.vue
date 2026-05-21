@@ -120,10 +120,10 @@ const handleGlobalKeyup = (event: KeyboardEvent) => {
 .sheet-container {
   width: min(100%, 1240px);
   margin: 0 auto;
-  background: white;
+  background: var(--color-surface-sheet);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px var(--color-shadow-soft);
   min-height: 800px;
   display: flex;
   flex-direction: column;
@@ -133,8 +133,8 @@ const handleGlobalKeyup = (event: KeyboardEvent) => {
 .inventory-placeholder {
   margin-top: 1rem;
   padding: 1rem;
-  background-color: #f8f9fa;
-  border: 1px dashed #ced4da;
+  background-color: var(--color-bg-inset);
+  border: 1px dashed var(--color-border-strong);
   border-radius: 4px;
 }
 
@@ -169,7 +169,7 @@ const handleGlobalKeyup = (event: KeyboardEvent) => {
   min-height: 100%;
   justify-content: center;
   align-items: center;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   padding: 1.5rem;
 }
 

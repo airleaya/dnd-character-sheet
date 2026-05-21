@@ -77,27 +77,27 @@ const onDrop = (event: DragEvent) => {
 <style scoped lang="scss">
 .enchant-drop-zone {
   height: 88px;
-  border-top: 1px solid #333;
-  background: #171b23;
+  border-top: 1px solid var(--color-library-drop-border);
+  background: var(--color-library-drop-enchant-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 14px;
-  color: #6f7890;
+  color: var(--color-library-drop-enchant-text);
   transition: all 0.2s;
   user-select: none;
 
   &.is-active {
-    background: #211f16;
-    border-top-color: #f5c560;
-    color: #f5c560;
+    background: var(--color-library-drop-enchant-active-bg);
+    border-top-color: var(--color-library-drop-enchant-active);
+    color: var(--color-library-drop-enchant-active);
 
     .icon {
       transform: scale(1.12) rotate(8deg);
     }
 
     .text strong {
-      color: #f5c560;
+      color: var(--color-library-drop-enchant-active);
     }
   }
 

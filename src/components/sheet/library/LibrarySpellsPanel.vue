@@ -170,59 +170,59 @@ const getSpellBadges = (spell: SpellDefinition) => {
 <style scoped lang="scss">
 /* 复用样式，确保一致性 */
 .main-group-header {
-  padding: 14px 12px; margin-top: 1px; background-color: #252525; border-bottom: 1px solid #333; border-left: 4px solid #555;
-  font-size: 0.95rem; font-weight: 800; color: #ddd; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none; transition: all 0.2s;
-  &:hover { background-color: #2d2d2d; color: #fff; }
+  padding: 14px 12px; margin-top: 1px; background-color: var(--color-spell-library-main-bg); border-bottom: 1px solid var(--color-spell-library-main-border); border-left: 4px solid var(--color-spell-library-main-accent);
+  font-size: 0.95rem; font-weight: 800; color: var(--color-spell-library-main-text); text-transform: uppercase; letter-spacing: 1px; cursor: pointer; user-select: none; transition: all 0.2s;
+  &:hover { background-color: var(--color-spell-library-hover-bg); color: var(--color-spell-library-hover-text); }
   .header-content { display: flex; align-items: center; gap: 8px; }
-  .arrow-icon { font-size: 0.75rem; color: #888; transition: transform 0.2s ease; display: inline-block; }
-  &.is-open { background-color: #2c2c2c; border-left-color: #42b983; border-bottom-color: #42b983; color: #42b983; .arrow-icon { transform: rotate(90deg); color: #42b983; } }
+  .arrow-icon { font-size: 0.75rem; color: var(--color-spell-library-arrow); transition: transform 0.2s ease; display: inline-block; }
+  &.is-open { background-color: var(--color-spell-library-open-bg); border-left-color: var(--color-spell-library-open-accent); border-bottom-color: var(--color-spell-library-open-accent); color: var(--color-spell-library-open-accent); .arrow-icon { transform: rotate(90deg); color: var(--color-spell-library-open-accent); } }
 }
 
 .sticky-sub-header {
-  position: sticky; top: 34px; z-index: 10; background-color: #222; border-left: 4px solid transparent; padding: 8px 12px 8px 34px;
-  font-size: 0.85rem; font-weight: bold; color: #aaa; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background-color 0.2s;
-  &:hover { background-color: #2a2a2a; color: #fff; }
+  position: sticky; top: 34px; z-index: 10; background-color: var(--color-spell-library-sub-bg); border-left: 4px solid var(--color-spellbook-drop-border); padding: 8px 12px 8px 34px;
+  font-size: 0.85rem; font-weight: bold; color: var(--color-spell-library-sub-text); border-bottom: 1px solid var(--color-spell-library-main-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: background-color 0.2s;
+  &:hover { background-color: var(--color-spell-library-sub-hover-bg); color: var(--color-spell-library-hover-text); }
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
-  &.is-open { color: #eee; background-color: #282828; .arrow-icon { transform: rotate(90deg); } }
-  .count { font-size: 0.7rem; color: #666; background: #1a1a1a; padding: 1px 6px; border-radius: 8px; }
+  &.is-open { color: var(--color-spell-library-sub-open-text); background-color: var(--color-spell-library-sub-open-bg); .arrow-icon { transform: rotate(90deg); } }
+  .count { font-size: 0.7rem; color: var(--color-spell-library-count-text); background: var(--color-spell-library-count-bg); padding: 1px 6px; border-radius: 8px; }
 }
 
 .branch-header {
-  position: sticky; top: 0; z-index: 12; background-color: #242424; border-left: 4px solid #3d3d3d; padding: 9px 12px 9px 22px;
-  font-size: 0.88rem; font-weight: 800; color: #c8c8c8; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;
-  &:hover { background-color: #2c2c2c; color: #fff; }
+  position: sticky; top: 0; z-index: 12; background-color: var(--color-spell-library-branch-bg); border-left: 4px solid var(--color-spell-library-branch-accent); padding: 9px 12px 9px 22px;
+  font-size: 0.88rem; font-weight: 800; color: var(--color-spell-library-branch-text); border-bottom: 1px solid var(--color-spell-library-main-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;
+  &:hover { background-color: var(--color-spell-library-open-bg); color: var(--color-spell-library-hover-text); }
   .header-left { display: flex; align-items: center; gap: 6px; }
   .arrow-icon { font-size: 0.7rem; transition: transform 0.2s; }
-  &.is-open { color: #d8c36a; border-left-color: #d8c36a; .arrow-icon { transform: rotate(90deg); } }
+  &.is-open { color: var(--color-spell-library-branch-open); border-left-color: var(--color-spell-library-branch-open); .arrow-icon { transform: rotate(90deg); } }
 }
 
-.library-item { background-color: #1e1e1e; border-bottom: 1px solid #282828; padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: #2d2d2d; } }
+.library-item { background-color: var(--color-spell-library-item-bg); border-bottom: 1px solid var(--color-spell-library-item-border); padding: 10px 14px; cursor: grab; transition: background 0.1s; &:hover { background-color: var(--color-spell-library-item-hover-bg); } }
 /* 已学会的样式：稍微变暗，且显示绿色标记 */
 .library-item.is-learned {
   opacity: 0.6;
-  background-color: #1a1a1a;
-  .item-name { color: #7f8c8d; }
-  .level-tag { color: #555; }
+  background-color: var(--color-spell-library-learned-bg);
+  .item-name { color: var(--color-spell-library-learned-name); }
+  .level-tag { color: var(--color-spell-library-learned-tag); }
   .badge { opacity: 0.5; }
 }
 .learned-mark {
-  color: #27ae60;
+  color: var(--color-spell-library-learned-mark);
   font-weight: bold;
   margin-left: 6px;
 }
-.spell-item { border-left: 2px solid transparent; &:hover { border-left-color: #9b59b6; } }
+.spell-item { border-left: 2px solid var(--color-spellbook-drop-border); &:hover { border-left-color: var(--color-spell-library-level); } }
 
 .item-row { display: flex; justify-content: space-between; }
-.item-name { color: #ccc; font-size: 0.9rem; font-weight: 500; }
-.level-tag { color: #9b59b6; font-weight: bold; font-family: monospace; font-size: 0.8rem; }
+.item-name { color: var(--color-spell-library-item-name); font-size: 0.9rem; font-weight: 500; }
+.level-tag { color: var(--color-spell-library-level); font-weight: bold; font-family: monospace; font-size: 0.8rem; }
 
 .badges-row { margin-top: 4px; display: flex; gap: 4px; }
-.badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: #333; color: #aaa; }
-.badge.blue { color: #5dade2; background: rgba(93, 173, 226, 0.1); }
-.badge.orange { color: #eb984e; background: rgba(235, 152, 78, 0.1); }
-.badge.ritual { color: #16a085; background: rgba(22, 160, 133, 0.14); border: 1px solid rgba(22, 160, 133, 0.32); }
-.badge.gray { color: #999; background: rgba(255, 255, 255, 0.1); }
+.badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: var(--color-spell-library-badge-bg); color: var(--color-spell-library-badge-text); }
+.badge.blue { color: var(--color-spell-library-badge-blue-text); background: var(--color-spell-library-badge-blue-bg); }
+.badge.orange { color: var(--color-spell-library-badge-orange-text); background: var(--color-spell-library-badge-orange-bg); }
+.badge.ritual { color: var(--color-spell-library-badge-ritual-text); background: var(--color-spell-library-badge-ritual-bg); border: 1px solid var(--color-spell-library-badge-ritual-border); }
+.badge.gray { color: var(--color-spell-library-badge-gray-text); background: var(--color-spell-library-badge-gray-bg); }
 
-.empty-state { padding: 40px; text-align: center; color: #555; }
+.empty-state { padding: 40px; text-align: center; color: var(--color-spell-library-empty-text); }
 </style>

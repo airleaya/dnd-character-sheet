@@ -375,10 +375,10 @@ const getMagicTraitSpellName = (spellId?: string) =>
   position: fixed; 
   z-index: 9999;
   pointer-events: auto;
-  background-color: #1e1e1e;
-  background: rgba(30, 30, 30, 0.98);
-  border: 1px solid #444;
-  box-shadow: -4px 4px 15px rgba(0,0,0,0.5);
+  background-color: var(--color-library-tooltip-bg-solid);
+  background: var(--color-library-tooltip-bg);
+  border: 1px solid var(--color-library-tooltip-border);
+  box-shadow: -4px 4px 15px var(--color-library-tooltip-shadow);
   border-radius: 6px;
   width: 320px; 
 
@@ -388,8 +388,8 @@ const getMagicTraitSpellName = (spellId?: string) =>
   
   .card-header { 
     padding: 10px 12px; 
-    background: #252525; 
-    border-bottom: 1px solid #333; 
+    background: var(--color-library-tooltip-header-bg);
+    border-bottom: 1px solid var(--color-library-tooltip-header-border);
     border-radius: 6px 6px 0 0;
 
     /* ✅ 新增：Flex布局支持副标题 */
@@ -398,10 +398,10 @@ const getMagicTraitSpellName = (spellId?: string) =>
     align-items: center;
   }
   .card-title { 
-    color: #fff; font-weight: bold; font-size: 0.95rem; 
+    color: var(--color-library-tooltip-title); font-weight: bold; font-size: 0.95rem;
   }
   .card-header.magic {
-    border-bottom-color: rgba(215, 193, 255, 0.55);
+    border-bottom-color: var(--color-library-magic-border);
 
     .card-title,
     .card-subtitle {
@@ -410,12 +410,12 @@ const getMagicTraitSpellName = (spellId?: string) =>
   }
   /* ✅ 新增：副标题样式 */
   .card-subtitle {
-    font-size: 0.75rem; color: #777; font-style: italic;
+    font-size: 0.75rem; color: var(--color-library-tooltip-subtitle); font-style: italic;
   }
   .card-body { 
     padding: 12px; 
     font-size: 0.85rem; 
-    color: #ccc; 
+    color: var(--color-library-tooltip-body);
 
     min-height: 0;
     overflow-y: auto;
@@ -424,18 +424,18 @@ const getMagicTraitSpellName = (spellId?: string) =>
     flex-direction: column;
 
     &::-webkit-scrollbar { width: 6px; }
-    &::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-    &::-webkit-scrollbar-thumb { background: #555; border-radius: 999px; }
-    &::-webkit-scrollbar-thumb:hover { background: #777; }
+    &::-webkit-scrollbar-track { background: var(--color-library-tooltip-scroll-track); }
+    &::-webkit-scrollbar-thumb { background: var(--color-library-tooltip-scroll-thumb); border-radius: 999px; }
+    &::-webkit-scrollbar-thumb:hover { background: var(--color-library-tooltip-scroll-thumb-hover); }
   }
 
   /* ✅ 新增：战斗属性区域样式 */
   .combat-stats-section {
-    background: rgba(0,0,0,0.2);
+    background: var(--color-library-tooltip-section-bg);
     border-radius: 4px;
     padding: 8px;
     margin-bottom: 10px;
-    border: 1px solid #333;
+    border: 1px solid var(--color-library-tooltip-section-border);
   }
 
   .stat-row-visual {
@@ -444,10 +444,10 @@ const getMagicTraitSpellName = (spellId?: string) =>
     align-items: center;
     margin-bottom: 6px;
     
-    .label { color: #888; font-size: 0.75rem; }
+    .label { color: var(--color-library-tooltip-body-muted); font-size: 0.75rem; }
     .value-group { display: flex; align-items: center; gap: 6px; }
-    .damage-text { color: #fff; font-weight: bold; }
-    .highlight-val { color: #fff; font-weight: bold; }
+    .damage-text { color: var(--color-library-tooltip-body-strong); font-weight: bold; }
+    .highlight-val { color: var(--color-library-tooltip-body-strong); font-weight: bold; }
   }
 
   /* ✅ 新增：伤害类型标签 */
@@ -455,8 +455,8 @@ const getMagicTraitSpellName = (spellId?: string) =>
     font-size: 0.7rem;
     padding: 1px 6px;
     border-radius: 4px;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    color: var(--color-library-tooltip-body-strong);
+    text-shadow: 0 1px 2px var(--color-library-tooltip-text-shadow);
     font-weight: bold;
   }
 
@@ -471,20 +471,20 @@ const getMagicTraitSpellName = (spellId?: string) =>
   /* ✅ 新增：属性胶囊样式 */
   .prop-capsule {
     font-size: 0.7rem;
-    background-color: #34495e;
-    color: #bdc3c7;
+    background-color: var(--color-library-tooltip-capsule-bg);
+    color: var(--color-library-tooltip-capsule-text);
     padding: 2px 8px;
     border-radius: 10px; /* 圆角胶囊 */
-    border: 1px solid #4a6278;
+    border: 1px solid var(--color-library-tooltip-capsule-border);
   }
 
   /* ✅ 新增：警告框样式 */
   .warning-box {
     margin-top: 6px;
     padding: 4px 8px;
-    background: rgba(231, 76, 60, 0.15);
-    border-left: 3px solid #e74c3c;
-    color: #e74c3c;
+    background: var(--color-library-tooltip-warning-bg);
+    border-left: 3px solid var(--color-library-tooltip-warning-border);
+    color: var(--color-library-tooltip-warning-text);
     font-size: 0.75rem;
     display: flex;
     align-items: center;
@@ -492,59 +492,59 @@ const getMagicTraitSpellName = (spellId?: string) =>
   }
   
   .extra-info {
-    margin-top: 4px; font-size: 0.75rem; color: #777;
+    margin-top: 4px; font-size: 0.75rem; color: var(--color-library-tooltip-subtitle);
   }
   
   .divider {
-    height: 1px; background: #333; margin: 10px 0;
+    height: 1px; background: var(--color-library-tooltip-section-border); margin: 10px 0;
   }
 
   /* 法术样式 */
   .spell-meta-header {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 8px; font-style: italic; color: #aaa; font-size: 0.85rem;
+    margin-bottom: 8px; font-style: italic; color: var(--color-library-tooltip-spell-meta); font-size: 0.85rem;
   }
   .meta-tags {
     display: flex; gap: 4px;
     .tag {
       font-size: 0.7rem; padding: 1px 4px; border-radius: 2px; font-style: normal; font-weight: bold;
-      &.ritual { background: #2c3e50; color: #aab7b8; border: 1px solid #555; }
-      &.conc { background: #e67e22; color: #fff; }
+      &.ritual { background: var(--color-library-tooltip-tag-ritual-bg); color: var(--color-library-tooltip-tag-ritual-text); border: 1px solid var(--color-library-tooltip-tag-ritual-border); }
+      &.conc { background: var(--color-library-tooltip-tag-conc-bg); color: var(--color-library-tooltip-body-strong); }
     }
   }
   .spell-stats-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
-    background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; margin-bottom: 10px;
+    background: var(--color-library-tooltip-section-bg-strong); padding: 8px; border-radius: 4px; margin-bottom: 10px;
     .stat-cell {
       display: flex; flex-direction: column;
-      .label { font-size: 0.65rem; color: #777; font-weight: bold; text-transform: uppercase; }
-      .val { font-size: 0.8rem; color: #ddd; }
+      .label { font-size: 0.65rem; color: var(--color-library-tooltip-subtitle); font-weight: bold; text-transform: uppercase; }
+      .val { font-size: 0.8rem; color: var(--color-library-main-header-text); }
     }
   }
   .combat-line {
     display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
     .combat-badge {
       font-size: 0.75rem; padding: 2px 6px; border-radius: 3px; font-weight: bold;
-      &.type { background: #34495e; color: #fff; border: 1px solid #555; }
-      &.dmg { background: #c0392b; color: #fff; }
+      &.type { background: var(--color-library-tooltip-combat-type-bg); color: var(--color-library-tooltip-body-strong); border: 1px solid var(--color-library-tooltip-tag-ritual-border); }
+      &.dmg { background: var(--color-library-tooltip-combat-dmg-bg); color: var(--color-library-tooltip-body-strong); }
     }
   }
-  .desc-divider { height: 1px; background: #444; margin-bottom: 8px; }
+  .desc-divider { height: 1px; background: var(--color-library-tooltip-divider); margin-bottom: 8px; }
   .desc { max-height: 250px; overflow-y: hidden; line-height: 1.5; overflow-wrap: anywhere; }
   .scaling {
-    margin-top: 8px; padding-top: 8px; border-top: 1px dashed #555; font-size: 0.75rem; color: #aaa;
-    strong { color: #888; }
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-library-tooltip-tag-ritual-border); font-size: 0.75rem; color: var(--color-library-tooltip-spell-meta);
+    strong { color: var(--color-library-tooltip-body-muted); }
   }
   
   /* 物品样式 */
   .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
   .capacity-row {
     justify-content: flex-start;
-    color: #ddd;
+    color: var(--color-library-main-header-text);
     font-size: 0.8rem;
     line-height: 1.35;
   }
-  .gold { color: #f1c40f; }
+  .gold { color: var(--color-tooltip-title); }
 
   .magic-traits-section {
     display: grid;
@@ -553,21 +553,21 @@ const getMagicTraitSpellName = (spellId?: string) =>
   }
 
   .magic-traits-title {
-    color: #d7c1ff;
+    color: var(--color-library-magic-text);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.08em;
   }
 
   .magic-trait-card {
-    border: 1px solid rgba(215, 193, 255, 0.24);
+    border: 1px solid var(--content-magic-tooltip-border);
     border-radius: 6px;
     padding: 6px;
-    background: rgba(240, 231, 255, 0.08);
+    background: var(--content-magic-tooltip-bg);
 
     p {
       margin: 4px 0 0;
-      color: #c9c1d8;
+      color: var(--content-magic-tooltip-label);
       line-height: 1.35;
     }
   }
@@ -579,17 +579,17 @@ const getMagicTraitSpellName = (spellId?: string) =>
     gap: 8px;
 
     strong {
-      color: #dcc2ff;
+      color: var(--content-magic-item-bg-default);
     }
 
     span {
-      color: #b7a2e6;
+      color: var(--palette-arcane-400);
       font-size: 0.68rem;
     }
   }
 
   .trait-damage {
-    color: #ffbc8a !important;
+    color: var(--content-magic-trait-damage) !important;
     font-weight: 800;
   }
 
@@ -602,9 +602,9 @@ const getMagicTraitSpellName = (spellId?: string) =>
     
     /* 美化滚动条 (Chrome/Safari) */
     &::-webkit-scrollbar { width: 6px; }
-    &::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-    &::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
-    &::-webkit-scrollbar-thumb:hover { background: #777; }
+    &::-webkit-scrollbar-track { background: var(--color-library-tooltip-scroll-track); }
+    &::-webkit-scrollbar-thumb { background: var(--color-library-tooltip-scroll-thumb); border-radius: 3px; }
+    &::-webkit-scrollbar-thumb:hover { background: var(--color-library-tooltip-scroll-thumb-hover); }
   }
 }
 </style>

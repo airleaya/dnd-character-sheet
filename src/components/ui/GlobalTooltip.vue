@@ -100,15 +100,15 @@ const tooltipStyle = computed(() => {
   position: fixed;
   z-index: 9999;
   pointer-events: auto;
-  background: rgba(44, 62, 80, 0.95);
-  color: #ecf0f1;
-  border: 1px solid #34495e;
+  background: var(--color-tooltip-bg);
+  color: var(--color-tooltip-text);
+  border: 1px solid var(--color-tooltip-border);
   border-radius: 4px;
   padding: 8px 12px;
   max-width: 320px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px var(--color-shadow-tooltip);
   font-size: 0.85rem;
   line-height: 1.4;
   backdrop-filter: blur(2px);
@@ -116,16 +116,16 @@ const tooltipStyle = computed(() => {
 }
 
 .global-tooltip::-webkit-scrollbar { width: 6px; }
-.global-tooltip::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-.global-tooltip::-webkit-scrollbar-thumb { background: #5f7182; border-radius: 999px; }
-.global-tooltip::-webkit-scrollbar-thumb:hover { background: #7890a4; }
+.global-tooltip::-webkit-scrollbar-track { background: var(--color-tooltip-scroll-track); }
+.global-tooltip::-webkit-scrollbar-thumb { background: var(--color-tooltip-scroll-thumb); border-radius: 999px; }
+.global-tooltip::-webkit-scrollbar-thumb:hover { background: var(--color-tooltip-scroll-thumb-hover); }
 
 .tooltip-title {
   font-weight: bold;
   font-size: 0.95rem;
-  color: #f1c40f;
+  color: var(--color-tooltip-title);
   margin-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid var(--color-tooltip-divider);
   padding-bottom: 2px;
 }
 
@@ -150,7 +150,7 @@ const tooltipStyle = computed(() => {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(241, 196, 15, 0.9);
+  color: var(--color-tooltip-title-subtle);
 }
 
 .section-list {
@@ -163,6 +163,6 @@ const tooltipStyle = computed(() => {
 }
 
 .section-item {
-  color: #ecf0f1;
+  color: var(--color-tooltip-text);
 }
 </style>

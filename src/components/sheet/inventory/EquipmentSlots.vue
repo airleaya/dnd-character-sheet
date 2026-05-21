@@ -166,8 +166,8 @@ const playBounceAnimation = (item: InventoryItem) => {
 
 <style scoped lang="scss">
 .equipment-zone {
-  background: #f8f9fa;
-  border: 2px dashed #cfd8dc;
+  background: var(--color-equipment-zone-bg);
+  border: 2px dashed var(--color-equipment-zone-border);
   border-radius: 8px;
   padding: 1rem;
   margin: 1rem 0;
@@ -176,7 +176,7 @@ const playBounceAnimation = (item: InventoryItem) => {
   transition: border-color 0.2s;
 
   &:hover {
-    border-color: #90a4ae;
+    border-color: var(--color-equipment-zone-border-hover);
   }
 
   .zone-header {
@@ -191,15 +191,15 @@ const playBounceAnimation = (item: InventoryItem) => {
   .zone-label {
     font-size: 0.85rem;
     font-weight: 800;
-    color: #546e7a;
+    color: var(--color-equipment-label);
     text-transform: uppercase;
   }
 
   /* 🔴 全局警告条样式 */
   .global-warning {
     font-size: 0.75rem;
-    color: #c0392b;
-    background: #fadbd8;
+    color: var(--color-equipment-warning-text);
+    background: var(--color-equipment-warning-bg);
     padding: 3px 8px;
     border-radius: 4px;
     font-weight: bold;
@@ -216,15 +216,15 @@ const playBounceAnimation = (item: InventoryItem) => {
   }
 
   .equip-card {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-left: 3px solid #3498db; /* 默认熟练颜色: 蓝 */
+    background: var(--color-equipment-card-bg);
+    border: 1px solid var(--color-equipment-card-border);
+    border-left: 3px solid var(--color-equipment-card-accent); /* 默认熟练颜色: 蓝 */
     border-radius: 4px;
     padding: 6px 10px;
     display: flex;
     align-items: center;
     gap: 0.8rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    box-shadow: 0 2px 4px var(--color-equipment-card-shadow);
     cursor: grab;
     transition: all 0.2s;
     flex: 1 1 220px;
@@ -233,17 +233,17 @@ const playBounceAnimation = (item: InventoryItem) => {
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 8px var(--color-equipment-card-hover-shadow);
       .btn-unequip { opacity: 1; }
     }
 
     /* 🔴 不熟练时的卡片样式 */
     &.non-proficient {
-      border-color: #e74c3c;
-      border-left-color: #e74c3c;
-      background-color: #fdedec; /* 浅红背景 */
+      border-color: var(--color-equipment-nonproficient-border);
+      border-left-color: var(--color-equipment-nonproficient-border);
+      background-color: var(--color-equipment-nonproficient-bg); /* 浅红背景 */
       
-      .name { color: #c0392b; }
+      .name { color: var(--color-equipment-warning-text); }
       .icon { filter: grayscale(1) hue-rotate(300deg); } /* 图标变红 */
     }
 
@@ -257,7 +257,7 @@ const playBounceAnimation = (item: InventoryItem) => {
 
     .name-row {
       display: flex; align-items: center; gap: 4px;
-      .name { font-weight: 600; font-size: 0.9rem; color: #2c3e50; overflow-wrap: anywhere; }
+      .name { font-weight: 600; font-size: 0.9rem; color: var(--color-equipment-name); overflow-wrap: anywhere; }
       .warn-icon { font-size: 0.8rem; cursor: help; }
     }
 
@@ -265,24 +265,24 @@ const playBounceAnimation = (item: InventoryItem) => {
       display: flex; gap: 6px; font-size: 0.75rem;
     }
 
-    .type-badge { color: #7f8c8d; }
+    .type-badge { color: var(--color-equipment-type); }
 
     .ac-badge {
-      background: #34495e; color: white; padding: 0 4px; border-radius: 3px; font-weight: bold;
+      background: var(--color-equipment-ac-bg); color: var(--color-text-inverse); padding: 0 4px; border-radius: 3px; font-weight: bold;
     }
 
     .btn-unequip {
       opacity: 0;
-      background: none; border: none; color: #95a5a6; font-size: 1.2rem; cursor: pointer; padding: 0 4px; line-height: 1;
+      background: none; border: none; color: var(--color-equipment-action-muted); font-size: 1.2rem; cursor: pointer; padding: 0 4px; line-height: 1;
       transition: opacity 0.2s;
-      &:hover { color: #e74c3c; }
+      &:hover { color: var(--color-action-danger-bg); }
     }
   }
 
   .ghost {
     opacity: 0.4;
-    background: #ecf0f1;
-    border: 2px dashed #bdc3c7;
+    background: var(--color-equipment-ghost-bg);
+    border: 2px dashed var(--color-equipment-ghost-border);
   }
 }
 
@@ -294,10 +294,10 @@ const playBounceAnimation = (item: InventoryItem) => {
 .rejected-card {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  background: #ffcdd2; color: #c62828;
-  border: 1px solid #e57373;
+  background: var(--color-equipment-rejected-bg); color: var(--color-equipment-rejected-text);
+  border: 1px solid var(--color-equipment-rejected-border);
   padding: 0.5rem 1rem; border-radius: 4px;
-  font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 99;
+  font-weight: bold; box-shadow: 0 4px 10px var(--color-equipment-rejected-shadow); z-index: 99;
 }
 
 .bounce-enter-active { animation: bounce-out 0.8s ease-in-out forwards; }
@@ -311,106 +311,3 @@ const playBounceAnimation = (item: InventoryItem) => {
   50% { opacity: 0.6; }
 }
 </style>
-
-<!-- <style scoped lang="scss">
-.equipment-zone {
-  background: #e3f2fd;
-  border: 2px dashed #90caf9;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  position: relative; 
-  min-height: 100px;
-
-  .zone-label {
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: #1976d2;
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-  }
-
-  .equip-slots {
-    min-height: 60px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .equip-card {
-    background: white;
-    border: 1px solid #bbdefb;
-    border-radius: 4px;
-    padding: 0.5rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    cursor: grab;
-
-    .ac-badge {
-      background: #2c3e50;
-      color: white;
-      font-size: 0.7rem;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-  }
-
-  .ghost {
-    opacity: 0.5;
-    background: #bbdefb;
-    border: 2px dashed #1976d2;
-  }
-}
-
-.rejection-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none; 
-  overflow: hidden;
-}
-
-.rejected-card {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #ffcdd2;
-  color: #c62828;
-  border: 1px solid #e57373;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  z-index: 99;
-}
-
-.bounce-enter-active {
-  animation: bounce-out 0.8s ease-in-out forwards;
-}
-.bounce-leave-active {
-  transition: opacity 0.2s;
-}
-.bounce-leave-to {
-  opacity: 0;
-}
-
-@keyframes bounce-out {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-  20% {
-    transform: translate(-50%, -50%) scale(1.2);
-  }
-  100% {
-    transform: translate(200px, -200px) rotate(45deg) scale(0.5); 
-    opacity: 0;
-  }
-}
-</style> -->

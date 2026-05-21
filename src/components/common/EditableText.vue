@@ -94,21 +94,21 @@ onBeforeUnmount(() => {
 <style scoped>
 .editable-container {
   display: inline-block;
-  border-bottom: 1px dashed #bdc3c7; /* 虚线底边提示可编辑 */
+  border-bottom: 1px dashed var(--color-border-editable); /* 虚线底边提示可编辑 */
   cursor: text;
   min-width: 30px;
   text-align: center;
 }
 .editable-container:hover {
-  background-color: #eef2f3;
+  background-color: var(--color-surface-editable-hover);
 }
 .edit-input {
   width: 100%;
   border: none;
-  outline: 2px solid #3498db;
+  outline: 2px solid var(--color-border-focus);
   font-family: inherit;
   font-size: inherit;
   text-align: inherit;
-  background: white;
+  background: var(--color-bg-card);
 }
 </style>

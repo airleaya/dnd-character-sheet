@@ -1,10 +1,8 @@
 import type { InventoryItem } from '../types/Item';
 import type { ItemMagicDefinition, ItemMagicTrait } from '../types/Library';
 import {
-  DEFAULT_MAGIC_ATTACK_BACKGROUND,
-  DEFAULT_MAGIC_INVENTORY_BACKGROUND,
-  DEFAULT_MAGIC_NAME_COLOR,
   PRESET_MAGIC_TRAITS,
+  getMagicVisualPreset,
 } from '../data/rules/magicTraits';
 import { DAMAGE_TYPES } from '../data/rules/damageTypes';
 
@@ -12,6 +10,28 @@ type MagicItemLike = {
   name: string;
   type?: string;
   magic?: ItemMagicDefinition;
+};
+
+export const resolveMagicVisuals = (magic?: ItemMagicDefinition) => {
+  const preset = getMagicVisualPreset(magic?.visuals?.presetId);
+  return {
+    inventoryBackground: magic?.visuals?.inventoryBackground || preset.inventoryBackground,
+    attackBackground: magic?.visuals?.attackBackground || preset.attackBackground,
+    nameColor: magic?.visuals?.nameColor || preset.nameColor,
+    borderColor: preset.borderColor,
+    presetId: preset.id,
+  };
+};
+
+export const applyMagicVisualPreset = (magic: ItemMagicDefinition, presetId?: string): ItemMagicDefinition => {
+  const preset = getMagicVisualPreset(presetId);
+  magic.visuals = {
+    presetId: preset.id,
+    inventoryBackground: preset.inventoryBackground,
+    attackBackground: preset.attackBackground,
+    nameColor: preset.nameColor,
+  };
+  return magic;
 };
 
 export const MAGIC_RARITY_LABELS: Record<string, string> = {
@@ -31,14 +51,6 @@ export const ensureMagicDefinition = (item: InventoryItem): ItemMagicDefinition 
   if (!item.magic.attunement) {
     item.magic.attunement = { requires: false };
   }
-  if (!item.magic.visuals) {
-    item.magic.visuals = {};
-  }
-  item.magic.visuals.inventoryBackground =
-    item.magic.visuals.inventoryBackground || DEFAULT_MAGIC_INVENTORY_BACKGROUND;
-  item.magic.visuals.attackBackground =
-    item.magic.visuals.attackBackground || DEFAULT_MAGIC_ATTACK_BACKGROUND;
-  item.magic.visuals.nameColor = item.magic.visuals.nameColor || DEFAULT_MAGIC_NAME_COLOR;
   if (!item.magic.selectedTraitIds) {
     item.magic.selectedTraitIds = [];
   }
@@ -100,18 +112,32 @@ export const formatMagicItemName = (item: MagicItemLike, baseName = item.name): 
 export const getMagicInventoryStyle = (item: MagicItemLike) => {
   if (!isMagicItem(item)) return undefined;
 
+  const visuals = resolveMagicVisuals(item.magic);
+  const backgroundColor = visuals.inventoryBackground;
+  const color = visuals.nameColor;
+
   return {
-    backgroundColor: item.magic?.visuals?.inventoryBackground || DEFAULT_MAGIC_INVENTORY_BACKGROUND,
-    color: item.magic?.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
+    '--magic-item-bg': backgroundColor,
+    '--magic-item-text': color,
+    '--magic-item-border': visuals.borderColor,
+    backgroundColor,
+    color,
   };
 };
 
 export const getMagicAttackStyle = (item: MagicItemLike) => {
   if (!isMagicItem(item)) return undefined;
 
+  const visuals = resolveMagicVisuals(item.magic);
+  const backgroundColor = visuals.attackBackground;
+  const color = visuals.nameColor;
+
   return {
-    backgroundColor: item.magic?.visuals?.attackBackground || DEFAULT_MAGIC_ATTACK_BACKGROUND,
-    color: item.magic?.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
+    '--magic-item-bg': backgroundColor,
+    '--magic-item-text': color,
+    '--magic-item-border': visuals.borderColor,
+    backgroundColor,
+    color,
   };
 };
 

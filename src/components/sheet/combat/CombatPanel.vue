@@ -352,8 +352,8 @@ const hpPercent = computed(() => {
 
 <style scoped lang="scss">
 .combat-panel {
-  background: #fff;
-  border: 1px solid #ccc;
+  background: var(--color-combat-panel-bg);
+  border: 1px solid var(--color-combat-panel-border);
   border-radius: 8px;
   padding: 12px;
   display: flex;
@@ -363,7 +363,7 @@ const hpPercent = computed(() => {
 
 .divider {
   border: 0;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-combat-divider);
   margin: 0;
 }
 
@@ -378,10 +378,10 @@ const hpPercent = computed(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-combat-stat-border);
     border-radius: 6px;
     padding: 8px 4px;
-    background: #f9f9f9;
+    background: var(--color-combat-stat-bg);
 
     //交互样式
     &.ac-box {
@@ -389,19 +389,19 @@ const hpPercent = computed(() => {
       transition: background 0.2s;
 
       &.is-magic-ac {
-        border-color: rgba(142, 68, 173, 0.36);
-        box-shadow: inset 0 0 0 1px rgba(142, 68, 173, 0.1);
+        border-color: var(--color-combat-magic-ac-border);
+        box-shadow: inset 0 0 0 1px var(--color-combat-magic-ac-shadow);
       }
       
       &:hover {
-        background: #f0f0f0;
+        background: var(--color-combat-stat-hover);
         .gear-icon { opacity: 1; }
       }
     }
     /* 基础样式：作用于所有标题 (护甲、先攻、速度) */
 .label { 
   font-size: 0.75rem; 
-  color: #666; 
+  color: var(--color-combat-label);
   text-transform: uppercase; 
   
   /* 特殊样式：仅作用于拥有 toggle-btn 类的标题 (只有护甲有这个类) */
@@ -414,7 +414,7 @@ const hpPercent = computed(() => {
     gap: 4px;                 /* 文字和图标间距 */
     
     &:hover { 
-      color: #333;            /* 悬停加深颜色 */
+      color: var(--color-combat-label-hover);            /* 悬停加深颜色 */
     }
   }
 }
@@ -428,12 +428,12 @@ const hpPercent = computed(() => {
       /* 激活状态下常亮且变色 */
       &.active {
         opacity: 1;
-        color: #e67e22; /* 橙色提示正在编辑 */
+        color: var(--color-combat-edit-active); /* 橙色提示正在编辑 */
         transform: rotate(-90deg); /* 给个小动画提示状态变化 */
       }
     }
 
-    .value { font-size: 1.5rem; font-weight: bold; color: #333;cursor: pointer; }
+    .value { font-size: 1.5rem; font-weight: bold; color: var(--color-combat-value);cursor: pointer; }
 
     .initiative-value {
       display: inline-flex;
@@ -448,9 +448,9 @@ const hpPercent = computed(() => {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #8a5a00;
-      background: #fff3cd;
-      border: 1px solid #d6a84f;
+      color: var(--color-combat-jack-text);
+      background: var(--color-combat-jack-bg);
+      border: 1px solid var(--color-combat-jack-border);
       border-radius: 2px;
       padding: 0 3px;
       font-size: 0.68rem;
@@ -462,7 +462,7 @@ const hpPercent = computed(() => {
       /* 简单的盾牌形状 CSS */
       display: flex; align-items: center; justify-content: center;
       width: 40px; height: 46px;
-      background: #e0e0e0;
+      background: var(--color-combat-shield-bg);
       clip-path: polygon(50% 0, 100% 20%, 100% 80%, 50% 100%, 0 80%, 0 20%);
 
       //确保下拉框不溢出盾牌
@@ -487,8 +487,8 @@ const hpPercent = computed(() => {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      border: 1px solid rgba(255, 255, 255, 0.55);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--color-combat-magic-badge-border);
+      box-shadow: 0 1px 2px var(--color-combat-magic-badge-shadow);
     }
 
     // [ADD] 下拉框样式
@@ -497,7 +497,7 @@ const hpPercent = computed(() => {
       height: 100%;
       font-size: 0.6rem; /* 字体要极小才能塞进盾牌里，或者只显示简写 */
       border: none;
-      background: transparent;
+      background: var(--color-combat-control-transparent-bg);
       text-align: center;
       outline: none;
     }
@@ -514,14 +514,14 @@ const hpPercent = computed(() => {
 .hp-bar-container {
   position: relative;
   height: 24px;
-  background: #eee;
+  background: var(--color-combat-hp-track-bg);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: inset 0 1px 3px var(--color-combat-hp-track-shadow);
   
   .hp-bar-fill {
     height: 100%;
-    background: #e74c3c; /* 默认红色 */
+    background: var(--color-combat-hp-fill-danger); /* 默认红色 */
     transition: width 0.3s ease;
   }
   /* 血量健康时显示绿色 */
@@ -531,7 +531,7 @@ const hpPercent = computed(() => {
   &:has(.hp-bar-fill[style*="width: 7"]),
   &:has(.hp-bar-fill[style*="width: 6"]),
   &:has(.hp-bar-fill[style*="width: 5"]) {
-     .hp-bar-fill { background: #27ae60; }
+     .hp-bar-fill { background: var(--color-combat-hp-fill-safe); }
   }
 
   .hp-text {
@@ -539,11 +539,11 @@ const hpPercent = computed(() => {
     top: 0; left: 0; width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
     font-size: 0.9rem; font-weight: bold;
-    color: #333;
-    text-shadow: 0 0 2px rgba(255,255,255,0.8);
+    color: var(--color-combat-hp-text);
+    text-shadow: 0 0 2px var(--color-combat-hp-text-shadow);
     
     .sep { margin: 0 4px; }
-    .temp { color: #2980b9; margin-left: 4px; }
+    .temp { color: var(--color-combat-hp-temp); margin-left: 4px; }
   }
 }
 
@@ -553,29 +553,29 @@ const hpPercent = computed(() => {
   
   input {
     width: 50px; flex: 1;
-    border: 1px solid #ccc; border-radius: 4px;
+    border: 1px solid var(--color-combat-input-border); border-radius: 4px;
     padding: 0 4px; text-align: center;
   }
   
   .btn-group {
     display: flex; gap: 2px;
     button {
-      border: none; cursor: pointer; color: white;
+      border: none; cursor: pointer; color: var(--color-text-inverse);
       padding: 4px 8px; font-size: 0.8rem;
       border-radius: 4px;
       &:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
       &:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; }
       &:not(:first-child):not(:last-child) { border-radius: 0; }
     }
-    .btn-dmg { background: #e74c3c; &:hover{background:#c0392b;} }
-    .btn-heal { background: #27ae60; &:hover{background:#2ecc71;} }
-    .btn-temp { background: #3498db; &:hover{background:#2980b9;} }
+    .btn-dmg { background: var(--color-combat-damage-bg); &:hover{background: var(--color-combat-damage-hover);} }
+    .btn-heal { background: var(--color-combat-heal-bg); &:hover{background: var(--color-combat-heal-hover);} }
+    .btn-temp { background: var(--color-combat-temp-bg); &:hover{background: var(--color-combat-temp-hover);} }
   }
   
   .btn-full {
-    background: none; border: 1px solid #ddd;
-    color: #e74c3c; border-radius: 4px; cursor: pointer;
-    &:hover { background: #fff0f0; }
+    background: none; border: 1px solid var(--color-combat-full-border);
+    color: var(--color-combat-damage-bg); border-radius: 4px; cursor: pointer;
+    &:hover { background: var(--color-combat-full-hover-bg); }
   }
 }
 
@@ -588,7 +588,7 @@ const hpPercent = computed(() => {
 
 .resource-item {
   margin-bottom: 8px;
-  .res-label { font-size: 0.75rem; color: #999; margin-bottom: 4px; font-weight: bold; }
+  .res-label { font-size: 0.75rem; color: var(--color-combat-resource-label); margin-bottom: 4px; font-weight: bold; }
 }
 
 /* 死亡豁免 */
@@ -599,9 +599,9 @@ const hpPercent = computed(() => {
   .circles { display: flex; gap: 4px; }
   .circle {
     width: 12px; height: 12px; border-radius: 50%;
-    border: 1px solid #ccc; cursor: pointer;
-    &.success.active { background: #27ae60; border-color: #27ae60; }
-    &.failure.active { background: #e74c3c; border-color: #e74c3c; }
+    border: 1px solid var(--color-combat-death-circle-border); cursor: pointer;
+    &.success.active { background: var(--color-combat-heal-bg); border-color: var(--color-combat-heal-bg); }
+    &.failure.active { background: var(--color-combat-damage-bg); border-color: var(--color-combat-damage-bg); }
   }
 }
 
@@ -611,25 +611,25 @@ const hpPercent = computed(() => {
     user-select: none;
     display: flex;
     align-items: center;
-    &:hover { color: #333; }
+    &:hover { color: var(--color-combat-label-hover); }
   }
   .gear-icon {
     font-size: 0.8rem; opacity: 0.3; transition: all 0.2s;
-    &.active { opacity: 1; color: #e67e22; transform: rotate(-90deg); }
+    &.active { opacity: 1; color: var(--color-combat-edit-active); transform: rotate(-90deg); }
   }
   .hd-list {
     display: flex; flex-direction: column; gap: 4px; margin-top: 4px;
   }
   .hd-edit-row {
     display: flex; align-items: center; justify-content: space-between;
-    background: #fdfdfd; border: 1px dashed #ccc; border-radius: 4px; padding: 2px 6px;
+    background: var(--color-combat-hit-dice-edit-bg); border: 1px dashed var(--color-combat-input-border); border-radius: 4px; padding: 2px 6px;
     font-size: 0.8rem;
   }
   .hd-type-badge {
-    font-weight: bold; color: #555; width: 28px;
+    font-weight: bold; color: var(--color-combat-hit-dice-type); width: 28px;
     font-size: 0.85rem; text-transform: uppercase;
   }
-  .empty-hint { font-size: 0.75rem; color: #999; text-align: center; padding: 4px; }
+  .empty-hint { font-size: 0.75rem; color: var(--color-combat-resource-label); text-align: center; padding: 4px; }
 }
 
 /* 生命骰控制区 */
@@ -637,7 +637,7 @@ const hpPercent = computed(() => {
   display: flex; 
   align-items: center; 
   justify-content: space-between;
-  background: #f5f5f5; 
+  background: var(--color-combat-hit-dice-bg);
   border-radius: 4px; 
   padding: 2px 6px;
 
@@ -651,7 +651,7 @@ const hpPercent = computed(() => {
     width: 20px; 
     height: 20px; 
     border: none; 
-    background: #ddd; 
+    background: var(--color-combat-hit-dice-button-bg);
     cursor: pointer; 
     border-radius: 2px;
     display: flex;
@@ -681,8 +681,8 @@ const hpPercent = computed(() => {
 .insp-slots {
   display: flex; gap: 8px;
   .insp-star {
-    font-size: 1.2rem; color: #ddd; cursor: pointer;
-    &.active { color: #f1c40f; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    font-size: 1.2rem; color: var(--color-combat-inspiration-off); cursor: pointer;
+    &.active { color: var(--color-combat-inspiration-on); text-shadow: 0 1px 2px var(--color-combat-inspiration-shadow); }
   }
 }
 
@@ -690,14 +690,14 @@ const hpPercent = computed(() => {
 .ex-track {
   display: flex; gap: 2px;
   .ex-level {
-    flex: 1; height: 8px; background: #eee; border-radius: 2px; cursor: pointer;
-    &.active { background: #8e44ad; }
+    flex: 1; height: 8px; background: var(--color-combat-exhaustion-bg); border-radius: 2px; cursor: pointer;
+    &.active { background: var(--color-combat-exhaustion-active); }
   }
 }
 
 /* 状态 */
 .cond-input {
-  width: 100%; border: 1px solid #eee; resize: none;
+  width: 100%; border: 1px solid var(--color-combat-divider); resize: none;
   font-size: 0.8rem; padding: 4px; border-radius: 4px;
   box-sizing: border-box; /* 确保不溢出 */
 }
@@ -713,8 +713,8 @@ const hpPercent = computed(() => {
 .hd-type-select {
   font-size: 0.75rem;
   border: none;
-  background: transparent;
-  color: #666;
+  background: var(--color-combat-control-transparent-bg);
+  color: var(--color-combat-label);
   font-weight: bold;
   cursor: pointer;
   padding: 0;
@@ -723,7 +723,7 @@ const hpPercent = computed(() => {
   outline: none;
 }
 .hd-type-select:hover {
-  color: #333;
+  color: var(--color-combat-label-hover);
   text-decoration: underline;
 }
 </style>

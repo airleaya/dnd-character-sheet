@@ -79,7 +79,7 @@ provide('showToast', showToast);
   left: 0; 
   width: calc(100vw - 320px); 
   height: 100vh;
-  background: rgba(0, 0, 0, 0.75); 
+  background: var(--color-spellbook-overlay-bg);
   z-index: 2000;
   display: flex; 
   justify-content: center; 
@@ -90,10 +90,10 @@ provide('showToast', showToast);
   width: 90%; 
   max-width: 1200px; /* [MODIFY] 稍微加宽一点以适应左右分栏 */
   height: 90vh;
-  background: transparent; /* [MODIFY] 背景色交给内部的 layout */
+  background: var(--color-spellbook-frame-bg); /* [MODIFY] 背景色交给内部的 layout */
   border-radius: 8px;
   display: flex; 
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 50px var(--color-spellbook-frame-shadow);
   overflow: hidden;
   position: relative;
 }
@@ -107,20 +107,20 @@ provide('showToast', showToast);
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #fdfbf7;
-  color: #3d3d3d; 
+  background: var(--color-spellbook-page-bg);
+  color: var(--color-spellbook-page-text);
   font-family: 'Georgia', serif;
 }
 
 .layout-left {
   width: 320px;
   min-width: 320px;
-  border-right: 2px solid #dcd6cb;
-  background: #f4f1ea;
+  border-right: 2px solid var(--color-spellbook-border);
+  background: var(--color-spellbook-left-bg);
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.05); /* 左侧向右的细微阴影，增加立体感 */
+  box-shadow: 2px 0 10px var(--color-spellbook-left-shadow); /* 左侧向右的细微阴影，增加立体感 */
 }
 
 .layout-right {
@@ -128,7 +128,7 @@ provide('showToast', showToast);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #fdfbf7;
+  background: var(--color-spellbook-page-bg);
 }
 
 // ==========================================
@@ -141,19 +141,19 @@ provide('showToast', showToast);
   transform: translateX(-50%);
   padding: 10px 20px;
   border-radius: 30px;
-  background: rgba(44, 62, 80, 0.95);
-  color: #fff;
+  background: var(--color-spellbook-toast-bg);
+  color: var(--color-spellbook-toast-text);
   font-size: 0.9rem;
   font-weight: bold;
   display: flex;
   align-items: center;
   gap: 8px;
   z-index: 200; /* 在书页内容之上 */
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 15px var(--color-spellbook-toast-shadow);
   pointer-events: none; /* 让鼠标穿透，不影响操作 */
 
-  &.success { border: 1px solid #27ae60; color: #e8f8f5; }
-  &.warning { border: 1px solid #e67e22; color: #fef5e7; background: rgba(160, 64, 0, 0.9); }
+  &.success { border: 1px solid var(--color-spellbook-toast-success-border); color: var(--color-spellbook-toast-success-text); }
+  &.warning { border: 1px solid var(--color-spellbook-toast-warning-border); color: var(--color-spellbook-toast-warning-text); background: var(--color-spellbook-toast-warning-bg); }
 }
 
 // ==========================================

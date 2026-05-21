@@ -90,21 +90,21 @@ const onDrop = (e: DragEvent) => {
 .forge-drop-zone {
   height: 100px; 
   margin-top: auto; 
-  border-top: 1px solid #333;
-  background: #181818;
+  border-top: 1px solid var(--color-library-drop-border);
+  background: var(--color-library-drop-forge-bg);
   display: flex; align-items: center; justify-content: center; gap: 15px;
-  color: #666;
+  color: var(--color-library-drop-forge-text);
   transition: all 0.2s;
   user-select: none; /* 防止选中文字干扰拖拽 */
 
   /* 悬停视觉反馈 */
   &.is-active {
-    background: #251e1e;
-    border-top-color: #d35400;
-    color: #d35400;
+    background: var(--color-library-drop-forge-active-bg);
+    border-top-color: var(--color-library-drop-forge-active);
+    color: var(--color-library-drop-forge-active);
     
     .icon { transform: rotate(-15deg) scale(1.1); filter: none; }
-    .text strong { color: #d35400; }
+    .text strong { color: var(--color-library-drop-forge-active); }
   }
 
   /* 🛡️ CSS 穿透：防止鼠标松开在文字上导致事件目标偏移 

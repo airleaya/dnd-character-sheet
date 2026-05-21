@@ -76,6 +76,7 @@ export interface ItemMagicTrait {
 }
 
 export interface ItemMagicVisuals {
+  presetId?: string;
   inventoryBackground?: string;
   attackBackground?: string;
   nameColor?: string;

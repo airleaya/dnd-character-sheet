@@ -6,13 +6,17 @@ import { useDataPackStore } from '../../../stores/dataPackStore';
 import { useEnchanting } from '../../../composables/useEnchanting';
 import { DAMAGE_TYPE_OPTIONS } from '../../../data/rules/damageTypes';
 import {
-  DEFAULT_MAGIC_ATTACK_BACKGROUND,
-  DEFAULT_MAGIC_INVENTORY_BACKGROUND,
-  DEFAULT_MAGIC_NAME_COLOR,
+  DEFAULT_MAGIC_VISUAL_PRESETS,
   PRESET_MAGIC_TRAITS,
 } from '../../../data/rules/magicTraits';
 import { getRuntimeSpellById } from '../../../data/dataPacks/runtimeDataPacks';
-import { formatMagicItemName, formatMagicTraitDamage, resolveMagicTraitsForItem } from '../../../utils/magicItems';
+import {
+  applyMagicVisualPreset,
+  formatMagicItemName,
+  formatMagicTraitDamage,
+  resolveMagicVisuals,
+  resolveMagicTraitsForItem,
+} from '../../../utils/magicItems';
 import type { ItemMagicTrait, ItemRarity } from '../../../types/Library';
 
 type EnchantTab = 'basic' | 'traits' | 'create' | 'manage';
@@ -95,6 +99,7 @@ const tabs: Array<{ key: EnchantTab; label: string; note: string }> = [
   { key: 'create', label: '新建词条', note: '保存为半永久可用' },
   { key: 'manage', label: '管理词条', note: '编辑可选库与已绑定快照' },
 ];
+const magicVisualPresets = DEFAULT_MAGIC_VISUAL_PRESETS;
 
 const traitTypeOptions: Array<{ value: ItemMagicTrait['type']; label: string; note: string }> = [
   { value: 'plain', label: '普通', note: '描述性词条，可带独立充能' },
@@ -163,15 +168,18 @@ const targetDisplayName = computed(() =>
   targetItem.value ? formatMagicItemName(targetItem.value) : '未选择物品'
 );
 
+const currentMagicVisuals = computed(() => resolveMagicVisuals(targetItem.value?.magic));
+
 const inventoryPreviewStyle = computed(() => ({
-  backgroundColor: targetItem.value?.magic?.visuals?.inventoryBackground || DEFAULT_MAGIC_INVENTORY_BACKGROUND,
-  color: targetItem.value?.magic?.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
+  backgroundColor: currentMagicVisuals.value.inventoryBackground,
+  color: currentMagicVisuals.value.nameColor,
 }));
 
 const attackPreviewStyle = computed(() => ({
-  backgroundColor: targetItem.value?.magic?.visuals?.attackBackground || DEFAULT_MAGIC_ATTACK_BACKGROUND,
-  color: targetItem.value?.magic?.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
+  backgroundColor: currentMagicVisuals.value.attackBackground,
+  color: currentMagicVisuals.value.nameColor,
 }));
+const activeMagicVisualPresetId = computed(() => currentMagicVisuals.value.presetId);
 
 const isTraitSelected = (id: string) => targetItem.value?.magic?.selectedTraitIds?.includes(id) ?? false;
 
@@ -215,22 +223,33 @@ const openTraitEditor = (traitId: string) => {
   activeTab.value = 'manage';
 };
 
-const ensureVisualDefaults = () => {
+type MagicVisualColorField = 'inventoryBackground' | 'attackBackground' | 'nameColor';
+
+const ensureVisualOverrides = () => {
   if (!targetItem.value?.magic) return;
+  const visuals = resolveMagicVisuals(targetItem.value.magic);
   targetItem.value.magic.visuals = {
-    inventoryBackground: targetItem.value.magic.visuals?.inventoryBackground || DEFAULT_MAGIC_INVENTORY_BACKGROUND,
-    attackBackground: targetItem.value.magic.visuals?.attackBackground || DEFAULT_MAGIC_ATTACK_BACKGROUND,
-    nameColor: targetItem.value.magic.visuals?.nameColor || DEFAULT_MAGIC_NAME_COLOR,
+    presetId: visuals.presetId,
+    inventoryBackground: visuals.inventoryBackground,
+    attackBackground: visuals.attackBackground,
+    nameColor: visuals.nameColor,
   };
+};
+
+const setMagicVisualOverride = (field: MagicVisualColorField, event: Event) => {
+  ensureVisualOverrides();
+  if (!targetItem.value?.magic?.visuals) return;
+  targetItem.value.magic.visuals[field] = (event.target as HTMLInputElement).value;
 };
 
 const resetVisualDefaults = () => {
   if (!targetItem.value?.magic) return;
-  targetItem.value.magic.visuals = {
-    inventoryBackground: DEFAULT_MAGIC_INVENTORY_BACKGROUND,
-    attackBackground: DEFAULT_MAGIC_ATTACK_BACKGROUND,
-    nameColor: DEFAULT_MAGIC_NAME_COLOR,
-  };
+  targetItem.value.magic.visuals = undefined;
+};
+
+const applyVisualPreset = (presetId: string) => {
+  if (!targetItem.value?.magic) return;
+  applyMagicVisualPreset(targetItem.value.magic, presetId);
 };
 
 const clearMagicBonus = () => {
@@ -425,7 +444,7 @@ const saveNewCustomTrait = async () => {
 
                   <div class="check-row">
                     <label class="check-option">
-                      <input type="checkbox" v-model="targetItem.magic!.isMagic" @change="ensureVisualDefaults">
+                      <input type="checkbox" v-model="targetItem.magic!.isMagic">
                       <span>魔法物品</span>
                     </label>
                     <label class="check-option">
@@ -461,20 +480,43 @@ const saveNewCustomTrait = async () => {
 
                   <div class="section-title visual-title">
                     <h4>魔法视觉</h4>
-                    <p>未设置时使用浅紫色背景与深红色字体；这里可自由替换颜色。</p>
+                    <p>默认魔法视觉来自预设色组序列；这里的选择和调色只影响当前物品。</p>
+                  </div>
+                  <div class="visual-preset-grid" aria-label="魔法视觉预设色组">
+                    <button
+                      v-for="preset in magicVisualPresets"
+                      :key="preset.id"
+                      type="button"
+                      class="visual-preset-button"
+                      :class="{ active: activeMagicVisualPresetId === preset.id }"
+                      :style="{
+                        '--preset-inventory-bg': preset.inventoryBackground,
+                        '--preset-attack-bg': preset.attackBackground,
+                        '--preset-text': preset.nameColor,
+                        '--preset-border': preset.borderColor
+                      }"
+                      @click="applyVisualPreset(preset.id)"
+                    >
+                      <span class="preset-swatch-row">
+                        <span class="preset-swatch inventory"></span>
+                        <span class="preset-swatch attack"></span>
+                        <span class="preset-swatch text"></span>
+                      </span>
+                      <span>{{ preset.label }}</span>
+                    </button>
                   </div>
                   <div class="field-grid color-grid">
                     <label>
                       <span>行囊背景</span>
-                      <input type="color" v-model="targetItem.magic!.visuals!.inventoryBackground">
+                      <input type="color" :value="currentMagicVisuals.inventoryBackground" @input="setMagicVisualOverride('inventoryBackground', $event)">
                     </label>
                     <label>
                       <span>攻击项背景</span>
-                      <input type="color" v-model="targetItem.magic!.visuals!.attackBackground">
+                      <input type="color" :value="currentMagicVisuals.attackBackground" @input="setMagicVisualOverride('attackBackground', $event)">
                     </label>
                     <label>
                       <span>名字字体颜色</span>
-                      <input type="color" v-model="targetItem.magic!.visuals!.nameColor">
+                      <input type="color" :value="currentMagicVisuals.nameColor" @input="setMagicVisualOverride('nameColor', $event)">
                     </label>
                   </div>
                 </section>
@@ -740,7 +782,7 @@ const saveNewCustomTrait = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(12, 18, 28, 0.58);
+  background: var(--color-enchanting-backdrop-bg);
   backdrop-filter: blur(5px);
 }
 
@@ -750,14 +792,11 @@ const saveNewCustomTrait = async () => {
   max-height: 92vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(245, 197, 96, 0.45);
+  border: 1px solid var(--color-enchanting-panel-border);
   border-radius: 18px;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(245, 197, 96, 0.18), transparent 34%),
-    radial-gradient(circle at 92% 20%, rgba(129, 95, 255, 0.16), transparent 30%),
-    linear-gradient(145deg, #1c2531, #121821);
-  color: #f5f0df;
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+  background: var(--color-enchanting-panel-bg);
+  color: var(--color-enchanting-panel-text);
+  box-shadow: 0 22px 60px var(--color-enchanting-panel-shadow);
   overflow: hidden;
 }
 
@@ -769,7 +808,7 @@ const saveNewCustomTrait = async () => {
   justify-content: space-between;
   gap: 10px;
   padding: 14px 20px;
-  border-bottom: 1px solid rgba(245, 197, 96, 0.2);
+  border-bottom: 1px solid var(--color-enchanting-divider);
 
   h3 {
     margin: 2px 0 0;
@@ -779,12 +818,12 @@ const saveNewCustomTrait = async () => {
 
 .enchant-footer {
   justify-content: flex-end;
-  border-top: 1px solid rgba(245, 197, 96, 0.2);
+  border-top: 1px solid var(--color-enchanting-divider);
   border-bottom: 0;
 }
 
 .eyebrow {
-  color: #f5c560;
+  color: var(--color-enchanting-accent);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -793,8 +832,8 @@ const saveNewCustomTrait = async () => {
 
 .btn-close {
   border: 0;
-  background: transparent;
-  color: #f5f0df;
+  background: var(--color-enchanting-control-transparent-bg);
+  color: var(--color-enchanting-panel-text);
   font-size: 1.8rem;
   cursor: pointer;
 }
@@ -814,8 +853,8 @@ const saveNewCustomTrait = async () => {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border-right: 1px solid rgba(245, 197, 96, 0.16);
-  background: rgba(0, 0, 0, 0.16);
+  border-right: 1px solid var(--color-enchanting-divider-muted);
+  background: var(--color-enchanting-sidebar-bg);
 }
 
 .target-card {
@@ -824,9 +863,9 @@ const saveNewCustomTrait = async () => {
   gap: 10px;
   align-items: center;
   padding: 12px;
-  border: 1px solid rgba(245, 197, 96, 0.24);
+  border: 1px solid var(--color-enchanting-accent-border-strong);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--color-enchanting-surface-bg-raised);
 
   &.empty {
     opacity: 0.72;
@@ -841,7 +880,7 @@ const saveNewCustomTrait = async () => {
   }
 
   small {
-    color: #b7c2d2;
+    color: var(--color-enchanting-text-muted);
     margin-top: 3px;
   }
 }
@@ -851,8 +890,8 @@ const saveNewCustomTrait = async () => {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgba(245, 197, 96, 0.14);
-  color: #f5c560;
+  background: var(--color-enchanting-accent-bg);
+  color: var(--color-enchanting-accent);
 }
 
 .rune-mark {
@@ -897,17 +936,17 @@ const saveNewCustomTrait = async () => {
     display: grid;
     gap: 2px;
     text-align: left;
-    border: 1px solid rgba(245, 197, 96, 0.16);
+    border: 1px solid var(--color-enchanting-divider-muted);
     border-radius: 12px;
     padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.055);
-    color: #d6dfef;
+    background: var(--color-enchanting-surface-bg-subtle);
+    color: var(--color-enchanting-text);
     cursor: pointer;
 
     &.active {
-      border-color: rgba(245, 197, 96, 0.64);
-      background: rgba(245, 197, 96, 0.14);
-      color: #f9df9c;
+      border-color: var(--color-enchanting-accent-border-selected);
+      background: var(--color-enchanting-accent-bg);
+      color: var(--color-enchanting-active-text);
     }
   }
 
@@ -916,7 +955,7 @@ const saveNewCustomTrait = async () => {
   }
 
   small {
-    color: #aeb9c8;
+    color: var(--color-enchanting-text-subtle);
   }
 }
 
@@ -925,17 +964,17 @@ const saveNewCustomTrait = async () => {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: auto;
-  color: #d6dfef;
+  color: var(--color-enchanting-text);
 
   strong {
     flex-basis: 100%;
-    color: #f7d58a;
+    color: var(--color-enchanting-accent-text);
   }
 
   span {
     border-radius: 999px;
     padding: 3px 8px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--color-enchanting-surface-bg-strong);
     font-size: 0.74rem;
   }
 }
@@ -953,7 +992,7 @@ const saveNewCustomTrait = async () => {
 
 .source-line {
   margin-bottom: 12px;
-  color: #b7c2d2;
+  color: var(--color-enchanting-text-muted);
   font-size: 0.78rem;
 }
 
@@ -963,7 +1002,7 @@ const saveNewCustomTrait = async () => {
   gap: 10px;
   min-height: 430px;
   text-align: center;
-  color: #c7d2e2;
+  color: var(--color-enchanting-text-soft);
 
   h4,
   p {
@@ -979,9 +1018,9 @@ const saveNewCustomTrait = async () => {
 
 .form-section {
   padding: 14px;
-  border: 1px solid rgba(245, 197, 96, 0.18);
+  border: 1px solid var(--color-enchanting-accent-border-soft);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.055);
+  background: var(--color-enchanting-surface-bg-subtle);
 }
 
 .section-title {
@@ -993,13 +1032,13 @@ const saveNewCustomTrait = async () => {
   }
 
   h4 {
-    color: #f7d58a;
+    color: var(--color-enchanting-accent-text);
     font-size: 0.98rem;
   }
 
   p {
     margin-top: 4px;
-    color: #b7c2d2;
+    color: var(--color-enchanting-text-muted);
     font-size: 0.78rem;
   }
 }
@@ -1019,6 +1058,59 @@ const saveNewCustomTrait = async () => {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.visual-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.visual-preset-button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--preset-border);
+  border-radius: 10px;
+  background: var(--color-enchanting-surface-bg);
+  color: var(--color-enchanting-text);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: left;
+
+  &.active {
+    background: var(--color-enchanting-preset-active-bg);
+    box-shadow: 0 0 0 2px var(--color-enchanting-preset-active-shadow);
+  }
+}
+
+.preset-swatch-row {
+  display: flex;
+  gap: 4px;
+}
+
+.preset-swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-enchanting-swatch-border);
+  border-radius: 999px;
+
+  &.inventory {
+    background: var(--preset-inventory-bg);
+  }
+
+  &.attack {
+    background: var(--preset-attack-bg);
+  }
+
+  &.text {
+    background: var(--preset-text);
+  }
+}
+
 .nested-grid {
   margin-top: 10px;
 }
@@ -1026,11 +1118,11 @@ const saveNewCustomTrait = async () => {
 .trait-type-note {
   margin-top: 10px;
   padding: 10px 12px;
-  border: 1px dashed rgba(245, 197, 96, 0.28);
+  border: 1px dashed var(--color-enchanting-accent-border-note);
   border-radius: 10px;
-  color: #c7d2e2;
+  color: var(--color-enchanting-text-soft);
   font-size: 0.78rem;
-  background: rgba(0, 0, 0, 0.14);
+  background: var(--color-enchanting-inset-bg);
 }
 
 .check-option,
@@ -1039,9 +1131,9 @@ const saveNewCustomTrait = async () => {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid rgba(245, 197, 96, 0.22);
+  border: 1px solid var(--color-enchanting-accent-border);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-enchanting-surface-bg);
 }
 
 .field-grid label,
@@ -1049,7 +1141,7 @@ const saveNewCustomTrait = async () => {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  color: #d6dfef;
+  color: var(--color-enchanting-text);
   font-size: 0.76rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -1064,10 +1156,10 @@ input,
 select,
 textarea {
   min-width: 0;
-  border: 1px solid rgba(245, 197, 96, 0.25);
+  border: 1px solid var(--color-enchanting-accent-border-strong);
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.22);
-  color: #f5f0df;
+  background: var(--color-enchanting-inset-bg-strong);
+  color: var(--color-enchanting-panel-text);
   padding: 8px 9px;
 }
 
@@ -1092,22 +1184,22 @@ input[type='color'] {
   display: inline-flex;
   align-items: stretch;
   max-width: min(100%, 360px);
-  border: 1px solid rgba(245, 197, 96, 0.24);
+  border: 1px solid var(--color-enchanting-accent-border-strong);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.065);
-  color: #d6dfef;
+  background: var(--color-enchanting-surface-bg-soft);
+  color: var(--color-enchanting-text);
   transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
 
   &.selected {
-    border-color: rgba(245, 197, 96, 0.76);
-    background: linear-gradient(135deg, rgba(245, 197, 96, 0.22), rgba(129, 95, 255, 0.12));
-    color: #f9df9c;
+    border-color: var(--color-enchanting-accent-border-active);
+    background: var(--color-enchanting-trait-active-bg);
+    color: var(--color-enchanting-active-text);
   }
 
   &:hover,
   &:focus-within {
     transform: translateY(-1px);
-    border-color: rgba(245, 197, 96, 0.72);
+    border-color: var(--color-enchanting-accent-border-hover);
 
     .trait-hover-card {
       opacity: 1;
@@ -1128,7 +1220,7 @@ input[type='color'] {
   input {
     width: 14px;
     height: 14px;
-    accent-color: #f5c560;
+    accent-color: var(--color-enchanting-accent);
   }
 }
 
@@ -1146,17 +1238,17 @@ input[type='color'] {
 
   small {
     max-width: 210px;
-    color: #b7c2d2;
+    color: var(--color-enchanting-text-muted);
     font-size: 0.68rem;
   }
 }
 
 .btn-edit-trait {
   border: 0;
-  border-left: 1px solid rgba(245, 197, 96, 0.22);
+  border-left: 1px solid var(--color-enchanting-accent-border);
   border-radius: 0 999px 999px 0;
-  background: rgba(0, 0, 0, 0.18);
-  color: #f7d58a;
+  background: var(--color-enchanting-inset-bg-muted);
+  color: var(--color-enchanting-accent-text);
   padding: 0 10px;
   font-size: 0.74rem;
   font-weight: 900;
@@ -1173,11 +1265,11 @@ input[type='color'] {
   display: grid;
   gap: 5px;
   padding: 11px 12px;
-  border: 1px solid rgba(245, 197, 96, 0.36);
+  border: 1px solid var(--color-enchanting-accent-border-tooltip);
   border-radius: 12px;
-  background: rgba(14, 18, 25, 0.97);
-  color: #e8edf7;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.36);
+  background: var(--color-enchanting-tooltip-bg);
+  color: var(--color-enchanting-tooltip-text);
+  box-shadow: 0 16px 36px var(--color-enchanting-tooltip-shadow);
   opacity: 0;
   pointer-events: none;
   overflow-y: auto;
@@ -1186,22 +1278,22 @@ input[type='color'] {
   transition: opacity 0.16s ease, transform 0.16s ease;
 
   &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.24); }
-  &::-webkit-scrollbar-thumb { background: rgba(245, 197, 96, 0.45); border-radius: 999px; }
-  &::-webkit-scrollbar-thumb:hover { background: rgba(245, 197, 96, 0.68); }
+  &::-webkit-scrollbar-track { background: var(--color-enchanting-scrollbar-track); }
+  &::-webkit-scrollbar-thumb { background: var(--color-enchanting-scrollbar-thumb); border-radius: 999px; }
+  &::-webkit-scrollbar-thumb:hover { background: var(--color-enchanting-scrollbar-thumb-hover); }
 
   strong {
-    color: #f7d58a;
+    color: var(--color-enchanting-accent-text);
   }
 
   p {
     margin: 0;
-    color: #c9d2df;
+    color: var(--color-enchanting-tooltip-body);
     line-height: 1.45;
   }
 
   span {
-    color: #9fb2c8;
+    color: var(--color-enchanting-tooltip-meta);
     font-size: 0.74rem;
   }
 }
@@ -1210,8 +1302,8 @@ input[type='color'] {
   flex-shrink: 0;
   border-radius: 999px;
   padding: 3px 8px;
-  background: rgba(0, 0, 0, 0.24);
-  color: #f7d58a;
+  background: var(--color-enchanting-inset-bg-deep);
+  color: var(--color-enchanting-accent-text);
   font-size: 0.72rem;
   font-weight: 900;
 }
@@ -1225,17 +1317,17 @@ input[type='color'] {
 
 .saved-trait-edit {
   padding: 12px;
-  border: 1px solid rgba(245, 197, 96, 0.18);
+  border: 1px solid var(--color-enchanting-accent-border-soft);
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.14);
+  background: var(--color-enchanting-inset-bg);
 
   & + & {
     margin-top: 10px;
   }
 
   &.focused {
-    border-color: rgba(245, 197, 96, 0.72);
-    box-shadow: 0 0 0 2px rgba(245, 197, 96, 0.12);
+    border-color: var(--color-enchanting-accent-border-hover);
+    box-shadow: 0 0 0 2px var(--color-enchanting-focus-shadow);
   }
 }
 
@@ -1248,7 +1340,7 @@ input[type='color'] {
 
   span {
     flex: 1;
-    color: #9fb2c8;
+    color: var(--color-enchanting-tooltip-meta);
     font-size: 0.74rem;
   }
 }
@@ -1256,8 +1348,8 @@ input[type='color'] {
 .empty-inline {
   padding: 18px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #b7c2d2;
+  background: var(--color-enchanting-surface-bg);
+  color: var(--color-enchanting-text-muted);
 }
 
 .btn-delete-trait,
@@ -1275,20 +1367,20 @@ input[type='color'] {
 .btn-delete-trait,
 .btn-cancel,
 .quick-actions button {
-  background: rgba(255, 255, 255, 0.08);
-  color: #d6dfef;
+  background: var(--color-enchanting-surface-bg-strong);
+  color: var(--color-enchanting-text);
 }
 
 .btn-delete-trait {
-  background: rgba(220, 80, 80, 0.18);
-  color: #ffb7b7;
+  background: var(--color-enchanting-danger-bg);
+  color: var(--color-enchanting-danger-text);
 }
 
 .btn-add-trait,
 .btn-save {
   margin-top: 10px;
-  background: #f5c560;
-  color: #20242c;
+  background: var(--color-enchanting-primary-bg);
+  color: var(--color-enchanting-primary-text);
 }
 
 .enchant-fade-enter-active,
@@ -1308,7 +1400,7 @@ input[type='color'] {
 
   .enchant-sidebar {
     border-right: 0;
-    border-bottom: 1px solid rgba(245, 197, 96, 0.16);
+    border-bottom: 1px solid var(--color-enchanting-divider-muted);
   }
 
   .tab-nav {
@@ -1320,6 +1412,7 @@ input[type='color'] {
   .field-grid,
   .check-row,
   .color-grid,
+  .visual-preset-grid,
   .tab-nav {
     grid-template-columns: 1fr;
   }

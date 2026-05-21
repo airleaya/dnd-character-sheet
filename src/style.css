@@ -1,3 +1,5 @@
+@import './styles/theme.css';
+
 :root {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.5;
@@ -6,8 +8,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #213547;
-  background-color: #f0f2f5;
+  color: var(--color-text-main);
+  background-color: var(--color-bg-app);
 }
 
 html,
@@ -20,7 +22,7 @@ body,
 }
 
 body {
-  background-color: #f0f2f5;
+  background-color: var(--color-bg-app);
   overflow: hidden;
 }
 

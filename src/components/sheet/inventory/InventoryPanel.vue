@@ -494,7 +494,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
 <style scoped lang="scss">
 .inventory-panel {
   margin-top: 1rem;
-  background: #fff;
+  background: var(--color-inventory-panel-bg);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
@@ -508,24 +508,24 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     gap: 12px;
     flex-wrap: wrap;
     padding: 0.5rem 1rem;
-    background: #ecf0f1;
-    border-bottom: 1px solid #ddd;
-    .tip { font-size: 0.8rem; color: #7f8c8d; }
+    background: var(--color-inventory-header-bg);
+    border-bottom: 1px solid var(--color-inventory-header-border);
+    .tip { font-size: 0.8rem; color: var(--color-inventory-muted); }
 
     .carrying-load {
-      color: #2c3e50;
+      color: var(--color-inventory-strong);
       transition: color 0.2s ease;
 
       &.load-yellow {
-        color: #b7950b;
+        color: var(--color-inventory-load-warning);
       }
 
       &.load-orange {
-        color: #d35400;
+        color: var(--color-inventory-load-heavy);
       }
 
       &.load-red {
-        color: #e74c3c;
+        color: var(--color-inventory-load-over);
       }
     }
   }
@@ -535,8 +535,8 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 8px;
     padding: 10px;
-    background: #fdfdfd;
-    border-bottom: 1px solid #eee;
+    background: var(--color-inventory-soft-bg);
+    border-bottom: 1px solid var(--color-inventory-soft-border);
     flex-shrink: 0;
   }
 
@@ -544,39 +544,39 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: #f9f9f9;
-    border: 1px solid #eee;
+    background: var(--color-inventory-card-bg);
+    border: 1px solid var(--color-inventory-soft-border);
     border-radius: 6px;
     padding: 6px;
     min-width: 80px;
 
     .coin-header {
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: bold;
-      .label { font-size: 0.7rem; color: #7f8c8d; }
-      .value { font-size: 1rem; color: #333; }
+      .label { font-size: 0.7rem; color: var(--color-inventory-muted); }
+      .value { font-size: 1rem; color: var(--color-inventory-value-text); }
     }
 
     .coin-actions {
       display: flex; gap: 4px;
       input {
-        width: 100%; min-width: 0; border: 1px solid #ddd; border-radius: 4px; padding: 2px 4px; text-align: center; font-size: 0.8rem;
+        width: 100%; min-width: 0; border: 1px solid var(--color-inventory-control-border); border-radius: 4px; padding: 2px 4px; text-align: center; font-size: 0.8rem;
         &::-webkit-inner-spin-button, &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
       }
       .btns {
         display: flex; flex-direction: column; gap: 1px;
         button {
-          flex: 1; border: none; color: white; font-size: 10px; line-height: 1; padding: 2px 6px; cursor: pointer;
-          &.btn-add { background: #27ae60; border-radius: 2px 2px 0 0; }
-          &.btn-sub { background: #e74c3c; border-radius: 0 0 2px 2px; }
+          flex: 1; border: none; color: var(--color-text-inverse); font-size: 10px; line-height: 1; padding: 2px 6px; cursor: pointer;
+          &.btn-add { background: var(--color-inventory-action-add); border-radius: 2px 2px 0 0; }
+          &.btn-sub { background: var(--color-inventory-action-subtract); border-radius: 0 0 2px 2px; }
           &:hover { filter: brightness(1.1); }
         }
       }
     }
 
-    &.pp { border-top: 3px solid #5dade2; .value { color: #2980b9; } }
-    &.gp { border-top: 3px solid #f1c40f; .value { color: #d4ac0d; } }
-    &.sp { border-top: 3px solid #95a5a6; .value { color: #7f8c8d; } }
-    &.cp { border-top: 3px solid #d35400; .value { color: #a04000; } }
+    &.pp { border-top: 3px solid var(--color-inventory-coin-pp); .value { color: var(--color-inventory-coin-pp-text); } }
+    &.gp { border-top: 3px solid var(--color-inventory-coin-gp); .value { color: var(--color-inventory-coin-gp-text); } }
+    &.sp { border-top: 3px solid var(--color-inventory-coin-sp); .value { color: var(--color-inventory-coin-sp-text); } }
+    &.cp { border-top: 3px solid var(--color-inventory-coin-cp); .value { color: var(--color-inventory-coin-cp-text); } }
   }
 
   .inventory-list { 
@@ -586,46 +586,46 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     min-height: 200px;
   }
 
-  .ghost { opacity: 0.5; background: #42b983; }
+  .ghost { opacity: 0.5; background: var(--color-inventory-ghost-bg); }
 }
 
 /* ✅ 悬浮窗样式 */
 .inventory-tooltip {
   position: fixed; /* 必须是 fixed 才能配合 e.clientXY 定位 */
   width: 260px;
-  background: rgba(30, 30, 30, 0.98);
-  border: 1px solid #555;
+  background: var(--color-inventory-tooltip-bg);
+  border: 1px solid var(--color-inventory-tooltip-border);
   border-radius: 8px;
   z-index: 9999;
   pointer-events: none; /* 让鼠标穿透，避免 hover 闪烁 */
-  box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+  box-shadow: 0 5px 20px var(--color-inventory-tooltip-shadow);
   backdrop-filter: blur(4px);
-  color: #ddd;
+  color: var(--color-inventory-tooltip-text);
   pointer-events: auto;
   overflow-y: auto;
   overscroll-behavior: contain;
 
   &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: rgba(0,0,0,0.22); }
-  &::-webkit-scrollbar-thumb { background: #555; border-radius: 999px; }
-  &::-webkit-scrollbar-thumb:hover { background: #777; }
+  &::-webkit-scrollbar-track { background: var(--color-inventory-tooltip-scroll-track); }
+  &::-webkit-scrollbar-thumb { background: var(--color-inventory-tooltip-scroll-thumb); border-radius: 999px; }
+  &::-webkit-scrollbar-thumb:hover { background: var(--color-inventory-tooltip-scroll-thumb-hover); }
 
-  .card-header { padding: 10px; background: #222; border-radius: 8px 8px 0 0; border-bottom: 1px solid #333; }
-  .card-title { color: #fff; font-weight: bold; font-size: 0.95rem; }
+  .card-header { padding: 10px; background: var(--color-inventory-tooltip-header-bg); border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--color-inventory-tooltip-header-border); }
+  .card-title { color: var(--color-inventory-tooltip-title); font-weight: bold; font-size: 0.95rem; }
   
-  .card-body { padding: 10px; font-size: 0.85rem; color: #bbb; }
+  .card-body { padding: 10px; font-size: 0.85rem; color: var(--color-inventory-tooltip-body); }
   .stat-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: bold; font-family: monospace; }
-  .gold { color: #f1c40f; }
+  .gold { color: var(--color-inventory-coin-gp); }
   
-  .desc { font-style: italic; color: #888; line-height: 1.4; margin-top: 8px; margin-bottom: 4px; }
-  .extra-info { color: #42b983; margin-top: 6px; font-size: 0.8rem; }
+  .desc { font-style: italic; color: var(--color-inventory-tooltip-desc); line-height: 1.4; margin-top: 8px; margin-bottom: 4px; }
+  .extra-info { color: var(--color-inventory-tooltip-extra); margin-top: 6px; font-size: 0.8rem; }
 
   .badges-row { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
-  .badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: #333; color: #aaa; }
-  .badge.blue { color: #5dade2; background: rgba(93, 173, 226, 0.1); }
-  .badge.orange { color: #eb984e; background: rgba(235, 152, 78, 0.1); }
-  .badge.cyan { color: #48c9b0; background: rgba(72, 201, 176, 0.1); }
-  .badge.red { color: #ec7063; background: rgba(236, 112, 99, 0.1); }
+  .badge { font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; background: var(--color-inventory-tooltip-badge-bg); color: var(--color-inventory-tooltip-badge-text); }
+  .badge.blue { color: var(--color-inventory-tooltip-badge-blue-text); background: var(--color-inventory-tooltip-badge-blue-bg); }
+  .badge.orange { color: var(--color-inventory-tooltip-badge-orange-text); background: var(--color-inventory-tooltip-badge-orange-bg); }
+  .badge.cyan { color: var(--color-inventory-tooltip-badge-cyan-text); background: var(--color-inventory-tooltip-badge-cyan-bg); }
+  .badge.red { color: var(--color-inventory-tooltip-badge-red-text); background: var(--color-inventory-tooltip-badge-red-bg); }
 
   .magic-attributes-section,
   .magic-traits-section {
@@ -635,7 +635,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
   }
 
   .magic-traits-title {
-    color: #d7c1ff;
+    color: var(--content-magic-tooltip-title);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -652,16 +652,16 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     justify-content: space-between;
     gap: 6px;
     padding: 4px 6px;
-    border: 1px solid rgba(215, 193, 255, 0.18);
+    border: 1px solid var(--content-magic-tooltip-border);
     border-radius: 5px;
-    background: rgba(240, 231, 255, 0.06);
+    background: var(--content-magic-tooltip-bg);
 
     span {
-      color: #a996c8;
+      color: var(--content-magic-tooltip-label);
     }
 
     strong {
-      color: #e6d8ff;
+      color: var(--content-magic-tooltip-value);
       text-align: right;
       font-weight: 800;
     }
@@ -671,27 +671,27 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #a996c8;
+    color: var(--content-magic-tooltip-label);
     font-size: 0.76rem;
   }
 
   .color-swatch {
     width: 16px;
     height: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.42);
+    border: 1px solid var(--color-inventory-swatch-border);
     border-radius: 50%;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 1px var(--color-inventory-swatch-shadow);
   }
 
   .magic-trait-card {
-    border: 1px solid rgba(215, 193, 255, 0.24);
+    border: 1px solid var(--content-magic-tooltip-border);
     border-radius: 6px;
     padding: 6px;
-    background: rgba(240, 231, 255, 0.08);
+    background: var(--content-magic-tooltip-bg);
 
     p {
       margin: 4px 0 0;
-      color: #c9c1d8;
+      color: var(--content-magic-tooltip-label);
       line-height: 1.35;
     }
   }
@@ -703,17 +703,17 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     gap: 8px;
 
     strong {
-      color: #dcc2ff;
+      color: var(--content-magic-item-bg-default);
     }
 
     span {
-      color: #b7a2e6;
+      color: var(--palette-arcane-400);
       font-size: 0.68rem;
     }
   }
 
   .trait-damage {
-    color: #ffbc8a !important;
+    color: var(--content-magic-trait-damage) !important;
     font-weight: 800;
   }
 }
