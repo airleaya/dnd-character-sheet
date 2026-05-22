@@ -1,0 +1,102 @@
+:root,
+:root[data-theme="classic"] {
+  /* Theme colors: classic UI palette, exactly 40 concrete colors. */
+  --theme-neutral-0: #ffffff;
+  --theme-neutral-50: #f8f9fa;
+  --theme-neutral-100: #f1f3f5;
+  --theme-neutral-200: #e9ecef;
+  --theme-neutral-300: #dee2e6;
+  --theme-neutral-500: #adb5bd;
+  --theme-neutral-700: #5f6c7b;
+  --theme-neutral-900: #213547;
+  --theme-neutral-950: #141a22;
+
+  --theme-slate-100: #ecf0f1;
+  --theme-slate-300: #95a5a6;
+  --theme-slate-600: #455a64;
+  --theme-slate-750: #2c3e50;
+  --theme-slate-850: #1a252f;
+
+  --theme-primary-50: #eef7ff;
+  --theme-primary-500: #3498db;
+  --theme-primary-700: #21618c;
+
+  --theme-green-50: #edf9f1;
+  --theme-green-400: #42b983;
+  --theme-green-500: #27ae60;
+  --theme-teal-300: #82e0aa;
+  --theme-teal-600: #16a085;
+
+  --theme-red-50: #fff1f0;
+  --theme-red-250: #e57373;
+  --theme-red-500: #e74c3c;
+  --theme-red-700: #922b21;
+
+  --theme-gold-50: #fff8db;
+  --theme-gold-300: #f7d58a;
+  --theme-gold-500: #f1c40f;
+  --theme-orange-350: #eb984e;
+  --theme-orange-600: #d35400;
+
+  --theme-arcane-50: #f6efff;
+  --theme-arcane-200: #dcc2ff;
+  --theme-arcane-400: #b7a2e6;
+  --theme-arcane-600: #8e44ad;
+  --theme-arcane-800: #4f0b22;
+
+  --theme-parchment-50: #fdfbf7;
+  --theme-parchment-100: #f4f1ea;
+  --theme-brown-700: #5b4736;
+  --theme-brown-900: #2b241e;
+}
+
+:root[data-theme="night"] {
+  /* Theme colors: night UI palette, exactly 40 concrete colors. */
+  --theme-neutral-0: #11161d;
+  --theme-neutral-50: #171d25;
+  --theme-neutral-100: #1d2530;
+  --theme-neutral-200: #2a3441;
+  --theme-neutral-300: #3a4654;
+  --theme-neutral-500: #6f7d8c;
+  --theme-neutral-700: #aab6c4;
+  --theme-neutral-900: #eef3f8;
+  --theme-neutral-950: #070a0f;
+
+  --theme-slate-100: #d8e2ec;
+  --theme-slate-300: #91a4b8;
+  --theme-slate-600: #405166;
+  --theme-slate-750: #182434;
+  --theme-slate-850: #0d1622;
+
+  --theme-primary-50: #10283d;
+  --theme-primary-500: #4fa3e8;
+  --theme-primary-700: #9bd0ff;
+
+  --theme-green-50: #10281d;
+  --theme-green-400: #3fc78f;
+  --theme-green-500: #48d17d;
+  --theme-teal-300: #89e6c0;
+  --theme-teal-600: #2db8a3;
+
+  --theme-red-50: #321819;
+  --theme-red-250: #d98282;
+  --theme-red-500: #ff6b5f;
+  --theme-red-700: #ffb0a8;
+
+  --theme-gold-50: #2d2611;
+  --theme-gold-300: #e7c878;
+  --theme-gold-500: #f0b83f;
+  --theme-orange-350: #f0a35c;
+  --theme-orange-600: #ff8a3d;
+
+  --theme-arcane-50: #21172e;
+  --theme-arcane-200: #493263;
+  --theme-arcane-400: #a990d4;
+  --theme-arcane-600: #b477e6;
+  --theme-arcane-800: #f0d7ff;
+
+  --theme-parchment-50: #211d17;
+  --theme-parchment-100: #2a241c;
+  --theme-brown-700: #d2b48a;
+  --theme-brown-900: #f0dfc5;
+}

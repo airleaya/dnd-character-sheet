@@ -643,7 +643,7 @@ onUnmounted(() => {
       width: 100%; padding: 0.6rem; background-color: var(--color-status-success-solid); color: var(--color-action-primary-text);
       border: none; cursor: pointer; border-radius: 4px; font-weight: bold;
       transition: background 0.2s;
-      &:hover { background-color: var(--palette-green-450); }
+      &:hover { background-color: var(--color-shell-left-create-hover-bg); }
     }
 
     .bulk-header {

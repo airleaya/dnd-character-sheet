@@ -173,7 +173,7 @@ onBeforeUnmount(() => {
 
 .btn-secondary {
   background: var(--color-feedback-secondary-bg);
-  color: var(--palette-brown-700);
+  color: var(--color-feedback-secondary-text);
 }
 
 .btn-primary {

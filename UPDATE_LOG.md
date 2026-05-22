@@ -1,5 +1,27 @@
 # UPDATE_LOG
 
+## [0.15.2] - 2026-05-22
+- 类型：前端颜色系统 / 主题结构 / 测试护栏
+- 项目：落实 40 色主题层、变量层、前端引用层三段式颜色结构，并记录默认经典主题与夜间主题。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `TODOLIST.md`
+  - `FRONTEND_DESIGN_AUDIT.md`
+  - `src/styles/theme-colors.css`
+  - `src/styles/theme.css`
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/components/sidebar/LibraryTooltip.vue`
+  - `src/components/sheet/inventory/InventoryPanel.vue`
+  - `src/components/ui/GlobalFeedback.vue`
+  - `tests/themeColorStructure.test.ts`
+- 完成内容：
+  - 项目版本从 `0.15.1` 滚动到 `0.15.2`。
+  - 新增 `src/styles/theme-colors.css` 作为颜色层，记录 `classic` 默认主题与 `night` 夜间主题；两个主题使用同一组 `--theme-*` 名称，且每个主题正好 40 个具体颜色。
+  - `src/styles/theme.css` 调整为变量层：旧 `--palette-*` 兼容别名与 `--color-*` 语义/领域变量全部由 `--theme-*` 或 `color-mix()` 推导，不再在 UI 变量层保留直接 hex / rgb / hsl 色值。
+  - 前端组件样式不再直接引用 `--palette-*` 或 `--theme-*`，而是读取 `--color-*` UI 变量或 `--content-*` 内容变量。
+  - 附魔物品 DIY 颜色继续保持内容色序列：默认魔法视觉组与用户单物品 `magic.visuals` 覆盖不并入全局 UI 主题，用户每次 DIY 只影响对应物品。
+  - 新增 `tests/themeColorStructure.test.ts`，校验两个 UI 主题的 40 色数量和键名一致性、UI 变量层无直接色值、组件层不直连颜色层/兼容 palette 层。
+
 ## [0.15.1] - 2026-05-22
 - 类型：前端颜色系统 / 主题令牌化 / 版本滚动
 - 项目：完成第一阶段前端颜色结构迁移，将主要 UI 颜色集中到共享主题文件。

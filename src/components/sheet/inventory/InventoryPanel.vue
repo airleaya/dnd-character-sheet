@@ -707,7 +707,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
     }
 
     span {
-      color: var(--palette-arcane-400);
+      color: var(--content-magic-tooltip-label);
       font-size: 0.68rem;
     }
   }
