@@ -66,6 +66,21 @@ export interface CharacterUnarmedStrike {
   isMagic: boolean;
 }
 
+export type CharacterAvatarSize = 'large' | 'medium' | 'small';
+
+export interface CharacterAvatarSizeMeta {
+  width: number;
+  height: number;
+  sizeBytes: number;
+}
+
+export interface CharacterAvatar {
+  assetId: string;
+  mime: 'image/webp' | 'image/jpeg' | 'image/png';
+  sizes: Partial<Record<CharacterAvatarSize, CharacterAvatarSizeMeta>>;
+  updatedAt: number;
+}
+
 
 // 扩充 CharacterProfile (增加玩家名、阵营、背景)
 export interface CharacterProfile {
@@ -77,6 +92,7 @@ export interface CharacterProfile {
   alignment?: string | number;  // <--- 新增
   level: number;
   xp: number;
+  avatar?: CharacterAvatar;
   avatarUrl?: string; 
 }
 

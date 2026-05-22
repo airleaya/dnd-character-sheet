@@ -15,6 +15,15 @@ const electronAPI: ElectronApi = {
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   exportCharacter: (dirPath: string, filename: string, content: string) =>
     ipcRenderer.invoke('export-character', dirPath, filename, content),
+  exportCharacterPackage: (dirPath, character) => ipcRenderer.invoke('export-character-package', dirPath, character),
+  importCharacterPackage: (bytes, newCharacterId) => ipcRenderer.invoke('import-character-package', bytes, newCharacterId),
+  saveCharacterAvatar: (characterId, bytes, dimensions, previousAssetId) =>
+    ipcRenderer.invoke('save-character-avatar', characterId, bytes, dimensions, previousAssetId),
+  readCharacterAvatar: (characterId, assetId, size) =>
+    ipcRenderer.invoke('read-character-avatar', characterId, assetId, size),
+  saveCharacterAvatarRendition: (characterId, assetId, size, bytes, dimensions) =>
+    ipcRenderer.invoke('save-character-avatar-rendition', characterId, assetId, size, bytes, dimensions),
+  deleteCharacterAvatar: (characterId, assetId) => ipcRenderer.invoke('delete-character-avatar', characterId, assetId),
   writeLog: (entry) => ipcRenderer.invoke('write-log', entry),
   readCustomMagicTraits: () => ipcRenderer.invoke('read-custom-magic-traits'),
   saveCustomMagicTraits: (traits) => ipcRenderer.invoke('save-custom-magic-traits', traits),

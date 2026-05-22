@@ -466,6 +466,7 @@ export const normalizeCharacterData = (raw: LegacyCharacterData): Character => (
     alignment: raw.profile?.alignment ?? '',
     level: raw.profile?.level ?? 1,
     xp: raw.profile?.xp ?? 0,
+    avatar: raw.profile?.avatar,
     avatarUrl: raw.profile?.avatarUrl,
   },
   bio: {

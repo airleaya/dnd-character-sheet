@@ -68,10 +68,11 @@ Design implication: future redesigns should treat the app as an information-dens
 - Two UI themes are recorded in the color layer:
   - `classic`: the current default light/editor + dark-sidebar mix.
   - `night`: the same 40-token structure remapped for night mode.
+- The user-facing theme entry is in the left sidebar footer above zoom controls; it writes `data-theme` on the root element and persists the selected theme under `dnd_app_theme`.
 - Each UI theme uses exactly 40 concrete colors. Theme swapping should normally change only `src/styles/theme-colors.css`; variable names and component CSS should remain stable.
 - `src/styles/theme.css` keeps the legacy `--palette-*` aliases only as a compatibility bridge. New component work should use `--color-*` semantic/domain variables.
 - UI variable definitions are now derived from `--theme-*` and `color-mix()` expressions, with direct hex/rgb/hsl values restricted to the color layer and content fallback layer.
-- `tests/themeColorStructure.test.ts` verifies that both UI themes keep matching 40-color keys, UI variables stay free of direct color literals, and frontend component styles do not bypass the variable layer.
+- `tests/themeColorStructure.test.ts` verifies that both UI themes keep matching 40-color keys, UI variables stay free of direct color literals, and frontend component styles do not bypass the variable layer. `tests/appTheme.test.ts` and `tests/sidebarLeftTheme.ui.test.ts` cover theme initialization and user switching.
 - Global shell and common component colors have been migrated out of `App.vue`, `AppLayout.vue`, `SidebarLeft.vue`, `SidebarRight.vue`, `GlobalTooltip.vue`, `GlobalFeedback.vue`, and `components/common/**`.
 - Inventory, equipment, and trash surfaces have domain tokens in `src/styles/theme.css`; `InventoryPanel.vue`, `InventoryItemRow.vue`, `EquipmentSlots.vue`, and `TrashPanel.vue` read those tokens instead of active component-level color literals.
 - Character identity surfaces have domain tokens for the header divider, avatar placeholder, character name, class badges, alignment picker, action toolbar, and XP progress bar; `HeaderInfo.vue`, `ClassSelector.vue`, `AlignmentPicker.vue`, and `XpProgressBar.vue` now read those tokens from the shared theme file.

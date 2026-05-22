@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { useActiveSheetStore } from '../../../stores/activeSheet';
 import EditableText from '../../common/EditableText.vue';
 import ProficiencySettingsModal from './../modals/ProficiencySettingsModal.vue';
@@ -8,16 +8,25 @@ import BioPanel from './../bio/BioPanel.vue';
 import ClassSelector from './../bio/ClassSelector.vue';
 import XpProgressBar from './XpProgressBar.vue';
 import AlignmentPicker from './AlignmentPicker.vue';
+import AvatarEditorModal from './AvatarEditorModal.vue';
 import type { CharacterProfile } from '../../../types/Character';
 import { useTooltipStore, type TooltipData } from '../../../stores/tooltip';
+import { useUiFeedbackStore } from '../../../stores/uiFeedback';
+import { avatarService } from '../../../services/avatarService';
+import type { AvatarRendition } from '../../../utils/avatarUtils';
 
 const store = useActiveSheetStore();
 const tooltipStore = useTooltipStore();
+const feedback = useUiFeedbackStore();
 
 const character = computed(() => store.character);
 // const xpInput = ref<number | ''>(''); 已移动至XpProgressBar中
 const showProfModal = ref(false);
 const showExpertiseModal = ref(false);
+const avatarInput = ref<HTMLInputElement | null>(null);
+const avatarObjectUrl = ref<string | null>(null);
+const avatarDraftFile = ref<File | null>(null);
+const showAvatarEditor = ref(false);
 const showBioModal = ref(false); // 控制 Bio Modal 显隐
 
 // const handleAddXp 已移动至XpProgressBar中
@@ -69,17 +78,119 @@ const showTooltip = (data: TooltipData, event: MouseEvent) => {
 const moveTooltip = (event: MouseEvent) => {
   tooltipStore.updatePosition(event.clientX, event.clientY);
 };
+
+const revokeAvatarObjectUrl = () => {
+  if (avatarObjectUrl.value) {
+    URL.revokeObjectURL(avatarObjectUrl.value);
+    avatarObjectUrl.value = null;
+  }
+};
+
+watch(
+  () => character.value ? [character.value.id, character.value.profile.avatar?.assetId] : null,
+  async () => {
+    revokeAvatarObjectUrl();
+    if (!character.value?.profile.avatar) return;
+
+    try {
+      avatarObjectUrl.value = await avatarService.readAvatarObjectUrl(
+        character.value.id,
+        character.value.profile.avatar,
+        'large'
+      );
+    } catch {
+      avatarObjectUrl.value = null;
+    }
+  },
+  { immediate: true }
+);
+
+onUnmounted(revokeAvatarObjectUrl);
+
+const triggerAvatarUpload = () => {
+  avatarInput.value?.click();
+};
+
+const onAvatarSelected = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file || !character.value) return;
+
+  avatarDraftFile.value = file;
+  showAvatarEditor.value = true;
+  /*
+  return;
+
+  try {
+    const avatar = await avatarService.saveAvatar(character.value, file);
+    update('avatar', avatar);
+    feedback.showToast('头像已更新', 'success');
+  } catch (error) {
+    feedback.showToast(error instanceof Error ? error.message : '头像更新失败', 'danger');
+  }
+  */
+};
+
+const closeAvatarEditor = () => {
+  showAvatarEditor.value = false;
+  avatarDraftFile.value = null;
+};
+
+const saveEditedAvatar = async (rendition: AvatarRendition) => {
+  if (!character.value) return;
+
+  try {
+    const avatar = await avatarService.saveAvatarRendition(character.value, rendition);
+    update('avatar', avatar);
+    feedback.showToast('头像已更新', 'success');
+    closeAvatarEditor();
+  } catch (error) {
+    feedback.showToast(error instanceof Error ? error.message : '头像更新失败', 'danger');
+  }
+};
+
+const deleteAvatar = async (event: MouseEvent) => {
+  event.stopPropagation();
+  if (!character.value?.profile.avatar) return;
+
+  try {
+    await avatarService.deleteAvatar(character.value);
+    update('avatar', undefined);
+    revokeAvatarObjectUrl();
+    feedback.showToast('头像已移除', 'success');
+  } catch {
+    feedback.showToast('头像移除失败', 'danger');
+  }
+};
 </script>
 
 <template>
   <div class="char-header" v-if="character">
     <div class="avatar-col">
-      <div class="avatar-box">
-        <div class="avatar-text" v-if="!character.profile.avatarUrl">
+      <button class="avatar-box" type="button" title="更换头像" @click="triggerAvatarUpload">
+        <div class="avatar-text" v-if="!avatarObjectUrl && !character.profile.avatarUrl">
           {{ character.profile.name.charAt(0) || '?' }}
         </div>
-        <img v-else :src="character.profile.avatarUrl" class="avatar-img" />
-      </div>
+        <img v-else :src="avatarObjectUrl || character.profile.avatarUrl" class="avatar-img" alt="" />
+        <span class="avatar-action">更换</span>
+      </button>
+      <button
+        v-if="character.profile.avatar"
+        class="avatar-remove"
+        type="button"
+        title="移除头像"
+        @click="deleteAvatar"
+      >
+        x
+      </button>
+      <input
+        ref="avatarInput"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        class="avatar-input"
+        @change="onAvatarSelected"
+      />
     </div>
     
     <div class="middle-col">
@@ -178,6 +289,13 @@ const moveTooltip = (event: MouseEvent) => {
       @close="showProfModal = false" 
     />
 
+    <AvatarEditorModal
+      :is-open="showAvatarEditor"
+      :file="avatarDraftFile"
+      @close="closeAvatarEditor"
+      @save="saveEditedAvatar"
+    />
+
     <ExpertiseSettingsModal
       :is-open="showExpertiseModal"
       @close="showExpertiseModal = false"
@@ -199,6 +317,7 @@ const moveTooltip = (event: MouseEvent) => {
   .avatar-col {
     display: flex;
     flex-shrink: 0;
+    position: relative;
     width: 160px; /* 放大头像区宽度 */
     
     .avatar-box {
@@ -207,6 +326,9 @@ const moveTooltip = (event: MouseEvent) => {
       padding-top: 133.33%; /* 3 / 4 = 75%, 实现 4:3 的比例 */
       position: relative; /* 为内部元素提供定位基准 */
       background: var(--color-character-avatar-bg); border-radius: 8px;
+      border: 0;
+      color: inherit;
+      cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       overflow: hidden; box-shadow: 0 2px 8px var(--color-character-avatar-shadow);
       .avatar-text, .avatar-img {
@@ -215,6 +337,46 @@ const moveTooltip = (event: MouseEvent) => {
         width: 100%; height: 100%;
         display: flex; align-items: center; justify-content: center;
       }
+
+      .avatar-img {
+        object-fit: cover;
+      }
+
+      .avatar-action {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 0.35rem 0;
+        background: var(--color-character-avatar-action-bg);
+        color: var(--color-character-avatar-action-text);
+        font-size: 0.75rem;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+
+      &:hover .avatar-action,
+      &:focus-visible .avatar-action {
+        opacity: 1;
+      }
+    }
+
+    .avatar-remove {
+      position: absolute;
+      top: 0.35rem;
+      right: 0.35rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 0;
+      border-radius: 50%;
+      background: var(--color-character-avatar-remove-bg);
+      color: var(--color-character-avatar-remove-text);
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .avatar-input {
+      display: none;
     }
   }
 

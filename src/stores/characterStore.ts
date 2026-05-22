@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia';
 import { generateUUID } from '../utils/idGenerator';
-import type { Character, CharacterClassRecord } from '../types/Character';
+import type { Character, CharacterAvatar, CharacterClassRecord } from '../types/Character';
+import {
+  CHARACTER_PACKAGE_EXTENSION,
+  CHARACTER_PACKAGE_JSON_EXTENSION,
+  CHARACTER_PACKAGE_FORMAT,
+} from '../types/CharacterPackage';
 import { createDefaultCharacter, normalizeCharacterData } from '../utils/characterMigration';
 import { storageService } from '../services/storageService';
 import { createRendererLogger } from '../utils/rendererLogger';
@@ -21,6 +26,7 @@ interface CharacterMeta {
   race: string;
   level: number;
   classes: CharacterClassRecord[];
+  avatar?: CharacterAvatar;
   avatarUrl?: string;
 }
 
@@ -102,6 +108,7 @@ export const useCharacterStore = defineStore('characterStore', {
             race: char.profile.race,
             level: char.profile.level,
             classes: char.profile.classes,
+            avatar: char.profile.avatar,
             avatarUrl: char.profile.avatarUrl,
           });
         });
@@ -129,6 +136,7 @@ export const useCharacterStore = defineStore('characterStore', {
         race: newChar.profile.race,
         level: newChar.profile.level,
         classes: newChar.profile.classes || [],
+        avatar: newChar.profile.avatar,
         avatarUrl: newChar.profile.avatarUrl,
       });
 
@@ -154,6 +162,7 @@ export const useCharacterStore = defineStore('characterStore', {
         race: normalizedChar.profile.race,
         level: normalizedChar.profile.level,
         classes: normalizedChar.profile.classes,
+        avatar: normalizedChar.profile.avatar,
         avatarUrl: normalizedChar.profile.avatarUrl,
       };
 
@@ -205,6 +214,9 @@ export const useCharacterStore = defineStore('characterStore', {
       if (char) {
         const filename = this._filenameMap.get(id) || getFilename(char);
         await storageService.deleteCharacter(filename);
+        if (window.electronAPI?.deleteCharacterAvatar) {
+          await window.electronAPI.deleteCharacterAvatar(id);
+        }
       }
 
 
@@ -225,14 +237,25 @@ export const useCharacterStore = defineStore('characterStore', {
       if (!char) return null;
       // 导出给用户的文件名依然使用易读的格式，而不是 UUID
       const safeName = (char.profile.name || '未命名').replace(/[\\/:*?"<>|]/g, '_');
-      const filename = `${safeName}_Lv${char.profile.level}.json`;
+      const filename = `${safeName}_Lv${char.profile.level}${CHARACTER_PACKAGE_JSON_EXTENSION}`;
       return { json: JSON.stringify(char, null, 2), filename };
     },
 
     // --- 7. 导入 ---
     async importCharacter(jsonStr: string) {
       try {
-        const parsed = JSON.parse(jsonStr) as Character;
+        const maybePackage = JSON.parse(jsonStr) as unknown;
+        if (
+          maybePackage &&
+          typeof maybePackage === 'object' &&
+          'manifest' in maybePackage &&
+          (maybePackage as { manifest?: { format?: string } }).manifest?.format === CHARACTER_PACKAGE_FORMAT
+        ) {
+          const encoded = new TextEncoder().encode(jsonStr);
+          return await this.importCharacterPackage(encoded);
+        }
+
+        const parsed = maybePackage as Character;
         if (!parsed.profile) throw new Error('无效数据');
 
         const data = normalizeCharacterData({
@@ -251,6 +274,27 @@ export const useCharacterStore = defineStore('characterStore', {
 
     // --- 8. 分组管理逻辑 ---
     // 加载分组数据 (带数据清洗)
+    async importCharacterPackage(bytes: Uint8Array) {
+      try {
+        if (!window.electronAPI?.importCharacterPackage) {
+          throw new Error('Character package import API is unavailable');
+        }
+
+        const newId = generateUUID();
+        const result = await window.electronAPI.importCharacterPackage(bytes, newId);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+
+        const data = normalizeCharacterData(result.data);
+        await this.saveCharacterData(data);
+        return data.id;
+      } catch (e) {
+        logger.error('Failed to import character package', e);
+        return null;
+      }
+    },
+
     async loadGroups() {
       try {
         const localGroups = localStorage.getItem(GROUPS_STORAGE_KEY);

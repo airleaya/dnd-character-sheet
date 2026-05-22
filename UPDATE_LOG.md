@@ -1,5 +1,107 @@
 # UPDATE_LOG
 
+## [0.15.5] - 2026-05-22
+- 类型：角色头像 / 导入导出 / 备份体验 / 版本滚动
+- 项目：完成角色头像瘦身版实现、头像编辑器、单 JSON 备份格式、侧边栏头像展示与导入前预览流程。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `UPDATE_LOG.md`
+  - `electron/avatarAssets.ts`
+  - `electron/characterPackage.ts`
+  - `electron/main.ts`
+  - `electron/preload.ts`
+  - `src/types/Character.ts`
+  - `src/types/CharacterPackage.ts`
+  - `src/types/electron.ts`
+  - `src/services/avatarService.ts`
+  - `src/utils/avatarUtils.ts`
+  - `src/utils/characterPackagePreview.ts`
+  - `src/components/sheet/bio/HeaderInfo.vue`
+  - `src/components/sheet/bio/AvatarEditorModal.vue`
+  - `src/components/layout/SidebarLeft.vue`
+  - `src/components/layout/SidebarCharacterAvatar.vue`
+  - `src/components/layout/CharacterImportPreviewModal.vue`
+  - `tests/avatarUtils.test.ts`
+  - `tests/avatarEditorModal.ui.test.ts`
+  - `tests/characterPackage.test.ts`
+  - `tests/characterPackagePreview.test.ts`
+  - `tests/sidebarLeftTheme.ui.test.ts`
+- 完成内容：
+  - 项目版本从 `0.15.4` 滚动到 `0.15.5`。
+  - 角色基础信息区支持上传头像，并在保存前进入头像编辑器完成裁剪、缩放和大中小尺寸预览；头像输出使用原图像素计算，避免固定低分辨率导致模糊。
+  - 头像本地保存为独立 WebP 资产；角色 JSON 长期保存轻量 `profile.avatar` 元数据，同时保留旧 `avatarUrl` 兼容字段。
+  - 角色备份导出改为单一可见 JSON 文件，备份内包含 `manifest`、`character` 与末尾 `embeddedAssets`，头像以 base64 字节嵌入，避免继续导出压缩容器。
+  - 导入流程兼容新版备份 JSON、旧裸角色 JSON 与旧版 zip `.dndchar`；导入新版备份时会恢复头像资产。
+  - 左侧栏角色卡右侧展示角色头像；没有头像时回退为角色名首字占位。
+  - 新增导入前预览弹窗，用户选择文件后可先确认角色名、等级、种族、文件格式与头像预览，再决定导入或跳过。
+- 验证：
+  - `npm run typecheck` 通过。
+  - `npm run test` 通过：45 个文件 / 229 个测试。
+  - `npm run build` 通过，并产出 `0.15.5` 安装包与便携 exe。
+
+## [0.15.4] - 2026-05-22
+- 类型：版本滚动 / 功能设计讨论 / 角色头像
+- 项目：进入角色头像存储方案讨论阶段，评估如何让用户上传头像后随角色存档一起保存、导入导出，并控制存档体积。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `UPDATE_LOG.md`
+- 完成内容：
+  - 项目版本从 `0.15.3` 滚动到 `0.15.4`。
+  - 记录头像方案讨论方向：角色 JSON 保存头像元数据，本地处理后的头像资源独立存放，导入/导出时再与角色一起打包迁移，避免把原图或大体积 base64 长期嵌入角色存档。
+
+## [0.15.3] - 2026-05-22
+- 类型：主题扩展 / Electron 窗口状态 / 版本滚动
+- 项目：收口主题切换与新增主题工作，并修复最大化窗口关闭时误保存最大化尺寸的问题。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `package.json`
+  - `package-lock.json`
+  - `README.md`
+  - `TODOLIST.md`
+  - `electron/main.ts`
+  - `electron/windowState.ts`
+  - `src/styles/theme-colors.css`
+  - `src/styles/theme.css`
+  - `src/utils/appTheme.ts`
+  - `src/components/layout/SidebarLeft.vue`
+  - `tests/windowState.test.ts`
+  - `tests/appTheme.test.ts`
+  - `tests/sidebarLeftTheme.ui.test.ts`
+  - `tests/themeColorStructure.test.ts`
+- 完成内容：
+  - 项目版本从 `0.15.2` 滚动到 `0.15.3`。
+  - 左侧栏主题切换入口扩展为 `classic` / `night` / `byzantine` / `remilia` 四套主题，并持久化用户选择。
+  - 新增拜占庭紫主题与蕾米莉亚主题；蕾米莉亚最终调整为血红主色、蓝色辅色，大面积 UI 由红色主导，蓝色用于冷调辅助、边框和弱文本。
+  - Electron 窗口状态保存改为：非最大化时保存 `getBounds()`；最大化时保存 `getNormalBounds()` 并记录 `isMaximized`，避免最大化尺寸覆盖普通窗口尺寸。
+  - 创建窗口时若读取到 `isMaximized`，会在应用普通窗口 bounds 后恢复最大化状态。
+  - 新增 `tests/windowState.test.ts` 覆盖窗口状态序列化行为。
+
+## [Unreleased] - 2026-05-22
+- 类型：前端主题入口 / 交互设置
+- 项目：将主题切换入口暴露给用户，让 `classic` / `night` 两套 UI 主题可在应用内切换。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `TODOLIST.md`
+  - `FRONTEND_DESIGN_AUDIT.md`
+  - `src/main.ts`
+  - `src/utils/appTheme.ts`
+  - `src/components/layout/SidebarLeft.vue`
+  - `tests/appTheme.test.ts`
+  - `tests/sidebarLeftTheme.ui.test.ts`
+- 完成内容：
+  - 新增 `src/utils/appTheme.ts`，统一管理主题 id、读取本地存储、写入 `document.documentElement.dataset.theme` 和持久化用户选择。
+  - 应用启动时在 `src/main.ts` 初始化主题，避免首屏渲染后才切换主题。
+  - 左侧栏底部新增 `经典 / 夜间` 主题分段控件，位于缩放控制上方，切换后立即更新根节点 `data-theme` 并写入 `localStorage`。
+  - 新增 `tests/appTheme.test.ts` 和 `tests/sidebarLeftTheme.ui.test.ts`，覆盖主题 id 校验、默认回退、启动恢复、用户点击切换与持久化。
+
 ## [0.15.2] - 2026-05-22
 - 类型：前端颜色系统 / 主题结构 / 测试护栏
 - 项目：落实 40 色主题层、变量层、前端引用层三段式颜色结构，并记录默认经典主题与夜间主题。

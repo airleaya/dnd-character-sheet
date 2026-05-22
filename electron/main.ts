@@ -27,6 +27,18 @@ import {
 } from '../src/utils/dataPackUtils'
 import { DEFAULT_DND5E_DATA_PACK } from '../src/data/dataPacks/defaultDnd5ePack'
 import { createMainLogger, initializeLogging, writeLogEntry } from './logger'
+import { resolveWindowStateToSave } from './windowState'
+import type { CharacterAvatarSize } from '../src/types/Character'
+import {
+  deleteCharacterAvatarAsset,
+  readCharacterAvatarAsset,
+  saveCharacterAvatarAsset,
+  writeAvatarRenditionAsset,
+} from './avatarAssets'
+import {
+  importCharacterPackage,
+  writeCharacterPackage,
+} from './characterPackage'
 
 const toErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
@@ -159,10 +171,10 @@ const loadWindowState = () => {
 const saveWindowState = () => {
   if (!win) return;
   try {
-    const bounds = win.getBounds();
+    const state = resolveWindowStateToSave(win);
     const configPath = getWindowConfigPath();
     ensureDirectoryExists(path.dirname(configPath));
-    fs.writeFileSync(configPath, JSON.stringify(bounds));
+    fs.writeFileSync(configPath, JSON.stringify(state));
   } catch (e) {
     logger.error('Failed to save window state', e);
   }
@@ -473,6 +485,10 @@ const createWindow = () => {
     },
   })
 
+  if (state?.isMaximized) {
+    win.maximize();
+  }
+
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
@@ -768,6 +784,84 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('save-character-avatar', async (
+    _event,
+    characterId: string,
+    bytes: Uint8Array,
+    dimensions?: { width: number; height: number },
+    previousAssetId?: string
+  ) => {
+    try {
+      return {
+        success: true,
+        data: saveCharacterAvatarAsset(
+          { storageRoot: getStorageRoot() },
+          { characterId, bytes, dimensions, previousAssetId }
+        ),
+      };
+    } catch (e) {
+      logger.error('Failed to save character avatar', e, { characterId });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('read-character-avatar', async (
+    _event,
+    characterId: string,
+    assetId: string,
+    size: CharacterAvatarSize = 'large'
+  ) => {
+    try {
+      return {
+        success: true,
+        data: readCharacterAvatarAsset({ storageRoot: getStorageRoot() }, characterId, assetId, size),
+      };
+    } catch (e) {
+      logger.error('Failed to read character avatar', e, { characterId, assetId, size });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('save-character-avatar-rendition', async (
+    _event,
+    characterId: string,
+    assetId: string,
+    size: CharacterAvatarSize,
+    bytes: Uint8Array,
+    dimensions?: { width: number; height: number }
+  ) => {
+    try {
+      return {
+        success: true,
+        data: writeAvatarRenditionAsset(
+          { storageRoot: getStorageRoot() },
+          characterId,
+          assetId,
+          size,
+          bytes,
+          dimensions
+        ),
+      };
+    } catch (e) {
+      logger.error('Failed to save character avatar rendition', e, { characterId, assetId, size });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('delete-character-avatar', async (
+    _event,
+    characterId: string,
+    assetId?: string
+  ): Promise<IpcVoidResult> => {
+    try {
+      deleteCharacterAvatarAsset({ storageRoot: getStorageRoot() }, characterId, assetId);
+      return { success: true, data: null };
+    } catch (e) {
+      logger.error('Failed to delete character avatar', e, { characterId, assetId });
+      return createErrorResult(e);
+    }
+  });
+
   ipcMain.handle('read-character-groups', async (): Promise<IpcResult<CharacterGroupState>> => {
     try {
       return { success: true, data: readCharacterGroups() };
@@ -810,6 +904,34 @@ app.whenReady().then(() => {
       return { success: true, data: null };
     } catch (e) {
       logger.error('Export failed', e, { dirPath, filename });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('export-character-package', async (
+    _event,
+    dirPath: string,
+    character: Character
+  ): Promise<IpcResult<string>> => {
+    try {
+      const filename = writeCharacterPackage({ storageRoot: getStorageRoot() }, dirPath, character);
+      return { success: true, data: filename };
+    } catch (e) {
+      logger.error('Export package failed', e, { dirPath, characterId: character.id });
+      return createErrorResult(e);
+    }
+  });
+
+  ipcMain.handle('import-character-package', async (
+    _event,
+    bytes: Uint8Array,
+    newCharacterId: string
+  ): Promise<IpcResult<Character>> => {
+    try {
+      const result = importCharacterPackage({ storageRoot: getStorageRoot() }, bytes, newCharacterId);
+      return { success: true, data: result.character };
+    } catch (e) {
+      logger.error('Import package failed', e, { newCharacterId });
       return createErrorResult(e);
     }
   });

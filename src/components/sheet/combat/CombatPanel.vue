@@ -560,7 +560,7 @@ const hpPercent = computed(() => {
   .btn-group {
     display: flex; gap: 2px;
     button {
-      border: none; cursor: pointer; color: var(--color-text-inverse);
+      border: none; cursor: pointer; color: var(--color-combat-button-text);
       padding: 4px 8px; font-size: 0.8rem;
       border-radius: 4px;
       &:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }

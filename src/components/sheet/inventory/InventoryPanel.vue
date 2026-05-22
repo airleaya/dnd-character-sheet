@@ -565,7 +565,7 @@ const onDragStart = (e: DragEvent, item: InventoryItem) => {
       .btns {
         display: flex; flex-direction: column; gap: 1px;
         button {
-          flex: 1; border: none; color: var(--color-text-inverse); font-size: 10px; line-height: 1; padding: 2px 6px; cursor: pointer;
+          flex: 1; border: none; color: var(--color-inventory-action-text); font-size: 10px; line-height: 1; padding: 2px 6px; cursor: pointer;
           &.btn-add { background: var(--color-inventory-action-add); border-radius: 2px 2px 0 0; }
           &.btn-sub { background: var(--color-inventory-action-subtract); border-radius: 0 0 2px 2px; }
           &:hover { filter: brightness(1.1); }

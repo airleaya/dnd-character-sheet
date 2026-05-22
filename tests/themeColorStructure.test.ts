@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { APP_THEME_OPTIONS } from '../src/utils/appTheme';
 
 const rootDir = process.cwd();
 const themeColorPath = join(rootDir, 'src', 'styles', 'theme-colors.css');
@@ -54,16 +55,26 @@ const listFiles = (dir: string, extensions: string[]): string[] =>
   });
 
 describe('frontend theme color structure', () => {
-  it('keeps classic and night as matching 40-color theme palettes', () => {
+  it('keeps all app themes as matching 40-color theme palettes', () => {
     const css = readText(themeColorPath);
     const classic = extractThemeDeclarations(extractBlock(css, /:root,\s*:root\[data-theme="classic"\]/));
-    const night = extractThemeDeclarations(extractBlock(css, ':root[data-theme="night"]'));
+    const themes = APP_THEME_OPTIONS.map(option => {
+      const selector = option.id === 'classic'
+        ? /:root,\s*:root\[data-theme="classic"\]/
+        : `:root[data-theme="${option.id}"]`;
+      return {
+        id: option.id,
+        declarations: extractThemeDeclarations(extractBlock(css, selector)),
+      };
+    });
 
     expect(classic).toHaveLength(40);
-    expect(night).toHaveLength(40);
-    expect(night.map(entry => entry.name)).toEqual(classic.map(entry => entry.name));
-    expect(new Set(classic.map(entry => entry.value)).size).toBe(40);
-    expect(new Set(night.map(entry => entry.value)).size).toBe(40);
+    expect(themes).toHaveLength(APP_THEME_OPTIONS.length);
+    themes.forEach(theme => {
+      expect(theme.declarations, `${theme.id} should contain 40 colors`).toHaveLength(40);
+      expect(theme.declarations.map(entry => entry.name)).toEqual(classic.map(entry => entry.name));
+      expect(new Set(theme.declarations.map(entry => entry.value)).size).toBe(40);
+    });
   });
 
   it('keeps UI variable definitions free of direct color literals', () => {

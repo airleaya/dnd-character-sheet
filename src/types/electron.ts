@@ -1,4 +1,4 @@
-import type { Character } from './Character';
+import type { Character, CharacterAvatar, CharacterAvatarSize, CharacterAvatarSizeMeta } from './Character';
 import type { CharacterGroup } from '../stores/characterStore';
 import type {
   DataPackExportOptions,
@@ -26,6 +26,11 @@ export type IpcResult<T> = IpcSuccessResult<T> | IpcFailureResult;
 
 export type IpcVoidResult = IpcResult<null>;
 
+export type AvatarAssetReadResult = {
+  mime: CharacterAvatar['mime'];
+  bytes: Uint8Array;
+};
+
 export type CharacterGroupState = {
   groups: CharacterGroup[];
   ungroupedExpanded: boolean;
@@ -42,6 +47,27 @@ export interface ElectronApi {
   setZoomFactor: (factor: number) => void;
   selectDirectory: () => Promise<string | null>;
   exportCharacter: (dirPath: string, filename: string, content: string) => Promise<IpcVoidResult>;
+  exportCharacterPackage?: (dirPath: string, character: Character) => Promise<IpcResult<string>>;
+  importCharacterPackage?: (bytes: Uint8Array, newCharacterId: string) => Promise<IpcResult<Character>>;
+  saveCharacterAvatar?: (
+    characterId: string,
+    bytes: Uint8Array,
+    dimensions?: { width: number; height: number },
+    previousAssetId?: string
+  ) => Promise<IpcResult<CharacterAvatar>>;
+  readCharacterAvatar?: (
+    characterId: string,
+    assetId: string,
+    size?: CharacterAvatarSize
+  ) => Promise<IpcResult<AvatarAssetReadResult | null>>;
+  saveCharacterAvatarRendition?: (
+    characterId: string,
+    assetId: string,
+    size: CharacterAvatarSize,
+    bytes: Uint8Array,
+    dimensions?: { width: number; height: number }
+  ) => Promise<IpcResult<CharacterAvatarSizeMeta>>;
+  deleteCharacterAvatar?: (characterId: string, assetId?: string) => Promise<IpcVoidResult>;
   writeLog: (entry: LogWriteInput) => Promise<IpcVoidResult>;
   readCustomMagicTraits?: () => Promise<IpcResult<ItemMagicTrait[]>>;
   saveCustomMagicTraits?: (traits: ItemMagicTrait[]) => Promise<IpcResult<ItemMagicTrait[]>>;

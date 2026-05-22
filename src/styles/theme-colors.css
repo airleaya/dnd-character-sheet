@@ -100,3 +100,105 @@
   --theme-brown-700: #d2b48a;
   --theme-brown-900: #f0dfc5;
 }
+
+:root[data-theme="byzantine"] {
+  /* Theme colors: Byzantine purple UI palette, exactly 40 concrete colors. */
+  --theme-neutral-0: #fffaf2;
+  --theme-neutral-50: #f8f0e4;
+  --theme-neutral-100: #efe2cf;
+  --theme-neutral-200: #dfcbae;
+  --theme-neutral-300: #c7ad8c;
+  --theme-neutral-500: #9d8366;
+  --theme-neutral-700: #6f5841;
+  --theme-neutral-900: #2b1936;
+  --theme-neutral-950: #15081f;
+
+  --theme-slate-100: #f0e6f6;
+  --theme-slate-300: #7f638f;
+  --theme-slate-600: #6f477f;
+  --theme-slate-750: #4b2364;
+  --theme-slate-850: #2a103d;
+
+  --theme-primary-50: #f5e9ff;
+  --theme-primary-500: #8b4fc4;
+  --theme-primary-700: #552083;
+
+  --theme-green-50: #edf7e7;
+  --theme-green-400: #6fb071;
+  --theme-green-500: #4f9c62;
+  --theme-teal-300: #72c7b8;
+  --theme-teal-600: #2f8f83;
+
+  --theme-red-50: #fff0f2;
+  --theme-red-250: #cf7884;
+  --theme-red-500: #b94a5c;
+  --theme-red-700: #742536;
+
+  --theme-gold-50: #fff5d8;
+  --theme-gold-300: #e6c36a;
+  --theme-gold-500: #d2a135;
+  --theme-orange-350: #c98342;
+  --theme-orange-600: #9d5624;
+
+  --theme-arcane-50: #f8edff;
+  --theme-arcane-200: #ddc2f5;
+  --theme-arcane-400: #b388d8;
+  --theme-arcane-600: #7d3ea3;
+  --theme-arcane-800: #3a0f55;
+
+  --theme-parchment-50: #fff3df;
+  --theme-parchment-100: #ead7b5;
+  --theme-brown-700: #6a4a2f;
+  --theme-brown-900: #2e2017;
+}
+
+:root[data-theme="remilia"] {
+  /* Theme colors: Remilia blood-red primary with blue secondary, exactly 40 concrete colors. */
+  --theme-neutral-0: #fff8fb;
+  --theme-neutral-50: #fff0f5;
+  --theme-neutral-100: #f8dbe6;
+  --theme-neutral-200: #e8b6ca;
+  --theme-neutral-300: #cc7897;
+  --theme-neutral-500: #9f4564;
+  --theme-neutral-700: #6a2038;
+  --theme-neutral-900: #250714;
+  --theme-neutral-950: #10040b;
+
+  --theme-slate-100: #d8ecff;
+  --theme-slate-300: #255f96;
+  --theme-slate-600: #15558f;
+  --theme-slate-750: #0b356a;
+  --theme-slate-850: #061c3e;
+
+  --theme-primary-50: #ffe8ef;
+  --theme-primary-500: #c4002f;
+  --theme-primary-700: #820012;
+
+  --theme-green-50: #eef6f1;
+  --theme-green-400: #6aa985;
+  --theme-green-500: #3f8f68;
+  --theme-teal-300: #5bc8f0;
+  --theme-teal-600: #1478aa;
+
+  --theme-red-50: #ffe3eb;
+  --theme-red-250: #df6d83;
+  --theme-red-500: #d10a35;
+  --theme-red-700: #8f0a24;
+
+  --theme-gold-50: #fff5d6;
+  --theme-gold-300: #dfc36b;
+  --theme-gold-500: #caa341;
+  --theme-orange-350: #c47a4c;
+  --theme-orange-600: #91502e;
+
+  --theme-arcane-50: #f7eaf3;
+  --theme-arcane-200: #ddb8cf;
+  --theme-arcane-400: #b979a7;
+  --theme-arcane-600: #82305e;
+  --theme-arcane-800: #41152f;
+
+  --theme-parchment-50: #fff7ec;
+  --theme-parchment-100: #ecdcc7;
+  --theme-brown-700: #5f473a;
+  --theme-brown-900: #2b1c18;
+}

@@ -268,7 +268,7 @@ const playBounceAnimation = (item: InventoryItem) => {
     .type-badge { color: var(--color-equipment-type); }
 
     .ac-badge {
-      background: var(--color-equipment-ac-bg); color: var(--color-text-inverse); padding: 0 4px; border-radius: 3px; font-weight: bold;
+      background: var(--color-equipment-ac-bg); color: var(--color-equipment-ac-text); padding: 0 4px; border-radius: 3px; font-weight: bold;
     }
 
     .btn-unequip {

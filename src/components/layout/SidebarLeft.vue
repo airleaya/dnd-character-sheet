@@ -4,14 +4,32 @@ import { useCharacterStore } from '../../stores/characterStore';
 import { useActiveSheetStore } from '../../stores/activeSheet';
 import { useUiFeedbackStore } from '../../stores/uiFeedback';
 import { CLASS_DICTIONARY } from '../../data/rules/classes';
-import type { CharacterClassRecord } from '../../types/Character';
+import type { Character, CharacterClassRecord } from '../../types/Character';
+import { APP_THEME_OPTIONS, getCurrentAppTheme, setAppTheme, type AppThemeId } from '../../utils/appTheme';
 import { createRendererLogger } from '../../utils/rendererLogger';
+import { CHARACTER_PACKAGE_EXTENSION } from '../../types/CharacterPackage';
+import SidebarCharacterAvatar from './SidebarCharacterAvatar.vue';
+import CharacterImportPreviewModal from './CharacterImportPreviewModal.vue';
+import {
+  createCharacterImportPreview,
+  revokeImportPreview,
+  type CharacterImportPreview,
+} from '../../utils/characterPackagePreview';
 
 const charStore = useCharacterStore();
 const activeStore = useActiveSheetStore();
 const feedback = useUiFeedbackStore();
 const logger = createRendererLogger('components/layout/SidebarLeft');
 const fileInput = ref<HTMLInputElement | null>(null); // 文件输入框引用
+const pendingImportFiles = ref<File[]>([]);
+const pendingImportIndex = ref(0);
+const importPreview = ref<CharacterImportPreview | null>(null);
+const isConfirmingImport = ref(false);
+const importSuccessCount = ref(0);
+const lastImportedId = ref<string | null>(null);
+
+const cloneCharacterForIpc = (character: Character): Character =>
+  JSON.parse(JSON.stringify(character)) as Character;
 
 // 原生拖拽相关状态
 const dragOverGroupId = ref<string | null>(null);
@@ -141,6 +159,7 @@ const handleBulkExport = async () => {
   if (!targetDir) return; // 用户取消
 
   let successCount = 0;
+  let failureCount = 0;
   
   // 2. 循环导出
   for (const id of ids) {
@@ -151,11 +170,17 @@ const handleBulkExport = async () => {
       const filename = `${safeName}_Lv${char.profile.level}.json`;
       
       try {
-        const json = JSON.stringify(char, null, 2);
+        if (!window.electronAPI.exportCharacterPackage) {
+          throw new Error('Character package export API is unavailable');
+        }
+        const result = await window.electronAPI.exportCharacterPackage(targetDir, cloneCharacterForIpc(char));
+        if (!result.success) {
+          throw new Error(result.error);
+        }
         // 调用新 API 写入外部文件夹
-        await window.electronAPI.exportCharacter(targetDir, filename, json);
         successCount++;
       } catch (e) {
+        failureCount++;
         logger.error('Failed to export character', e, {
           characterId: char.id,
           characterName: char.profile.name,
@@ -165,7 +190,11 @@ const handleBulkExport = async () => {
     }
   }
 
-  feedback.showToast(`已成功导出 ${successCount} 个角色`, 'success');
+  if (failureCount > 0) {
+    feedback.showToast(`已导出 ${successCount} 个角色，${failureCount} 个失败，请检查日志`, 'danger');
+  } else {
+    feedback.showToast(`已成功导出 ${successCount} 个角色`, 'success');
+  }
   isBulkMode.value = false; // 导出完成后退出批量模式
 };
 
@@ -235,7 +264,7 @@ const handleCreate = async () => {
 };
 
 // 📤 导出当前选中的角色 (增强版)
-const handleExport = () => {
+const handleExport = async () => {
   // 1. 获取当前正在查看的角色对象
   const charInMemory = activeStore.character;
   
@@ -245,6 +274,32 @@ const handleExport = () => {
   }
 
   // 2. 尝试从 Store (LocalStorage) 导出
+  if (!window.electronAPI.exportCharacterPackage) {
+    feedback.showToast('导出失败：导出接口不可用', 'danger');
+    return;
+  }
+
+  const targetDir = await window.electronAPI.selectDirectory();
+  if (!targetDir) return;
+
+  try {
+    const packageResult = await window.electronAPI.exportCharacterPackage(targetDir, cloneCharacterForIpc(charInMemory));
+    if (!packageResult.success) {
+      throw new Error(packageResult.error);
+    }
+    feedback.showToast(`已导出：${packageResult.data}`, 'success');
+  } catch (e) {
+    logger.error('Failed to export character package', e, {
+      characterId: charInMemory.id,
+      characterName: charInMemory.profile.name,
+    });
+    feedback.showToast('导出失败，请检查日志', 'danger');
+  }
+  return;
+
+};
+
+  /*
   let result = charStore.exportCharacter(charInMemory.id);
 
   // 3. 🚨 兜底逻辑：如果 LocalStorage 里找不到 (比如刚刚新建还未保存，或缓存丢失)
@@ -287,8 +342,87 @@ const handleExport = () => {
 };
 
 // 📥 触发导入 (点击隐藏的 file input)
+*/
+
 const triggerImport = () => {
   fileInput.value?.click();
+};
+
+const closeCurrentImportPreview = () => {
+  revokeImportPreview(importPreview.value);
+  importPreview.value = null;
+};
+
+const finishImportQueue = async () => {
+  closeCurrentImportPreview();
+  pendingImportFiles.value = [];
+  pendingImportIndex.value = 0;
+  isConfirmingImport.value = false;
+
+  if (importSuccessCount.value > 0 && lastImportedId.value) {
+    await nextTick();
+    activeStore.loadCharacter(lastImportedId.value);
+    window.focus();
+  }
+
+  importSuccessCount.value = 0;
+  lastImportedId.value = null;
+};
+
+const openNextImportPreview = async () => {
+  closeCurrentImportPreview();
+
+  while (pendingImportIndex.value < pendingImportFiles.value.length) {
+    const file = pendingImportFiles.value[pendingImportIndex.value];
+    try {
+      importPreview.value = await createCharacterImportPreview(file);
+      return;
+    } catch (err) {
+      logger.error('Failed to preview import file', err, { fileName: file.name });
+      feedback.showToast(`无法预览导入文件：${file.name}`, 'danger');
+      pendingImportIndex.value += 1;
+    }
+  }
+
+  await finishImportQueue();
+};
+
+const confirmImportPreview = async () => {
+  if (isConfirmingImport.value) return;
+
+  const file = pendingImportFiles.value[pendingImportIndex.value];
+  if (!file) {
+    await finishImportQueue();
+    return;
+  }
+
+  isConfirmingImport.value = true;
+  try {
+    const isPackage = file.name.toLowerCase().endsWith(CHARACTER_PACKAGE_EXTENSION);
+    const newId = isPackage
+      ? await charStore.importCharacterPackage(await readFileAsBytes(file))
+      : await charStore.importCharacter(await readFileAsText(file));
+
+    if (newId) {
+      importSuccessCount.value += 1;
+      lastImportedId.value = newId;
+      feedback.showToast(`已导入：${importPreview.value?.name ?? file.name}`, 'success');
+    } else {
+      feedback.showToast(`导入失败：${file.name}`, 'danger');
+    }
+  } catch (err) {
+    logger.error('Failed to import file', err, { fileName: file.name });
+    feedback.showToast(`导入失败：${file.name}`, 'danger');
+  } finally {
+    isConfirmingImport.value = false;
+    pendingImportIndex.value += 1;
+    await openNextImportPreview();
+  }
+};
+
+const cancelImportPreview = async () => {
+  pendingImportIndex.value += 1;
+  await openNextImportPreview();
 };
 
 // 🆕 辅助函数：将 FileReader 封装为 Promise，以便在循环中 await
@@ -301,6 +435,15 @@ const readFileAsText = (file: File): Promise<string> => {
   });
 };
 
+const readFileAsBytes = (file: File): Promise<Uint8Array> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = (error) => reject(error);
+    reader.readAsArrayBuffer(file);
+  });
+};
+
 // 🔄 重构：处理文件选择 (支持批量 + 防止卡死)
 const onFileSelected = async (e: Event) => {
   const input = (e.target as HTMLInputElement);
@@ -309,42 +452,13 @@ const onFileSelected = async (e: Event) => {
   // 如果没有选择文件，直接返回
   if (!files || files.length === 0) return;
 
-  let successCount = 0;       // 成功计数
-  let lastNewId: string | null = null; // 记录最后一个成功的ID
+  pendingImportFiles.value = Array.from(files);
+  pendingImportIndex.value = 0;
+  importSuccessCount.value = 0;
+  lastImportedId.value = null;
+  await openNextImportPreview();
 
-  // 1. 循环处理所有选中的文件
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    try {
-      // 串行等待文件读取
-      const content = await readFileAsText(file);
-      if (content) {
-        // 等待 Store 执行导入
-        const newId = await charStore.importCharacter(content);
-        if (newId) {
-          successCount++;
-          lastNewId = newId; // 更新最后一个 ID
-        }
-      }
-    } catch (err) {
-      logger.error('Failed to import file', err, { fileName: file.name });
-      // 这里不中断循环，继续处理下一个文件
-    }
-  }
-
-  // 2. 所有文件处理完毕后的收尾工作
-  if (successCount > 0 && lastNewId) {
-    await nextTick();
-    
-    // 自动加载最后一个导入的角色，给用户反馈
-    activeStore.loadCharacter(lastNewId);
-    
-    // ⚠️ 核心修复：强制窗口重新获取焦点，防止输入框卡死
-    // 放在循环结束后执行一次即可
-    window.focus();
-  }
-
-  // 3. 清空 input，允许下次选择相同文件
+  // 清空 input，允许下次选择相同文件
   input.value = ''; 
 };
 
@@ -366,6 +480,11 @@ const handleSave = async () => {
 
 // 缩放控制逻辑
 const zoomLevel = ref(1.0); // 1.0 = 100%
+const activeTheme = ref<AppThemeId>('classic');
+
+const selectTheme = (theme: AppThemeId) => {
+  activeTheme.value = setAppTheme(theme);
+};
 
 // 设置缩放并保存到 LocalStorage
 const applyZoom = (value: number) => {
@@ -406,6 +525,7 @@ const handleWheel = (e: WheelEvent) => {
 
 // 初始化：读取上次的缩放比例
 onMounted(() => {
+  activeTheme.value = getCurrentAppTheme();
   const savedZoom = localStorage.getItem('dnd_app_zoom');
   if (savedZoom) {
     applyZoom(parseFloat(savedZoom));
@@ -417,11 +537,18 @@ onMounted(() => {
 //组件销毁时清理监听
 onUnmounted(() => {
   window.removeEventListener('wheel', handleWheel);
+  closeCurrentImportPreview();
 });
 </script>
 
 <template>
   <aside class="sidebar-left">
+    <CharacterImportPreviewModal
+      :preview="importPreview"
+      @confirm="confirmImportPreview"
+      @cancel="cancelImportPreview"
+    />
+
     <div class="header">
       <h2>我的角色</h2>
       <div class="header-actions">
@@ -502,6 +629,12 @@ onUnmounted(() => {
                 </div>
                 <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ getClassNames(char.classes) }}</div>
               </div>
+              <SidebarCharacterAvatar
+                :character-id="char.id"
+                :name="char.name"
+                :avatar="char.avatar"
+                :avatar-url="char.avatarUrl"
+              />
               <button v-if="!isBulkMode" class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
             </div>
           </li>
@@ -544,6 +677,12 @@ onUnmounted(() => {
                 </div>
                 <div class="char-meta">Lv.{{ char.level }} {{ char.race }} {{ getClassNames(char.classes) }}</div>
               </div>
+              <SidebarCharacterAvatar
+                :character-id="char.id"
+                :name="char.name"
+                :avatar="char.avatar"
+                :avatar-url="char.avatarUrl"
+              />
               <button v-if="!isBulkMode" class="btn-delete" @click="handleDelete($event, char.id, char.name)" title="删除">×</button>
             </div>
           </li>
@@ -554,6 +693,22 @@ onUnmounted(() => {
 
 
     <div class="footer-wrapper">
+      <div class="theme-bar" aria-label="主题切换">
+        <span class="theme-label">主题</span>
+        <div class="theme-segment">
+          <button
+            v-for="theme in APP_THEME_OPTIONS"
+            :key="theme.id"
+            type="button"
+            class="theme-option"
+            :class="{ active: activeTheme === theme.id }"
+            :aria-pressed="activeTheme === theme.id"
+            @click="selectTheme(theme.id)"
+          >
+            {{ theme.label }}
+          </button>
+        </div>
+      </div>
       
       <div class="zoom-bar">
         <button @click="adjustZoom(-0.1)" class="btn-zoom" title="缩小">-</button>
@@ -574,13 +729,13 @@ onUnmounted(() => {
       <button @click="handleExport" class="btn-tool btn-export" :disabled="!activeStore.character" title="导出当前角色为 JSON">
         📤 备份
       </button>
-      <button @click="triggerImport" class="btn-tool btn-import" title="从 JSON 导入角色">
+      <button @click="triggerImport" class="btn-tool btn-import" title="导入 JSON 或旧版 dndchar">
         📥 导入
       </button>
       <input 
         type="file" 
         ref="fileInput" 
-        accept=".json" 
+        accept=".dndchar,.json" 
         multiple
         style="display: none"
         @change="onFileSelected" 
@@ -678,7 +833,7 @@ onUnmounted(() => {
       .group-name { font-size: 0.9rem; font-weight: bold; color: var(--color-shell-left-text-muted); flex: 1; }
       .inline-edit-input {
         flex: 1; padding: 2px 4px; margin-right: 4px; border-radius: 2px;
-        border: 1px solid var(--color-border-focus); background: var(--color-shell-left-bg); color: var(--color-text-inverse); outline: none;
+        border: 1px solid var(--color-border-focus); background: var(--color-shell-left-bg); color: var(--color-shell-left-text); outline: none;
       }
       .group-tools {
         display: none; // 默认隐藏，hover时显示
@@ -702,17 +857,25 @@ onUnmounted(() => {
       padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid var(--color-shell-left-border); transition: background 0.2s;
       &.selected { background-color: var(--color-shell-left-selection-bg); }
       &:hover { background-color: var(--color-shell-left-border); .btn-delete { opacity: 1; } }
-      &.active { background-color: var(--color-action-primary-hover); border-bottom-color: var(--color-border-focus); }
+      &.active { background-color: var(--color-shell-left-active-bg); border-bottom-color: var(--color-border-focus); }
 
       .checkbox-wrapper {
         margin-right: 10px; display: flex; align-items: center;
         input { cursor: pointer; width: 16px; height: 16px; }
       }
 
-      .char-row { display: flex; justify-content: space-between; align-items: center; }
+      .char-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+      .char-info {
+        flex: 1;
+        min-width: 0;
+      }
 
       .char-name {
-        font-weight: bold; font-size: 1rem; color: var(--color-text-inverse);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: bold; font-size: 1rem; color: var(--color-shell-left-text);
         .player-name {
           font-size: 0.8rem;
           color: var(--color-shell-left-player); // 玩家名使用不同的显眼颜色
@@ -720,9 +883,10 @@ onUnmounted(() => {
           margin-left: 4px;
         }
       }
-      .char-meta { font-size: 0.8rem; color: var(--color-shell-left-text-muted); margin-top: 2px; }
+      .char-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; color: var(--color-shell-left-text-muted); margin-top: 2px; }
 
       .btn-delete {
+        flex: 0 0 auto;
         opacity: 0;
         background: none; border: none; color: var(--color-shell-left-danger); font-size: 1.5rem; cursor: pointer;
         padding: 0 4px; line-height: 1; transition: opacity 0.2s, transform 0.2s;
@@ -739,6 +903,54 @@ onUnmounted(() => {
   }
 
   /* 缩放条样式 */
+  .theme-bar {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 1rem 2px;
+  }
+
+  .theme-label {
+    color: var(--color-shell-left-text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    user-select: none;
+  }
+
+  .theme-segment {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--color-shell-left-control-border);
+    border-radius: 6px;
+    background: var(--color-shell-left-bg);
+  }
+
+  .theme-option {
+    min-width: 0;
+    height: 28px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-shell-left-text-muted);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    transition: background 0.2s, color 0.2s;
+
+    &:hover {
+      background: var(--color-shell-left-hover-bg);
+      color: var(--color-shell-left-text);
+    }
+
+    &.active {
+      background: var(--color-shell-left-button-bg);
+      color: var(--color-shell-left-accent);
+    }
+  }
+
   .zoom-bar {
     display: flex; align-items: center; justify-content: center;
     padding: 8px 1rem 0; gap: 8px;

@@ -1,11 +1,32 @@
 # TODOLIST
 
 > 2026-05-22 version iteration update:
+> Current baseline grows from `0.15.4` to `0.15.5`; this round lands the character avatar pipeline, single-file JSON backups with embedded avatar bytes, sidebar avatar display, and import preview confirmation.
+> 2026-05-22 character avatar implementation:
+> Avatar upload now enters an editor before saving, backups export as visible JSON instead of zipped `.dndchar`, new backup JSON / legacy JSON / legacy `.dndchar` imports stay compatible, and the left sidebar shows each character avatar when available.
+
+> 2026-05-22 version iteration update:
+> Current baseline grows from `0.15.3` to `0.15.4`; this round opens discussion for a future character avatar pipeline, focusing on bundling avatars with character saves while controlling exported save size.
+> 2026-05-22 character avatar storage discussion:
+> Proposed direction under discussion: keep avatar metadata in the character JSON, store processed image assets beside character data, and bundle the avatar only during character export/import so saves remain portable without embedding large original images directly in every autosave.
+
+> 2026-05-22 version iteration update:
+> Current baseline grows from `0.15.2` to `0.15.3`; this round keeps the expanded app themes and fixes Electron window-state persistence so maximized windows save their normal, non-maximized bounds.
+> 2026-05-22 window state persistence fix:
+> Electron now stores `getNormalBounds()` when the window is maximized, records `isMaximized`, and restores maximized state after recreating the window without overwriting the user's ordinary window size.
+
+> 2026-05-22 version iteration update:
 > Current baseline grows from `0.15.0` to `0.15.1`; this round lands the frontend color structure and theme tokenization work as the first `0.15` patch release.
 > 2026-05-22 frontend color tokenization release:
 > UI component colors now read from `src/styles/theme.css`, direct color literal scanning for `src/components/**` and `src/style.css` is clean, and magic item DIY colors remain item-instance content overrides rather than global theme mutations.
 > 2026-05-22 40-color theme structure:
 > Current baseline grows from `0.15.1` to `0.15.2`; added `src/styles/theme-colors.css` as the concrete color layer with matching `classic` and `night` themes, each containing exactly 40 `--theme-*` colors. `src/styles/theme.css` is now the variable layer; components read `--color-*` or `--content-*`, and `tests/themeColorStructure.test.ts` locks the layer rules.
+> 2026-05-22 theme switcher entry:
+> Added a persistent `classic` / `night` theme switcher in the left sidebar footer. Startup now restores `dnd_app_theme` before Vue mounts, and `tests/appTheme.test.ts` plus `tests/sidebarLeftTheme.ui.test.ts` cover the theme utility and UI switch.
+> 2026-05-22 byzantine purple theme:
+> Added a third `byzantine` app theme built on the same 40-color structure, using Byzantine purple as the primary identity with parchment, antique gold, peacock green, and wine-red support colors. Theme tests now validate every option in `APP_THEME_OPTIONS`.
+> 2026-05-22 Remilia theme:
+> Added a fourth `remilia` app theme built on the 40-color structure, using blood red as the primary identity and gray-blue support colors for shell, border, and muted UI surfaces.
 
 > 2026-05-21 version iteration update:
 > Current baseline grows from `0.14.23` to `0.15.0`; this round clears the temporary recovery stash and opens the `0.15` project stage for the next set of feature and design adjustments.
@@ -297,12 +318,15 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.15.2`
+当前基线版本：`0.15.5`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
 
 - `0.15.N`：下一阶段功能与前端设计调整；`N` 为自增长补丁版本号。
+- `0.15.5`：已完成角色头像上传编辑、单 JSON 备份嵌入头像字节、侧边栏头像展示、导入前预览与旧格式兼容导入。
+- `0.15.4`：进入角色头像存储方案讨论阶段，重点评估头像随角色转移与存档体积控制。
+- `0.15.3`：已暴露主题切换入口，补充拜占庭与蕾米莉亚主题，并修复最大化窗口关闭时误保存最大化尺寸的问题。
 - `0.15.2`：已建立 40 色主题层示例，记录 `classic` 与 `night` 两套同构主题，并加入颜色结构测试护栏。
 - `0.15.1`：已完成前端颜色结构与主题令牌化阶段收口，主要 UI 颜色集中到 `src/styles/theme.css`。
 - `0.15.0`：已清理恢复用临时 stash，正式切入 `0.15` 版本线，并建立第一版前端颜色结构。
@@ -341,12 +365,15 @@
 - 目标版本：`0.15.N`
 - 类型：工程文档 / 索引 / 验收口径 / 版本维护
 - 已核对文件：
-  - `package.json` 与 `package-lock.json` 均为 `0.15.2`。
-  - `README.md` 当前版本号为 `0.15.2`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
+  - `package.json` 与 `package-lock.json` 均为 `0.15.5`。
+  - `README.md` 当前版本号为 `0.15.5`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
   - `README.md` 已加入 `CSS_COLOR_USAGE_AUDIT.md` 相关文档入口。
   - `UPDATE_LOG.md` 已有 `0.14.23` 条目，记录恢复回滚前提交、前端设计摸底、测试基线修正和工程文件互检结果。
   - `UPDATE_LOG.md` 已有 `0.15.1` 条目，记录前端颜色结构与主题令牌化阶段收口。
   - `UPDATE_LOG.md` 已有 `0.15.2` 条目，记录 40 色主题层、夜间主题和颜色结构测试护栏。
+  - `UPDATE_LOG.md` 已有 `0.15.3` 条目，记录主题扩展、蕾米莉亚红主蓝辅调色与窗口最大化尺寸保存修复。
+  - `UPDATE_LOG.md` 已有 `0.15.4` 条目，记录角色头像存储方案讨论入口与版本滚动。
+  - `UPDATE_LOG.md` 已有 `0.15.5` 条目，记录头像编辑、单 JSON 备份、侧边栏头像、导入预览与旧格式兼容导入。
   - `UPDATE_LOG.md` 已有 `0.15.0` 条目，记录清理临时 stash 与进入 `0.15` 阶段。
   - `FRONTEND_DESIGN_AUDIT.md` 已以 `0.15.0` 为前端设计摸底基线。
   - `src/styles/theme-colors.css` 已建立 `classic` / `night` 两套 40 色主题层，`src/styles/theme.css` 已作为变量层读取主题色。
@@ -402,7 +429,8 @@
   - [x] 建立 `classic` / `night` 两套 40 色主题层，并让变量层从主题层读取。
   - [x] 为颜色层、变量层、组件引用层加入结构测试。
   - [x] 明确内容色归类：魔法物品默认视觉走 Content fallback，用户 DIY 的 `magic.visuals` 只覆盖当前物品实例。
-  - [ ] 后续另开任务处理主题切换 UI、透明/渐变层级细化、历史文档审计口径与视觉回归验证。
+  - [x] 暴露主题切换 UI，让用户可在 `classic` / `night` 间切换并持久化选择。
+  - [ ] 后续另开任务处理更多主题管理、透明/渐变层级细化、历史文档审计口径与视觉回归验证。
 
 ### 0. 数据包系统四阶段工作栈
 - [ ] 状态：阶段四应用内口令可见性已完成第一版；真加密与解锁状态持久化仍按需评估，作为 `0.14.N` 主线
