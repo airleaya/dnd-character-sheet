@@ -1,6 +1,6 @@
 # Project Index
 
-Current baseline: `0.15.5`
+Current baseline: `0.16.0`
 
 This file is the root navigation entry for the project index. The detailed, maintained index now lives under `docs/index/` and is written for future development and AI handoff work.
 

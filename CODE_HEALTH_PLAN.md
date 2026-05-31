@@ -1,7 +1,7 @@
 # CODE_HEALTH_PLAN
 
 > 2026-05-23 归档边界说明：
-> 本文件包含 `0.11.x` 起的工程治理历史记录，部分章节保留旧存储路径、旧 CI 链路和历史测试基线。当前项目事实以 `README.md`、`TODOLIST.md`、`UPDATE_LOG.md` 与 `docs/index/` 为准；最近可靠测试基线记录为 `0.15.5` 的 `45 个文件 / 229 个测试`。
+> 本文件包含 `0.11.x` 起的工程治理历史记录，部分章节保留旧存储路径、旧 CI 链路和历史测试基线。正文中未特别标注的“当前”均指对应阶段当时的项目状态，不代表 `0.15.5` 现状。当前项目事实以 `README.md`、`TODOLIST.md`、`UPDATE_LOG.md` 与 `docs/index/` 为准；最近可靠测试基线记录为 `0.15.5` 的 `45 个文件 / 229 个测试`。
 
 > 2026-04-29 新功能日志准入规则：
 > 后续所有生产功能必须自带日志接入方案。渲染进程统一使用 `createRendererLogger(namespace)`，主进程统一使用 `createMainLogger(namespace)`；记录用户操作入口、IPC/文件读写结果、失败原因和安全摘要，禁止写入完整角色 JSON、完整数据包内容、密码或大对象。
@@ -56,7 +56,7 @@
 
 ## 2. 总体结论
 
-当前项目属于：
+`0.11.5` 评估时项目属于：
 
 > **功能基本可用、模块拆分方向正确，但工程护栏不足、类型安全偏弱、数据模型与兼容逻辑仍有技术债。**
 
@@ -202,7 +202,7 @@ npm run build
 
 ### 3.6 Electron 存档路径设计不够稳健
 
-当前 `electron/main.ts` 中：
+历史快照：当时 `electron/main.ts` 中：
 
 - 存档目录：`path.join(process.cwd(), 'saves')`
 - 窗口配置：`path.join(process.cwd(), 'window-config.json')`
@@ -216,6 +216,8 @@ npm run build
 建议：
 
 - 迁移至 `app.getPath('userData')`
+
+> 现状说明：当前项目已迁移到 Electron `userData/dnd_5e_characters/` 公共存储根；角色位于 `characters/`，窗口配置位于 `app-state/window-config.json`。本节保留为旧问题来源记录。
 
 ---
 
@@ -400,8 +402,10 @@ npm run build
 
 完成说明：
 - 已新增 `.github/workflows/ci.yml`
-- CI 当前执行：`npm ci`、`npm run typecheck`、`npm run lint`、`npm run build`
+- Phase 1 当时 CI 执行：`npm ci`、`npm run typecheck`、`npm run lint`、`npm run build`
 - 触发范围包含 `push` 与 `pull_request`
+
+> 现状说明：当前 CI 已补入 `npm run test`，实际链路为 `npm ci -> npm run typecheck -> npm run lint -> npm run test -> npm run build`。
 
 **Phase 1 明确成果**：
 - 项目已建立最小工程护栏：本地检查、格式化、静态检查、类型检查、最小 CI 全部可用
@@ -940,8 +944,8 @@ npm run build
 
 **Phase 7 明确成果**：
 - 已将测试正式接入持续集成，并把 `test / typecheck / lint / build` 收敛为同一条工程验收链路
-- 已为 Electron / IPC 边界、store 集成链路、全局反馈层与 `App` 根壳补上更高层的回归保护，当前共形成 10 组测试文件与 30 条测试用例
-- 当前交付状态以 `npm run test`、`npm run typecheck`、`npm run lint`、`npm run build` 作为 Phase 7 正式验收链路
+- 已为 Electron / IPC 边界、store 集成链路、全局反馈层与 `App` 根壳补上更高层的回归保护，Phase 7 结项时共形成 10 组测试文件与 30 条测试用例
+- Phase 7 交付状态以 `npm run test`、`npm run typecheck`、`npm run lint`、`npm run build` 作为正式验收链路
 
 ## 7. 专项归档与开发切换说明
 
@@ -958,8 +962,8 @@ npm run build
 
 归档结论：
 - 项目已从“主要依赖人工检查”推进到“本地 + CI + 回归测试”共同验收
-- 当前稳定验收链路为 `npm run test`、`npm run typecheck`、`npm run lint`、`npm run build`
-- 当前测试基线为 10 组测试文件、30 条测试用例
+- 本专项结项时稳定验收链路为 `npm run test`、`npm run typecheck`、`npm run lint`、`npm run build`
+- 本专项结项测试基线为 10 组测试文件、30 条测试用例；当前项目最新可靠测试基线请以 `UPDATE_LOG.md` 和 `TODOLIST.md` 为准
 - 本专项已达到“可验证、可维护、可继续扩展功能”的目标，可以结束重构型推进
 
 后续维护约定：

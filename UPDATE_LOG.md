@@ -1,12 +1,16 @@
 # UPDATE_LOG
 
-## [Unreleased] - 2026-05-23
-- 类型：工程文档 / 项目索引 / 维护入口
-- 项目：建立面向后续开发与 AI 接力的多文档项目索引组。
+## [0.16.0] - 2026-05-31
+- 类型：工程文档 / 项目索引 / 历史归档 / 版本滚动
+- 项目：建立多文档项目索引并收口工程文档历史清理，作为 `0.16.0` 文档与维护流程大版本。
 - 负责人：snowlitch / Codex
 - 相关文件：
+  - `package.json`
+  - `package-lock.json`
   - `PROJECT_INDEX.md`
   - `README.md`
+  - `CODE_HEALTH_PLAN.md`
+  - `RELEASE_NOTES_v0.14.21.md`
   - `TODOLIST.md`
   - `UPDATE_LOG.md`
   - `docs/index/README.md`
@@ -21,9 +25,13 @@
   - `docs/index/tests-and-verification.md`
   - `docs/index/documents-and-workflow.md`
 - 完成内容：
+  - 项目版本从 `0.15.5` 滚动到 `0.16.0`。
   - 将旧的单文件 `PROJECT_INDEX.md` 重写为根导航入口。
   - 新增 `docs/index/` 索引组，按架构、Electron/IPC/存储、前端壳、角色头像与备份、状态逻辑、物品/铁匠/附魔、法术/数据包、主题设计、测试验证和文档流程拆分。
   - 明确旧 `generate_index.js` 只是历史辅助脚本，不再作为当前索引的事实来源。
+  - 将 `CODE_HEALTH_PLAN.md` 中旧存储路径、旧 CI 链路和旧测试基线相关表述改为阶段历史口径，并保留当前事实源说明。
+  - 将乱码的 `RELEASE_NOTES_v0.14.21.md` 改为历史损坏稿指针，明确未来发布说明应从 `UPDATE_LOG.md` 重新生成。
+  - 将 `TODOLIST.md` 的工程文档历史清理项标记为已完成，当前仍待清理差异清零。
 - 验证：
   - `git diff --check` 通过。
   - 索引中引用的关键文档路径已用 `rg --files` 核对。

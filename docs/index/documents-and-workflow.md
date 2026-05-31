@@ -13,13 +13,13 @@ This page explains which project documents are authoritative for different maint
 - `UPDATE_LOG.md` - completed work history and verification records.
 - `FRONTEND_DESIGN_AUDIT.md` - frontend design map, UX risks, and visual-system audit.
 - `CSS_COLOR_USAGE_AUDIT.md` - historical CSS color usage baseline before tokenization.
-- `CODE_HEALTH_PLAN.md` - historical and governance-oriented code health plan.
+- `CODE_HEALTH_PLAN.md` - archived governance-oriented code health plan; old paths, CI notes, and test counts are historical snapshots.
 
 ## Historical Or Specialized Documents
 
 - `ATTACK_PANEL_PLAN.md` and `ATTACK_PANEL_DATA_REQUEST.md` - attack panel planning history.
 - `ITEM_LIBRARY_WORKFLOW.md` - item library workflow notes.
-- `RELEASE_NOTES_v0.14.21.md` - old release note draft; treat as historical unless regenerated.
+- `RELEASE_NOTES_v0.14.21.md` - damaged historical release-note draft pointer; regenerate future notes from `UPDATE_LOG.md`.
 - `src/data/libraries/structured/*.md` - structured item migration and review notes.
 - `scripts/README.md` - script-specific notes.
 

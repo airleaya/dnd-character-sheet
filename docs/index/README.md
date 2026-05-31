@@ -1,6 +1,6 @@
 # Project Index Group
 
-Current baseline: `0.15.5`
+Current baseline: `0.16.0`
 
 This index group is for future development and AI handoff. It is intentionally module-level: it explains responsibilities, entrypoints, data flow, risks, and tests without trying to list every function.
 

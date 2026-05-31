@@ -1,5 +1,8 @@
 # TODOLIST
 
+> 2026-05-31 version iteration update:
+> Current baseline grows from `0.15.5` to `0.16.0`; this round closes the project index, documentation authority, historical code-health notes, and damaged release-note cleanup as a documentation/maintenance major release.
+
 > 2026-05-23 project index update:
 > Added `docs/index/` as the maintained multi-document project index for future development and AI handoff. `PROJECT_INDEX.md` is now a root navigation entry instead of an outdated generated file tree.
 
@@ -321,11 +324,13 @@
 
 > 用途：记录尚未完成、待验证、待澄清的事项。完成后将结果迁移到 `UPDATE_LOG.md`。
 
-当前基线版本：`0.15.5`
+当前基线版本：`0.16.0`
 默认负责人：雪荔枝 / Codex
 
 ## 版本规划
 
+- `0.16.N`：工程文档、项目索引、发布说明与后续维护流程收口；`N` 为自增长补丁版本号。
+- `0.16.0`：已完成多文档项目索引组、工程文档口径互检、历史治理文档归档说明与损坏发布说明清理。
 - `0.15.N`：下一阶段功能与前端设计调整；`N` 为自增长补丁版本号。
 - `0.15.5`：已完成角色头像上传编辑、单 JSON 备份嵌入头像字节、侧边栏头像展示、导入前预览与旧格式兼容导入。
 - `0.15.4`：进入角色头像存储方案讨论阶段，重点评估头像随角色转移与存档体积控制。
@@ -364,12 +369,12 @@
 ## P0 / 当前迭代
 
 ### 0. 工程文件互检与文档同步
-- [ ] 状态：已完成互检，待逐项清理差异
-- 目标版本：`0.15.N`
+- [x] 状态：已完成互检，历史差异已清理收口
+- 目标版本：`0.16.0`
 - 类型：工程文档 / 索引 / 验收口径 / 版本维护
 - 已核对文件：
-  - `package.json` 与 `package-lock.json` 均为 `0.15.5`。
-  - `README.md` 当前版本号为 `0.15.5`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
+  - `package.json` 与 `package-lock.json` 均已滚动到 `0.16.0`。
+  - `README.md` 当前版本号为 `0.16.0`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
   - `PROJECT_INDEX.md` 已改为根索引入口，详细模块索引迁移到 `docs/index/`。
   - `README.md` 已加入 `CSS_COLOR_USAGE_AUDIT.md` 相关文档入口。
   - `UPDATE_LOG.md` 已有 `0.14.23` 条目，记录恢复回滚前提交、前端设计摸底、测试基线修正和工程文件互检结果。
@@ -378,7 +383,7 @@
   - `UPDATE_LOG.md` 已有 `0.15.3` 条目，记录主题扩展、蕾米莉亚红主蓝辅调色与窗口最大化尺寸保存修复。
   - `UPDATE_LOG.md` 已有 `0.15.4` 条目，记录角色头像存储方案讨论入口与版本滚动。
   - `UPDATE_LOG.md` 已有 `0.15.5` 条目，记录头像编辑、单 JSON 备份、侧边栏头像、导入预览与旧格式兼容导入。
-  - `UPDATE_LOG.md` 已有 `Unreleased / 2026-05-23` 条目，记录多文档项目索引组建立。
+  - `UPDATE_LOG.md` 已有 `0.16.0` 条目，记录多文档项目索引组建立、工程文档历史清理与版本滚动。
   - `UPDATE_LOG.md` 已有 `0.15.0` 条目，记录清理临时 stash 与进入 `0.15` 阶段。
   - `FRONTEND_DESIGN_AUDIT.md` 已以 `0.15.0` 为前端设计摸底基线。
   - `src/styles/theme-colors.css` 已建立 `classic` / `night` 两套 40 色主题层，`src/styles/theme.css` 已作为变量层读取主题色。
@@ -391,9 +396,10 @@
   - [x] `UPDATE_LOG.md` 中重复的 `[Unreleased] - 2026-05-22` 主题入口条目已清理；主题入口工作已并入 `0.15.3`。
   - [x] `CODE_HEALTH_PLAN.md` 已补充归档边界说明，明确历史路径、历史 CI 链路和历史测试基线不作为当前事实源。
   - [x] `TODOLIST.md` 中 `0.12.1` 物品库收口验收已拆清双口径：结构化基础物品 `489`，当前运行时总数含空白模板为 `499`。
+  - [x] `CODE_HEALTH_PLAN.md` 的旧路径、旧 CI 链路和旧测试基线段落已改为阶段历史口径；当前事实源继续指向 `README.md`、`TODOLIST.md`、`UPDATE_LOG.md` 与 `docs/index/`。
+  - [x] `RELEASE_NOTES_v0.14.21.md` 已改为历史损坏稿指针；乱码正文不再作为可读发布说明维护。
 - 仍待清理差异：
-  - [ ] `CODE_HEALTH_PLAN.md` 已归档，但历史章节仍保留旧路径、旧 CI 链路和旧测试基线；如后续重开工程治理专项，应按当前索引与 `45 个文件 / 229 个测试` 的最新可靠测试基线重写相关章节。
-  - [ ] `RELEASE_NOTES_v0.14.21.md` 仍停在 `v0.14.21` 且存在乱码文本；若继续维护发布说明，需要重新生成 `v0.15.0` 发布说明或将旧文件标注为历史损坏稿。
+  - 暂无。后续如要重新恢复发布说明体系，应从 `UPDATE_LOG.md` 重新生成新版 release notes。
 - 后续建议：
   - 先做文档口径修复，不碰运行时代码。
   - 每次更新版本时同步核对 README、UPDATE_LOG、TODOLIST、package/lock、测试基线和发布说明。
