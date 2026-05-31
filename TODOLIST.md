@@ -1,5 +1,8 @@
 # TODOLIST
 
+> 2026-05-23 project index update:
+> Added `docs/index/` as the maintained multi-document project index for future development and AI handoff. `PROJECT_INDEX.md` is now a root navigation entry instead of an outdated generated file tree.
+
 > 2026-05-22 version iteration update:
 > Current baseline grows from `0.15.4` to `0.15.5`; this round lands the character avatar pipeline, single-file JSON backups with embedded avatar bytes, sidebar avatar display, and import preview confirmation.
 > 2026-05-22 character avatar implementation:
@@ -367,6 +370,7 @@
 - 已核对文件：
   - `package.json` 与 `package-lock.json` 均为 `0.15.5`。
   - `README.md` 当前版本号为 `0.15.5`，并已加入 `FRONTEND_DESIGN_AUDIT.md` 相关文档入口。
+  - `PROJECT_INDEX.md` 已改为根索引入口，详细模块索引迁移到 `docs/index/`。
   - `README.md` 已加入 `CSS_COLOR_USAGE_AUDIT.md` 相关文档入口。
   - `UPDATE_LOG.md` 已有 `0.14.23` 条目，记录恢复回滚前提交、前端设计摸底、测试基线修正和工程文件互检结果。
   - `UPDATE_LOG.md` 已有 `0.15.1` 条目，记录前端颜色结构与主题令牌化阶段收口。
@@ -374,18 +378,22 @@
   - `UPDATE_LOG.md` 已有 `0.15.3` 条目，记录主题扩展、蕾米莉亚红主蓝辅调色与窗口最大化尺寸保存修复。
   - `UPDATE_LOG.md` 已有 `0.15.4` 条目，记录角色头像存储方案讨论入口与版本滚动。
   - `UPDATE_LOG.md` 已有 `0.15.5` 条目，记录头像编辑、单 JSON 备份、侧边栏头像、导入预览与旧格式兼容导入。
+  - `UPDATE_LOG.md` 已有 `Unreleased / 2026-05-23` 条目，记录多文档项目索引组建立。
   - `UPDATE_LOG.md` 已有 `0.15.0` 条目，记录清理临时 stash 与进入 `0.15` 阶段。
   - `FRONTEND_DESIGN_AUDIT.md` 已以 `0.15.0` 为前端设计摸底基线。
   - `src/styles/theme-colors.css` 已建立 `classic` / `night` 两套 40 色主题层，`src/styles/theme.css` 已作为变量层读取主题色。
   - `CSS_COLOR_USAGE_AUDIT.md` 已记录迁移前 CSS 颜色分布。
   - `.github/workflows/ci.yml` 当前实际链路为 `npm ci -> npm run typecheck -> npm run lint -> npm run test -> npm run build`。
   - `tests/itemLibraryAudit.test.ts` 与 `tests/itemLibraryAdapter.test.ts` 的运行时物品库总数口径已统一为 `499`。
-- 发现的待清理差异：
-  - [ ] `README.md` 的“当前脚本定义 / 开发前建议 / 提交前建议 / CI 工作流”段落仍未完整写入 `npm run test`，与 `package.json` 和 GitHub Actions 实际链路不完全一致。
-  - [ ] `PROJECT_INDEX.md` 生成时间停留在 `2026/4/3`，缺少数据包、附魔、全局反馈、测试与新前端审计文档等近期结构，需要重新生成或标注为历史索引。
-  - [ ] `CODE_HEALTH_PLAN.md` 已归档，但其中“当前测试基线 10 组 / 30 条用例”等历史数字容易与当前 `37 files / 203 tests` 混淆，需要补一段当前状态说明或明确全篇历史属性。
+- 已清理差异：
+  - [x] `README.md` 的“当前脚本定义 / 开发前建议 / 提交前建议 / CI 工作流”段落已补入 `npm run test`、`audit:item-library`、`test:watch`、`verify:phase4-storage`，并已对齐 GitHub Actions 实际链路。
+  - [x] `README.md` 中旧 `saves/` 与根目录 `window-config.json` 的当前存储说明已改为 Electron `userData/dnd_5e_characters/characters/` 与 `userData/dnd_5e_characters/app-state/window-config.json`，旧路径仅作为迁移来源说明。
+  - [x] `UPDATE_LOG.md` 中重复的 `[Unreleased] - 2026-05-22` 主题入口条目已清理；主题入口工作已并入 `0.15.3`。
+  - [x] `CODE_HEALTH_PLAN.md` 已补充归档边界说明，明确历史路径、历史 CI 链路和历史测试基线不作为当前事实源。
+  - [x] `TODOLIST.md` 中 `0.12.1` 物品库收口验收已拆清双口径：结构化基础物品 `489`，当前运行时总数含空白模板为 `499`。
+- 仍待清理差异：
+  - [ ] `CODE_HEALTH_PLAN.md` 已归档，但历史章节仍保留旧路径、旧 CI 链路和旧测试基线；如后续重开工程治理专项，应按当前索引与 `45 个文件 / 229 个测试` 的最新可靠测试基线重写相关章节。
   - [ ] `RELEASE_NOTES_v0.14.21.md` 仍停在 `v0.14.21` 且存在乱码文本；若继续维护发布说明，需要重新生成 `v0.15.0` 发布说明或将旧文件标注为历史损坏稿。
-  - [ ] `TODOLIST.md` 中 `0.12.1` 物品库收口验收仍写 `ITEM_LIBRARY_AUDIT_REPORT.total === 489`，这代表非模板结构化基础物品数量；当前运行时审计总数含空白模板为 `499`，需要在该条验收中拆清“基础物品 489 / 运行时总数 499”的双口径。
 - 后续建议：
   - 先做文档口径修复，不碰运行时代码。
   - 每次更新版本时同步核对 README、UPDATE_LOG、TODOLIST、package/lock、测试基线和发布说明。
@@ -665,7 +673,8 @@
   - 二级目录本地化、迁移审计、结构化描述、复数子个体迁移、容器透视、全物品堆叠、贸易品重量口径均已进入本轮版本。
   - 自动化验收已覆盖数据审计、adapter、迁移、库存逻辑与库存行 UI；后续若发现体验问题，进入 `0.12.2` 或后续自增长补丁版本。
 - 验收标准：
-  - `ITEM_LIBRARY_AUDIT_REPORT.total === 489`
+  - 结构化基础物品审计口径：`ITEM_LIBRARY_AUDIT_REPORT.total === 489`
+  - 当前运行时物品库总数口径：基础物品 `489` + 空白模板 `10` = `499`
   - `sourceMismatched === 0`
   - `duplicateIds === 0`
   - `magicItems === 0`

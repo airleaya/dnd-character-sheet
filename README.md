@@ -232,7 +232,8 @@
 ├─ package.json
 ├─ tsconfig.json
 ├─ vite.config.js
-├─ window-config.json        # 窗口位置与大小配置
+├─ docs/                     # 项目索引与维护文档
+├─ PROJECT_INDEX.md          # 项目索引总入口
 ├─ TODOLIST.md
 └─ UPDATE_LOG.md
 ```
@@ -286,11 +287,13 @@
 
 角色通过 Electron 主进程保存到：
 
-- `saves/*.json`
+- Electron `userData/dnd_5e_characters/characters/<角色ID>.json`
 
 窗口状态会保存到：
 
-- `window-config.json`
+- Electron `userData/dnd_5e_characters/app-state/window-config.json`
+
+旧版 `saves/*.json`、Electron `userData/saves/`、`userData/storage/characters/`、根目录 `window-config.json` 和 Electron `userData/window-config.json` 仍作为迁移来源读取；它们不再是当前默认写入位置。
 
 关闭应用时，渲染进程会先收到 `app-will-close` 事件，触发：
 
@@ -344,9 +347,13 @@ npm run dev
 - `npm run dev`：启动 Vite 开发环境
 - `npm run build`：构建前端并使用 `electron-builder` 打包
 - `npm run preview`：预览 Vite 构建结果
+- `npm run test`：运行完整 Vitest 测试套件
+- `npm run audit:item-library`：运行物品库审计与迁移相关测试
+- `npm run test:watch`：以 watch 模式运行 Vitest
 - `npm run typecheck`：执行 Vue + TypeScript 类型检查
 - `npm run lint`：执行 ESLint 检查
 - `npm run lint:fix`：自动修复部分 ESLint 问题
+- `npm run verify:phase4-storage`：运行 Phase 4 存储迁移验证脚本
 - `npm run format`：使用 Prettier 格式化项目文件
 - `npm run format:check`：检查 Prettier 格式是否一致
 
@@ -357,15 +364,17 @@ npm run dev
 ```bash README.md
 npm run typecheck
 npm run lint
+npm run test
 npm run build
 ```
 
 推荐在提交前至少执行一次：
 
 ```bash README.md
-npm run format
+npm run format:check
 npm run lint
 npm run typecheck
+npm run test
 ```
 
 
@@ -390,7 +399,7 @@ Windows 目标包括：
 
 ### 角色存档
 
-- 保存目录：`saves/`
+- 保存目录：Electron `userData/dnd_5e_characters/characters/`
 - 文件格式：JSON
 - 当前命名策略：`<角色ID>.json`
 
@@ -402,7 +411,7 @@ Windows 目标包括：
 
 ### 窗口配置
 
-- 文件：`window-config.json`
+- 文件：Electron `userData/dnd_5e_characters/app-state/window-config.json`
 - 用途：保存窗口大小与位置
 
 ---
@@ -482,19 +491,19 @@ Windows 目标包括：
 - `npm ci`
 - `npm run typecheck`
 - `npm run lint`
+- `npm run test`
 - `npm run build`
 
-如果后续扩展测试体系，建议再补充：
+本地验证时可按改动范围先跑窄测试；跨层修改或准备提交前，优先使用同一条完整链路。
 
-- 单元测试
-- 存档回归测试
-- 关键规则计算测试
+当前测试体系已覆盖 store 逻辑、角色存档、头像备份、数据包、物品库、主题结构与关键 UI smoke；新增功能应同步补充对应测试入口。
 
 ---
 
 ## 相关文档
 
-- `PROJECT_INDEX.md`：项目结构索引
+- `PROJECT_INDEX.md`：项目索引总入口
+- `docs/index/`：面向后续开发与 AI 接力的详细模块索引组
 - `FRONTEND_DESIGN_AUDIT.md`：前端设计摸底、视觉体系与后续改版风险记录
 - `CSS_COLOR_USAGE_AUDIT.md`：CSS 颜色使用统计、区域归属与颜色令牌化基线
 - `TODOLIST.md`：未完成事项与计划

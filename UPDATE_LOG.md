@@ -1,5 +1,33 @@
 # UPDATE_LOG
 
+## [Unreleased] - 2026-05-23
+- 类型：工程文档 / 项目索引 / 维护入口
+- 项目：建立面向后续开发与 AI 接力的多文档项目索引组。
+- 负责人：snowlitch / Codex
+- 相关文件：
+  - `PROJECT_INDEX.md`
+  - `README.md`
+  - `TODOLIST.md`
+  - `UPDATE_LOG.md`
+  - `docs/index/README.md`
+  - `docs/index/architecture.md`
+  - `docs/index/electron-storage-ipc.md`
+  - `docs/index/frontend-shell.md`
+  - `docs/index/character-avatar-backup.md`
+  - `docs/index/state-and-logic.md`
+  - `docs/index/inventory-forge-enchanting.md`
+  - `docs/index/spells-data-packs.md`
+  - `docs/index/theme-and-design.md`
+  - `docs/index/tests-and-verification.md`
+  - `docs/index/documents-and-workflow.md`
+- 完成内容：
+  - 将旧的单文件 `PROJECT_INDEX.md` 重写为根导航入口。
+  - 新增 `docs/index/` 索引组，按架构、Electron/IPC/存储、前端壳、角色头像与备份、状态逻辑、物品/铁匠/附魔、法术/数据包、主题设计、测试验证和文档流程拆分。
+  - 明确旧 `generate_index.js` 只是历史辅助脚本，不再作为当前索引的事实来源。
+- 验证：
+  - `git diff --check` 通过。
+  - 索引中引用的关键文档路径已用 `rg --files` 核对。
+
 ## [0.15.5] - 2026-05-22
 - 类型：角色头像 / 导入导出 / 备份体验 / 版本滚动
 - 项目：完成角色头像瘦身版实现、头像编辑器、单 JSON 备份格式、侧边栏头像展示与导入前预览流程。
@@ -83,24 +111,6 @@
   - Electron 窗口状态保存改为：非最大化时保存 `getBounds()`；最大化时保存 `getNormalBounds()` 并记录 `isMaximized`，避免最大化尺寸覆盖普通窗口尺寸。
   - 创建窗口时若读取到 `isMaximized`，会在应用普通窗口 bounds 后恢复最大化状态。
   - 新增 `tests/windowState.test.ts` 覆盖窗口状态序列化行为。
-
-## [Unreleased] - 2026-05-22
-- 类型：前端主题入口 / 交互设置
-- 项目：将主题切换入口暴露给用户，让 `classic` / `night` 两套 UI 主题可在应用内切换。
-- 负责人：snowlitch / Codex
-- 相关文件：
-  - `TODOLIST.md`
-  - `FRONTEND_DESIGN_AUDIT.md`
-  - `src/main.ts`
-  - `src/utils/appTheme.ts`
-  - `src/components/layout/SidebarLeft.vue`
-  - `tests/appTheme.test.ts`
-  - `tests/sidebarLeftTheme.ui.test.ts`
-- 完成内容：
-  - 新增 `src/utils/appTheme.ts`，统一管理主题 id、读取本地存储、写入 `document.documentElement.dataset.theme` 和持久化用户选择。
-  - 应用启动时在 `src/main.ts` 初始化主题，避免首屏渲染后才切换主题。
-  - 左侧栏底部新增 `经典 / 夜间` 主题分段控件，位于缩放控制上方，切换后立即更新根节点 `data-theme` 并写入 `localStorage`。
-  - 新增 `tests/appTheme.test.ts` 和 `tests/sidebarLeftTheme.ui.test.ts`，覆盖主题 id 校验、默认回退、启动恢复、用户点击切换与持久化。
 
 ## [0.15.2] - 2026-05-22
 - 类型：前端颜色系统 / 主题结构 / 测试护栏
